@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Send, ImageIcon, Save, Download, Eye, GripVertical, Shirt, Palette, Wand2 } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Send, ImageIcon, Save, Download, Eye, GripVertical, Shirt, Palette, Wand2, Move, Maximize2, RotateCw } from "lucide-react"
 import { MessageSkeleton } from "@/components/ui/loading/message-skeleton"
 
 interface Message {
@@ -30,6 +31,23 @@ function formatTimestamp(date: Date): string {
   })
 }
 
+type LayerType = "image" | "icon" | "text"
+
+interface DesignLayer {
+  id: string
+  type: LayerType
+  side: "front" | "back"
+  visible: boolean
+  x: number
+  y: number
+  scale: number
+  rotation: number
+  src?: string
+  text?: string
+  fontSize?: number
+  color?: string
+}
+
 export default function DesignToolPage(): ReactElement {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -43,6 +61,12 @@ export default function DesignToolPage(): ReactElement {
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [currentDesign, setCurrentDesign] = useState<string | null>(null)
+  const [artTransform, setArtTransform] = useState<TransformState>({ x: 0, y: 0, scale: 1, rotation: 0 })
+  const [side, setSide] = useState<"front" | "back">("front")
+  const [garmentColor, setGarmentColor] = useState<string>("#ffffff")
+  const [layers, setLayers] = useState<DesignLayer[]>([])
+  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null)
+  const [textDraft, setTextDraft] = useState<{ text: string; fontSize: number; color: string }>({ text: "", fontSize: 32, color: "#000000" })
   const [leftWidth, setLeftWidth] = useState(50) // Percentage
   const [isDragging, setIsDragging] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -220,6 +244,65 @@ export default function DesignToolPage(): ReactElement {
     }
   }
 
+  const addImageLayer = (src: string) => {
+    const id = crypto.randomUUID()
+    setLayers((prev) => [
+      ...prev,
+      { id, type: "icon", side, visible: true, x: 0, y: 0, scale: 1, rotation: 0, src },
+    ])
+    setSelectedLayerId(id)
+  }
+
+  const handleAddUploadLayer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const id = crypto.randomUUID()
+      setLayers((prev) => [
+        ...prev,
+        { id, type: "image", side, visible: true, x: 0, y: 0, scale: 1, rotation: 0, src: String(ev.target?.result || "") },
+      ])
+      setSelectedLayerId(id)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const addTextLayer = () => {
+    if (!textDraft.text.trim()) return
+    const id = crypto.randomUUID()
+    setLayers((prev) => [
+      ...prev,
+      { id, type: "text", side, visible: true, x: 0, y: 0, scale: 1, rotation: 0, text: textDraft.text, fontSize: textDraft.fontSize, color: textDraft.color },
+    ])
+    setSelectedLayerId(id)
+    setTextDraft((d) => ({ ...d, text: "" }))
+  }
+
+  const updateLayer = (id: string, partial: Partial<DesignLayer>) => {
+    setLayers((prev) => prev.map((l) => (l.id === id ? { ...l, ...partial } : l)))
+  }
+
+  const moveLayer = (fromIndex: number, toIndex: number) => {
+    const relevant = layers.filter((l) => l.side === side)
+    if (toIndex < 0 || toIndex >= relevant.length) return
+    const other = layers.filter((l) => l.side !== side)
+    const reordered = [...relevant]
+    const [moved] = reordered.splice(fromIndex, 1)
+    reordered.splice(toIndex, 0, moved)
+    setLayers([...other, ...reordered])
+  }
+
+  const removeLayer = (id: string) => {
+    setLayers((prev) => prev.filter((l) => l.id !== id))
+    if (selectedLayerId === id) setSelectedLayerId(null)
+  }
+
+  const adjustSelected = (mutator: (l: DesignLayer) => DesignLayer) => {
+    if (!selectedLayerId) return
+    setLayers((prev) => prev.map((l) => (l.id === selectedLayerId ? mutator(l) : l)))
+  }
+
   return (
     <div className="h-screen bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
       {/* Header */}
@@ -371,34 +454,125 @@ export default function DesignToolPage(): ReactElement {
 
           <div className="flex-1 p-4">
             <Card className="h-full">
-              <CardContent className="p-6 h-full flex flex-col">
-                <div className="flex-1 flex items-center justify-center bg-muted/30 rounded-lg">
-                  {currentDesign ? (
-                    <div className="text-center space-y-4">
-                      <img
-                        src={currentDesign || "/placeholder.svg"}
-                        alt="Generated design"
-                        className="max-w-full max-h-96 object-contain rounded-lg shadow-lg"
+              <CardContent className="p-6 h-full grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+                <div className="relative flex items-center justify-center rounded-lg overflow-hidden" style={{ backgroundColor: garmentColor }}>
+                  <img
+                    src="/custom-t-shirt-design.jpg"
+                    alt="T-shirt mockup"
+                    className="max-h-[560px] w-auto object-contain select-none pointer-events-none"
+                  />
+
+                  {layers
+                    .filter((l) => l.side === side && l.visible)
+                    .map((layer, idx) => (
+                      <DraggableLayer
+                        key={layer.id}
+                        layer={layer}
+                        selected={selectedLayerId === layer.id}
+                        onSelect={() => setSelectedLayerId(layer.id)}
+                        onChange={(updated) => updateLayer(updated.id, updated)}
                       />
-                      <div className="flex gap-2 justify-center">
-                        <Button variant="outline" size="sm">
-                          <Save className="h-4 w-4 mr-2" />
-                          Save
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </Button>
+                    ))}
+                </div>
+
+                {/* Editor Tabs */}
+                <div className="space-y-4">
+                  <Tabs defaultValue="customize" className="w-full">
+                    <TabsList className="grid grid-cols-5">
+                      <TabsTrigger value="customize">Customize</TabsTrigger>
+                      <TabsTrigger value="design">Design</TabsTrigger>
+                      <TabsTrigger value="text">Text</TabsTrigger>
+                      <TabsTrigger value="upload">Upload</TabsTrigger>
+                      <TabsTrigger value="layers">Layers</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="customize" className="space-y-4 mt-4">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button variant={side === "front" ? "default" : "outline"} onClick={() => setSide("front")}>Front</Button>
+                        <Button variant={side === "back" ? "default" : "outline"} onClick={() => setSide("back")}>Back</Button>
                       </div>
-                      <Button className="w-full">Add to Cart - $29.99</Button>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Garment Color</label>
+                        <input type="color" value={garmentColor} onChange={(e) => setGarmentColor(e.target.value)} className="h-10 w-full rounded border" />
+                      </div>
+
+                      {selectedLayerId && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Selected Layer Controls</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button variant="outline" size="sm" onClick={() => adjustSelected((l) => ({ ...l, rotation: 0 }))}>
+                              <RotateCw className="h-4 w-4 mr-2" /> Reset
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => adjustSelected((l) => ({ ...l, scale: Math.min(3, l.scale + 0.1) }))}>
+                              <Maximize2 className="h-4 w-4 mr-2" /> Scale +
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => adjustSelected((l) => ({ ...l, scale: Math.max(0.2, l.scale - 0.1) }))}>
+                              <Maximize2 className="h-4 w-4 mr-2 rotate-180" /> Scale -
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="design" className="space-y-3 mt-4">
+                      <div className="grid grid-cols-4 gap-2">
+                        {presetIcons.map((icon) => (
+                          <button key={icon.src} className="border rounded p-2 hover:bg-muted" onClick={() => addImageLayer(icon.src)}>
+                            <img src={icon.src} alt={icon.label} className="h-12 w-12 object-contain mx-auto" />
+                            <div className="text-xs text-center mt-1">{icon.label}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="text" className="space-y-3 mt-4">
+                      <div className="space-y-2">
+                        <Input placeholder="Add text" value={textDraft.text} onChange={(e) => setTextDraft((d) => ({ ...d, text: e.target.value }))} />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input type="number" min={8} max={120} value={textDraft.fontSize} onChange={(e) => setTextDraft((d) => ({ ...d, fontSize: Number(e.target.value) }))} />
+                          <input type="color" value={textDraft.color} onChange={(e) => setTextDraft((d) => ({ ...d, color: e.target.value }))} className="h-10 w-full rounded border" />
+                        </div>
+                        <Button onClick={addTextLayer} disabled={!textDraft.text.trim()}>Add Text</Button>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="upload" className="space-y-3 mt-4">
+                      <Input type="file" accept="image/*" onChange={handleAddUploadLayer} />
+                    </TabsContent>
+
+                    <TabsContent value="layers" className="space-y-3 mt-4">
+                      <div className="space-y-2">
+                        {layers.filter((l) => l.side === side).map((l, idx, arr) => (
+                          <div key={l.id} className={`flex items-center justify-between border rounded p-2 ${selectedLayerId === l.id ? "bg-muted" : ""}`}>
+                            <div className="flex items-center gap-2">
+                              <input type="checkbox" checked={l.visible} onChange={(e) => updateLayer(l.id, { visible: e.target.checked })} />
+                              <button className="text-left" onClick={() => setSelectedLayerId(l.id)}>
+                                <div className="text-sm font-medium">{layerTitle(l)}</div>
+                                <div className="text-xs text-muted-foreground">{l.type}</div>
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => moveLayer(idx, idx - 1)} disabled={idx === 0}>Up</Button>
+                              <Button variant="outline" size="sm" onClick={() => moveLayer(idx, idx + 1)} disabled={idx === arr.length - 1}>Down</Button>
+                              <Button variant="destructive" size="sm" onClick={() => removeLayer(l.id)}>Delete</Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+
+                  <div className="pt-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline">
+                        <Save className="h-4 w-4 mr-2" /> Save
+                      </Button>
+                      <Button variant="outline">
+                        <Download className="h-4 w-4 mr-2" /> Download
+                      </Button>
                     </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground">
-                      <Eye className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p className="text-lg font-medium">Design Preview</p>
-                      <p className="text-sm">Your AI-generated clothing design will appear here</p>
-                    </div>
-                  )}
+                    <Button className="w-full mt-2">Add to Cart - $29.99</Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -425,3 +599,82 @@ const quickPrompts = [
   "Make a floral dress with summer vibes",
   "Design a streetwear jacket with bold graphics",
 ]
+
+interface TransformState {
+  x: number
+  y: number
+  scale: number
+  rotation: number
+}
+
+function DraggableLayer({ layer, selected, onSelect, onChange }: {
+  layer: DesignLayer
+  selected: boolean
+  onSelect: () => void
+  onChange: (l: DesignLayer) => void
+}) {
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
+
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    onSelect()
+    setIsDragging(true)
+    setDragStart({ x: e.clientX - layer.x, y: e.clientY - layer.y })
+  }
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging || !dragStart) return
+    onChange({ ...layer, x: e.clientX - dragStart.x, y: e.clientY - dragStart.y })
+  }
+
+  const onMouseUp = () => setIsDragging(false)
+
+  const baseStyle = {
+    transform: `translate(-50%, -50%) translate(${layer.x}px, ${layer.y}px) rotate(${layer.rotation}deg) scale(${layer.scale})`,
+  } as React.CSSProperties
+
+  return (
+    <div
+      className={`absolute left-1/2 top-1/3 cursor-move ${selected ? "ring-2 ring-primary" : ""}`}
+      style={baseStyle}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseUp}
+    >
+      {layer.type !== "text" && layer.src && (
+        <img src={layer.src} alt="Layer" className="max-w-[320px] w-[40vw] max-h-[320px] object-contain drop-shadow" />
+      )}
+      {layer.type === "text" && (
+        <div
+          className="select-none"
+          style={{ fontSize: layer.fontSize || 32, color: layer.color || "#000000" }}
+        >
+          {layer.text}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function layerTitle(l: DesignLayer): string {
+  if (l.type === "text") return l.text ? `Text: ${l.text.slice(0, 12)}` : "Text"
+  if (l.type === "icon") return "Icon"
+  return "Image"
+}
+
+const presetIcons = [
+  { src: "/globe.svg", label: "Globe" },
+  { src: "/file.svg", label: "File" },
+  { src: "/next.svg", label: "Next" },
+  { src: "/vercel.svg", label: "Vercel" },
+]
+
+const newLayerBase = (side: "front" | "back") => ({
+  side,
+  visible: true,
+  x: 0,
+  y: 0,
+  scale: 1,
+  rotation: 0,
+})

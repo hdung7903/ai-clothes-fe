@@ -44,7 +44,7 @@ export function Header() {
               <User className="h-5 w-5" />
             </Button>
           </Link>
-          <Link href="/login">
+          <Link href="/auth/login">
             <Button variant="outline" className="hidden md:flex bg-transparent">
               Login
             </Button>

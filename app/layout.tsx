@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import "./globals.css"
 import { Toaster } from "sonner"
+import { AppShell } from "@/components/layout/app-shell"
 
 export const metadata: Metadata = {
   title: "AI Fashion Designer - Transform Images into Custom Clothing",
@@ -23,7 +24,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Toaster />
-        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        <AppShell>
+          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        </AppShell>
         <Analytics />
       </body>
     </html>
