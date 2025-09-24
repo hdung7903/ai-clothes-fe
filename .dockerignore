@@ -1,0 +1,17 @@
+node_modules
+.next/cache
+.next/static/chunks/*.map
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+.turbo
+.git
+.gitignore
+.DS_Store
+*.local
+.env*
+coverage
+tmp
+dist
+
