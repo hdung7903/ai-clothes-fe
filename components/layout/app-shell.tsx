@@ -14,7 +14,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     setIsMounted(true)
   }, [])
 
-  const hideChrome = pathname?.startsWith("/design") || pathname?.startsWith("/auth")
+  const hideChrome = pathname?.startsWith("/design") || pathname?.startsWith("/auth") || pathname?.startsWith("/admin")
 
   // Avoid SSR/CSR mismatches by rendering only children until mounted,
   // and also when we intentionally hide the chrome on certain routes.
