@@ -1,0 +1,50 @@
+.fabric-container{
+    display: flex;
+    justify-content: center;
+    position: relative;
+}
+
+/* Hide Fabric.js selection borders */
+.canvas-container .upper-canvas {
+    outline: none !important;
+    border: none !important;
+}
+
+.canvas-container .upper-canvas:focus {
+    outline: none !important;
+    border: none !important;
+}
+
+/* Hide selection handles and borders */
+.canvas-container .canvas-container {
+    outline: none !important;
+}
+
+/* Override Fabric.js selection styling */
+.canvas-container .fabric-canvas {
+    outline: none !important;
+}
+
+/* Hide all Fabric.js selection elements */
+.fabric-container * {
+    outline: none !important;
+}
+
+/* Hide selection borders on all canvas elements */
+.fabric-container canvas {
+    outline: none !important;
+    border: none !important;
+}
+
+/* Override Fabric.js selection rendering */
+.fabric-container .canvas-container {
+    outline: none !important;
+    border: none !important;
+}
+
+/* Hide any selection rectangles */
+.fabric-container .upper-canvas {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}

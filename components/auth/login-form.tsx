@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { loginUser, clearError, fetchUserProfile } from "@/redux/authSlice"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -21,8 +24,9 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const router = useRouter()
+  const dispatch = useAppDispatch()
+  const { isLoading, error, isAuthenticated, tokens, user } = useAppSelector((state) => state.auth)
 
   const {
     register,
@@ -36,20 +40,28 @@ export function LoginForm() {
 
   const rememberMe = watch("rememberMe")
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
-    setError("")
-
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Login data:", data)
-      // Handle successful login here
-    } catch (err) {
-      setError("Invalid email or password. Please try again.")
-    } finally {
-      setIsLoading(false)
+  // Redirect on successful login
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/')
     }
+  }, [isAuthenticated, router])
+
+  // Fetch profile once we have tokens
+  useEffect(() => {
+    if (tokens?.accessToken && !user) {
+      dispatch(fetchUserProfile(tokens.accessToken))
+    }
+  }, [tokens?.accessToken, user, dispatch])
+
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError())
+  }, [dispatch])
+
+  const onSubmit = async (data: LoginFormData) => {
+    const { rememberMe, ...credentials } = data
+    dispatch(loginUser(credentials))
   }
 
   return (

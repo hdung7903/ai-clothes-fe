@@ -1,0 +1,37 @@
+import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse } from '@/types/cart';
+
+const defaultHeaders: HeadersInit = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+
+function getBaseUrl(): string {
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '');
+  }
+  return '';
+}
+
+async function requestJson<TReq, TRes>(path: string, options: { method: 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + path, {
+    method: options.method,
+    headers: defaultHeaders,
+    credentials: 'include',
+    body: options.payload ? JSON.stringify(options.payload) : undefined,
+  });
+  return res.json() as Promise<TRes>;
+}
+
+export async function addItem(payload: AddCartItemRequest): Promise<AddCartItemResponse> {
+  return requestJson<AddCartItemRequest, AddCartItemResponse>('/api/Cart/item', { method: 'POST', payload });
+}
+
+export async function deleteItems(payload: DeleteCartItemsRequest): Promise<DeleteCartItemsResponse> {
+  return requestJson<DeleteCartItemsRequest, DeleteCartItemsResponse>('/api/Cart/item', { method: 'DELETE', payload });
+}
+
+
+
+
+

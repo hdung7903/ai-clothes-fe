@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { registerUser, clearError, requestEmailVerificationAction } from "@/redux/authSlice"
 
 const registerSchema = z
   .object({
@@ -36,8 +39,10 @@ type RegisterFormData = z.infer<typeof registerSchema>
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  const [isSuccess, setIsSuccess] = useState(false)
+  const router = useRouter()
+  const dispatch = useAppDispatch()
+  const { isLoading, error } = useAppSelector((state) => state.auth)
 
   const {
     register,
@@ -51,20 +56,44 @@ export function RegisterForm() {
 
   const acceptTerms = watch("acceptTerms")
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true)
-    setError("")
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError())
+  }, [dispatch])
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Register data:", data)
-      // Handle successful registration here
-    } catch (err) {
-      setError("Registration failed. Please try again.")
-    } finally {
-      setIsLoading(false)
+  const onSubmit = async (data: RegisterFormData) => {
+    const { firstName, lastName, confirmPassword, acceptTerms, ...credentials } = data
+    const result = await dispatch(registerUser(credentials))
+    
+    if (registerUser.fulfilled.match(result)) {
+      // Save email for verification flow
+      try {
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('pendingVerificationEmail', credentials.email)
+        }
+      } catch {}
+      // Fire and forget email verification request and navigate to verify page
+      dispatch(requestEmailVerificationAction({ email: credentials.email }))
+      router.push(`/auth/verify?email=${encodeURIComponent(credentials.email)}`)
     }
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+            <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Account Created!</h3>
+          <p className="text-muted-foreground">Your account has been created successfully. Redirecting to login...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -1,8 +1,12 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import { ShoppingCart, User, Menu } from "lucide-react"
 import Link from "next/link"
+import { useAppSelector } from "@/redux/hooks"
 
 export function Header() {
+  const { isAuthenticated, user } = useAppSelector((s) => s.auth)
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -39,16 +43,20 @@ export function Header() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </Link>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" className="hidden md:flex">
-              <User className="h-5 w-5" />
-            </Button>
-          </Link>
-          <Link href="/auth/login">
-            <Button variant="outline" className="hidden md:flex bg-transparent">
-              Login
-            </Button>
-          </Link>
+          {isAuthenticated && user ? (
+            <Link href="/account" className="hidden md:flex items-center">
+              <Button variant="ghost" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                <span className="max-w-[12rem] truncate">{user.fullName || user.email}</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link href="/auth/login">
+              <Button variant="outline" className="hidden md:flex bg-transparent">
+                Login
+              </Button>
+            </Link>
+          )}
           <Link href="/design">
             <Button className="hidden md:flex">Start Designing</Button>
           </Link>

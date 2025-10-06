@@ -112,7 +112,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
-          <p>{"© 2024 FashionAI. All rights reserved. Powered by cutting-edge AI technology."}</p>
+          <p>{"© 2025 Copyright by hdung7903. All rights reserved."}</p>
         </div>
       </div>
     </footer>

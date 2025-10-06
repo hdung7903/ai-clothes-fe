@@ -7,6 +7,9 @@ import { Suspense } from "react"
 import "./globals.css"
 import { Toaster } from "sonner"
 import { AppShell } from "@/components/layout/app-shell"
+import { ReduxProvider } from "@/components/providers/redux-provider"
+import { PageLoadingSpinner } from "@/components/ui/loading-spinner"
+import { NavigationLoading } from "@/components/ui/navigation-loading"
 
 export const metadata: Metadata = {
   title: "AI Fashion Designer - Transform Images into Custom Clothing",
@@ -23,11 +26,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <Toaster />
-        <AppShell>
-          <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
-        </AppShell>
-        <Analytics />
+        <ReduxProvider>
+          <Toaster />
+          <AppShell>
+            <Suspense fallback={<PageLoadingSpinner />}>{children}</Suspense>
+          </AppShell>
+          <NavigationLoading />
+          <Analytics />
+        </ReduxProvider>
       </body>
     </html>
   )

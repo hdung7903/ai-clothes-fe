@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, CheckCircle } from "lucide-react"
+import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { requestPasswordResetAction, clearError } from "@/redux/authSlice"
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -17,9 +19,9 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 
 export function ForgotPasswordForm() {
-  const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState("")
+  const dispatch = useAppDispatch()
+  const { isLoading, error } = useAppSelector((state) => state.auth)
 
   const {
     register,
@@ -29,19 +31,16 @@ export function ForgotPasswordForm() {
     resolver: zodResolver(forgotPasswordSchema),
   })
 
-  const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true)
-    setError("")
+  // Clear error when component mounts
+  useEffect(() => {
+    dispatch(clearError())
+  }, [dispatch])
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      console.log("Forgot password data:", data)
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    const result = await dispatch(requestPasswordResetAction(data))
+    
+    if (requestPasswordResetAction.fulfilled.match(result)) {
       setIsSuccess(true)
-    } catch (err) {
-      setError("Failed to send reset email. Please try again.")
-    } finally {
-      setIsLoading(false)
     }
   }
 
