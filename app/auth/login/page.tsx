@@ -3,8 +3,8 @@ import Link from "next/link"
 import { LoginForm } from "@/components/auth/login-form"
 
 export const metadata: Metadata = {
-  title: "Login - AI Fashion Designer",
-  description: "Sign in to your AI Fashion Designer account",
+  title: "Login - TEECRAFT",
+  description: "Sign in to your TEECRAFT account",
 }
 
 export default function LoginPage() {

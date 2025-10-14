@@ -18,11 +18,29 @@ function getBaseUrl(): string {
   return '';
 }
 
+function getAccessToken(): string | null {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { accessToken?: string };
+    return parsed?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function withAuth(headers: HeadersInit): HeadersInit {
+  const h = new Headers(headers as HeadersInit);
+  const token = getAccessToken();
+  if (token) h.set('Authorization', `Bearer ${token}`);
+  return h;
+}
+
 export async function createOrUpdateProduct(payload: CreateOrUpdateProductRequest): Promise<CreateOrUpdateProductResponse> {
   const baseUrl = getBaseUrl();
   const res = await fetch(baseUrl + '/api/Product/CreateOrUpdateProduct', {
     method: 'POST',
-    headers: defaultJsonHeaders,
+    headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
@@ -34,7 +52,7 @@ export interface SearchProductsQuery {
   CategoryId?: string;
   MinPrice?: number;
   MaxPrice?: number;
-  SortBy?: string;
+  SortBy: 'NAME' | 'PRICE' | 'CREATED_ON';
   SortDescending: boolean;
   PageNumber: number;
   PageSize: number;
@@ -48,7 +66,7 @@ export async function searchProducts(query: SearchProductsQuery): Promise<Search
   });
   const res = await fetch(url.toString(), {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
   return res.json() as Promise<SearchProductsResponse>;
@@ -58,7 +76,7 @@ export async function getProductById(productId: string): Promise<GetProductByIdR
   const baseUrl = getBaseUrl();
   const res = await fetch(baseUrl + `/api/Product/${encodeURIComponent(productId)}`, {
     method: 'GET',
-    headers: { 'Accept': 'application/json' },
+    headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
   return res.json() as Promise<GetProductByIdResponse>;
@@ -68,7 +86,7 @@ export async function deleteProductById(productId: string): Promise<DeleteProduc
   const baseUrl = getBaseUrl();
   const res = await fetch(baseUrl + `/api/Product/${encodeURIComponent(productId)}`, {
     method: 'DELETE',
-    headers: { 'Accept': 'application/json' },
+    headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
   return res.json() as Promise<DeleteProductByIdResponse>;

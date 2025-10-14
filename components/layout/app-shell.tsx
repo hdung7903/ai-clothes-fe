@@ -15,7 +15,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     setIsMounted(true)
   }, [])
 
-  const hideChrome = pathname?.startsWith("/design") || pathname?.startsWith("/auth")
+  const hideChrome = pathname?.startsWith("/design") || pathname?.startsWith("/auth") || pathname?.startsWith("/admin")
 
   // Show loading spinner while mounting to avoid SSR/CSR mismatches
   if (!isMounted) {

@@ -1,33 +1,33 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Upload, Wand2, Palette, ShoppingCart } from "lucide-react"
+import { Shirt, Heart, ShoppingCart } from "lucide-react"
 
 const steps = [
   {
     step: "01",
-    icon: Upload,
-    title: "Upload Your Image",
+    icon: Shirt,
+    title: "Tìm Phong Cách Của Bạn",
     description:
-      "Start by uploading any image that inspires you - from nature photos to artwork, anything can become fashion.",
+      "Duyệt qua hàng mới và các món được tuyển chọn để khám phá những món bạn sẽ yêu thích.",
   },
   {
     step: "02",
-    icon: Wand2,
-    title: "AI Magic Happens",
+    icon: Heart,
+    title: "Chọn Kích Thước Phù Hợp",
     description:
-      "Our advanced AI analyzes your image and generates multiple unique clothing design variations in seconds.",
+      "Sử dụng hướng dẫn kích thước và đánh giá của chúng tôi để chọn kích thước và vừa vặn hoàn hảo.",
   },
   {
     step: "03",
-    icon: Palette,
-    title: "Customize & Perfect",
-    description: "Fine-tune colors, adjust patterns, modify styles, and make the design perfectly match your vision.",
+    icon: ShoppingCart,
+    title: "Thanh Toán Nhanh",
+    description: "Thanh toán an toàn, địa chỉ đã lưu và tùy chọn vận chuyển nhanh.",
   },
   {
     step: "04",
-    icon: ShoppingCart,
-    title: "Order & Enjoy",
+    icon: Shirt,
+    title: "Mặc Lại Nhiều Lần",
     description:
-      "Place your order and receive your custom-designed, high-quality clothing piece delivered to your door.",
+      "Tận hưởng sự thoải mái cao cấp và chất lượng được thiết kế cho cuộc sống hàng ngày.",
   },
 ]
 
@@ -37,13 +37,11 @@ export function HowItWorksSection() {
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-3xl lg:text-5xl font-bold text-balance">
-            {"How It "}
-            <span className="text-primary">{"Works"}</span>
+            {"Cách "}
+            <span className="text-primary">{"Mua Sắm"}</span>
           </h2>
           <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
-            {
-              "From inspiration to creation in just four simple steps. Our AI makes fashion design accessible to everyone."
-            }
+            {"Trải nghiệm mua sắm đơn giản từ khám phá đến giao hàng trong bốn bước dễ dàng."}
           </p>
         </div>
 

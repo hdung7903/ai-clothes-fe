@@ -1,40 +1,60 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import { Analytics } from "@vercel/analytics/next"
-import { Suspense } from "react"
-import "./globals.css"
-import { Toaster } from "sonner"
-import { AppShell } from "@/components/layout/app-shell"
-import { ReduxProvider } from "@/components/providers/redux-provider"
-import { PageLoadingSpinner } from "@/components/ui/loading-spinner"
-import { NavigationLoading } from "@/components/ui/navigation-loading"
+import type React from "react";
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { Suspense } from "react";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+import { Toaster } from "sonner";
+import { AppShell } from "@/components/layout/app-shell";
+import { ReduxProvider } from "@/components/providers/redux-provider";
+import { PageLoadingSpinner } from "@/components/ui/loading-spinner";
+import { NavigationLoading } from "@/components/ui/navigation-loading";
+import GlobalFloaters from "@/components/custom/global-floaters";
 
 export const metadata: Metadata = {
-  title: "AI Fashion Designer - Transform Images into Custom Clothing",
+  title: "TEECRAFT - Transform Images into Custom Clothing",
   description:
-    "Revolutionary AI-powered platform that transforms your images into stunning custom clothing designs. Create, customize, and order unique fashion pieces with cutting-edge artificial intelligence.",
-  // generator: "v0.app",
-}
+    "Revolutionary platform that transforms your images into stunning custom clothing designs. Create, customize, and order unique fashion pieces with TEECRAFT's cutting-edge technology.",
+  generator: "hdung7903",
+  icons: {
+    icon: "/branch.png",
+    shortcut: "/branch.png",
+    apple: "/branch.png",
+  },
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+      <body
+        className={`font-sans ${inter.variable} ${jetbrainsMono.variable}`}
+        suppressHydrationWarning={true}
+      >
         <ReduxProvider>
           <Toaster />
           <AppShell>
             <Suspense fallback={<PageLoadingSpinner />}>{children}</Suspense>
           </AppShell>
+          <GlobalFloaters />
           <NavigationLoading />
           <Analytics />
         </ReduxProvider>
       </body>
     </html>
-  )
+  );
 }

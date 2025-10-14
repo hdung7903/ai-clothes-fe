@@ -8,13 +8,17 @@ export function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">AI</span>
-              </div>
-              <span className="text-xl font-bold text-foreground">FashionAI</span>
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+              <img 
+                src="/branch.png" 
+                alt="TEECRAFT Logo" 
+                className="h-8 w-8 object-contain"
+              />
+            </div>
+            <span className="text-xl font-bold text-foreground">TEECRAFT</span>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              {"Transforming fashion with AI technology. Create unique, personalized clothing designs from any image."}
+              {"Cách mạng hóa thời trang với công nghệ TEECRAFT. Tạo ra những thiết kế trang phục độc đáo và cá nhân hóa từ bất kỳ hình ảnh nào."}
             </p>
             <div className="flex space-x-4">
               <Button variant="ghost" size="icon">
@@ -33,78 +37,78 @@ export function Footer() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{"Product"}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{"Sản Phẩm"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Design Tools"}
+                  {"Công Cụ Thiết Kế"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"AI Features"}
+                  {"Tính Năng TEECRAFT"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Product Catalog"}
+                  {"Danh Mục Sản Phẩm"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Custom Orders"}
+                  {"Đơn Hàng Tùy Chỉnh"}
                 </a>
               </li>
             </ul>
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{"Support"}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{"Hỗ Trợ"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Help Center"}
+                  {"Trung Tâm Trợ Giúp"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Tutorials"}
+                  {"Hướng Dẫn"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Contact Us"}
+                  {"Liên Hệ"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Size Guide"}
+                  {"Hướng Dẫn Kích Thước"}
                 </a>
               </li>
             </ul>
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-foreground">{"Company"}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{"Công Ty"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"About Us"}
+                  {"Về Chúng Tôi"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Careers"}
+                  {"Tuyển Dụng"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Privacy Policy"}
+                  {"Chính Sách Bảo Mật"}
                 </a>
               </li>
               <li>
                 <a href="#" className="hover:text-primary transition-colors">
-                  {"Terms of Service"}
+                  {"Điều Khoản Dịch Vụ"}
                 </a>
               </li>
             </ul>
@@ -112,7 +116,7 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
-          <p>{"© 2025 Copyright by hdung7903. All rights reserved."}</p>
+          <p>{"© 2025 Bản quyền thuộc về TEECRAFT. Tất cả quyền được bảo lưu."}</p>
         </div>
       </div>
     </footer>

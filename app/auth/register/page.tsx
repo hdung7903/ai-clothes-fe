@@ -3,8 +3,8 @@ import Link from "next/link"
 import { RegisterForm } from "@/components/auth/register-form"
 
 export const metadata: Metadata = {
-  title: "Sign Up - AI Fashion Designer",
-  description: "Create your AI Fashion Designer account",
+  title: "Sign Up - TEECRAFT",
+  description: "Create your TEECRAFT account",
 }
 
 export default function RegisterPage() {

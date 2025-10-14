@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import type { TokenPair, LoginRequest, RegisterRequest, RequestPasswordResetRequest, RequestEmailVerificationRequest, VerifyEmailRequest } from '@/types/auth';
+import type { ResetPasswordRequest } from '@/types/auth';
 import type { UserProfile } from '@/types/user';
 import { getProfile } from '@/services/userServices';
-import { login, register, requestPasswordReset, logOut, refreshToken, revokeToken, requestEmailVerification, verifyEmail } from '@/services/authServices';
+import { login, register, requestPasswordReset, resetPassword, logOut, refreshToken, revokeToken, requestEmailVerification, verifyEmail } from '@/services/authServices';
 
 // Auth state interface
 export interface AuthState {
@@ -117,10 +118,36 @@ export const requestPasswordResetAction = createAsyncThunk(
   }
 );
 
+export const resetPasswordAction = createAsyncThunk(
+  'auth/resetPassword',
+  async (payload: ResetPasswordRequest, { rejectWithValue }) => {
+    try {
+      const response = await resetPassword(payload);
+      if (response.success) {
+        return response.data;
+      } else {
+        return rejectWithValue(response.errors || { general: ['Failed to reset password'] });
+      }
+    } catch (error) {
+      return rejectWithValue({ general: ['Network error occurred'] });
+    }
+  }
+);
+
 export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
-  async (_, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
+      const state = getState() as { auth: AuthState };
+      const refreshTokenValue = state.auth.tokens?.refreshToken;
+      if (refreshTokenValue) {
+        try {
+          await revokeToken({ refreshToken: refreshTokenValue });
+        } catch {
+          // best-effort revoke; continue to logOut
+        }
+      }
+
       const response = await logOut();
       if (response.success) {
         return true;
@@ -178,10 +205,15 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(loginUser.fulfilled, (state, action) => {
+        console.log('✅ Login successful, setting tokens:', action.payload);
         state.isLoading = false;
         state.tokens = action.payload;
         state.isAuthenticated = true;
         state.error = null;
+        console.log('✅ Auth state updated:', { 
+          hasTokens: !!state.tokens, 
+          isAuthenticated: state.isAuthenticated 
+        });
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -239,6 +271,19 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload ? Object.values(action.payload).flat().join(', ') : 'Failed to send reset email';
       })
+      // Reset password
+      .addCase(resetPasswordAction.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(resetPasswordAction.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(resetPasswordAction.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload ? Object.values(action.payload).flat().join(', ') : 'Failed to reset password';
+      })
       // Logout
       .addCase(logoutUser.pending, (state) => {
         state.isLoading = true;
@@ -278,10 +323,17 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserProfile.fulfilled, (state, action: PayloadAction<UserProfile>) => {
+        console.log('✅ User profile fetched successfully:', action.payload);
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
         state.error = null;
+        console.log('✅ Auth state updated with user:', { 
+          hasTokens: !!state.tokens, 
+          isAuthenticated: state.isAuthenticated,
+          hasUser: !!state.user,
+          userRoles: state.user?.roles
+        });
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.isLoading = false;

@@ -9,7 +9,7 @@ export default function AuthLoading() {
             <div className="h-8 w-48 bg-muted rounded mb-2 animate-pulse mx-auto" />
             <div className="h-4 w-64 bg-muted rounded animate-pulse mx-auto" />
           </div>
-          <LoadingSpinner size="lg" text="Loading authentication..." />
+          <LoadingSpinner size="lg" text="Đang tải xác thực..." />
         </div>
       </div>
     </div>

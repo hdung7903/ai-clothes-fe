@@ -6,7 +6,7 @@ export default function DesignLoading() {
       <div className="text-center space-y-4">
         <LoadingSpinner size="lg" text="Loading design tool..." />
         <p className="text-sm text-muted-foreground">
-          Preparing your AI fashion design workspace
+          Preparing your TEECRAFT design workspace
         </p>
       </div>
     </div>

@@ -3,14 +3,14 @@ import type { ApiEnvelope } from './shared';
 export interface CategoryBase {
   id: string;
   parentCategoryId: string | null | undefined;
-  subCategories: string[];
+  subCategories: Category[];
   name: string;
 }
 
 export type Category = CategoryBase;
 
 export interface CreateOrUpdateCategoryRequest {
-  id: string;
+  id: string | null;
   name: string;
   parentCategoryId: string | null | undefined;
 }

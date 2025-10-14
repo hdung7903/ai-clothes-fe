@@ -3,8 +3,8 @@ import Link from "next/link"
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form"
 
 export const metadata: Metadata = {
-  title: "Reset Password - AI Fashion Designer",
-  description: "Reset your AI Fashion Designer account password",
+  title: "Reset Password - TEECRAFT",
+  description: "Reset your TEECRAFT account password",
 }
 
 export default function ForgotPasswordPage() {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -20,6 +21,8 @@ type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
 
 export function ForgotPasswordForm() {
   const [isSuccess, setIsSuccess] = useState(false)
+  const [lastEmail, setLastEmail] = useState<string>("")
+  const router = useRouter()
   const dispatch = useAppDispatch()
   const { isLoading, error } = useAppSelector((state) => state.auth)
 
@@ -40,7 +43,12 @@ export function ForgotPasswordForm() {
     const result = await dispatch(requestPasswordResetAction(data))
     
     if (requestPasswordResetAction.fulfilled.match(result)) {
+      setLastEmail(data.email)
       setIsSuccess(true)
+      // Auto-navigate to reset screen after short delay
+      setTimeout(() => {
+        router.push(`/auth/reset-password?email=${encodeURIComponent(data.email)}`)
+      }, 1200)
     }
   }
 
@@ -54,9 +62,14 @@ export function ForgotPasswordForm() {
           <h3 className="text-lg font-semibold text-foreground mb-2">Check your email</h3>
           <p className="text-muted-foreground">We've sent password reset instructions to your email address.</p>
         </div>
-        <Button variant="outline" onClick={() => setIsSuccess(false)} className="w-full">
-          Send another email
-        </Button>
+        <div className="grid grid-cols-1 gap-2">
+          <Button onClick={() => router.push(`/auth/reset-password?email=${encodeURIComponent(lastEmail)}`)} className="w-full">
+            Continue to reset
+          </Button>
+          <Button variant="outline" onClick={() => setIsSuccess(false)} className="w-full">
+            Send another email
+          </Button>
+        </div>
       </div>
     )
   }

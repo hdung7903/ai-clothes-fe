@@ -80,6 +80,14 @@ export async function refreshToken(request: RefreshTokenRequest, useCookies: boo
   );
 }
 
+// Convenience: refresh tokens using httpOnly cookies on the server without sending a body
+export async function refreshTokenUsingCookies(request: RefreshTokenRequest): Promise<RefreshTokenResponse> {
+  return requestJson<RefreshTokenRequest, TokenPair>(
+    '/api/Authentication/RefreshToken',
+    { method: 'POST', payload: request, query: { useCookies: true } }
+  );
+}
+
 export async function revokeToken(request: RevokeTokenRequest): Promise<RevokeTokenResponse> {
   return requestJson<RevokeTokenRequest, string>('/api/Authentication/RevokeToken', { payload: request });
 }

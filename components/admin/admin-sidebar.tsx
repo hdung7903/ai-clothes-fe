@@ -1,0 +1,113 @@
+"use client";
+
+import * as React from "react";
+import Image from "next/image";
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent } from "lucide-react";
+
+import { NavAdmin } from "@/components/admin/nav-admin";
+import { NavUser } from "@/components/admin/nav-user";
+import { useAppSelector } from "@/redux/hooks";
+// TeamSwitcher removed from header; re-add if needed
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem, 
+  SidebarRail,
+} from "@/components/ui/sidebar";
+
+export function AdminSidebar({
+  ...props
+}: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useAppSelector((s) => s.auth);
+  const data = {
+    user: {
+      name: "Quản trị viên TEECRAFT",
+      email: user?.fullName || user?.email || "",
+      avatar: "/avatars/shadcn.jpg",
+    },
+
+    navMain: [
+      {
+        title: "Bảng điều khiển",
+        url: "/admin/dashboard",
+        icon: LayoutDashboard,
+        isActive: true,
+      },
+      {
+        title: "Quản lý người dùng",
+        url: "/admin/users",
+        icon: Users,
+        items: [
+          { title: "Tất cả người dùng", url: "/admin/users" },
+          { title: "Thêm người dùng", url: "/admin/users/new" },
+        ],
+      },
+      {
+        title: "Quản lý sản phẩm",
+        url: "/admin/products",
+        icon: Package,
+        items: [
+          { title: "Tất cả sản phẩm", url: "/admin/products" },
+          { title: "Thêm sản phẩm", url: "/admin/products/new" },
+        ],
+      },
+      {
+        title: "Quản lý danh mục",
+        url: "/admin/categories",
+        icon: Tags,
+        items: [
+          { title: "Tất cả danh mục", url: "/admin/categories" },
+          { title: "Thêm danh mục", url: "/admin/categories/new" },
+        ],
+      },
+      {
+        title: "Quản lý voucher",
+        url: "/admin/vouchers",
+        icon: TicketPercent,
+        items: [
+          { title: "Tất cả voucher", url: "/admin/vouchers" },
+          { title: "Thêm voucher", url: "/admin/vouchers/new" },
+        ],
+      },
+      {
+        title: "Quản lý đơn hàng",
+        url: "/admin/orders",
+        icon: ShoppingCart,
+        items: [
+          { title: "Tất cả đơn hàng", url: "/admin/orders" },
+          { title: "Tạo đơn hàng", url: "/admin/orders/new" },
+        ],
+      },
+    ],
+  };
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:!p-1.5"
+            >
+              <a href="#">
+                <Image src="/branch.png" alt="logo" width={32} height={32} />
+                <span className="text-base font-semibold">TEECRAFT</span>
+              </a>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <NavAdmin items={data.navMain} />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={data.user} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}

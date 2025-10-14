@@ -1,49 +1,49 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Palette, Zap, ShoppingBag, Users, Sparkles, Camera, Shirt, Heart } from "lucide-react"
+import { Palette, ShoppingBag, Users, Shirt, Heart } from "lucide-react"
 
 const features = [
   {
-    icon: Camera,
-    title: "Image-to-Design AI",
+    icon: Shirt,
+    title: "Bộ Sưu Tập Được Tuyển Chọn",
     description:
-      "Upload any image and watch our AI transform it into stunning clothing designs with incredible accuracy and creativity.",
+      "Các món đồ theo mùa và những món thiết yếu hàng ngày được thiết kế cho tủ quần áo hiện đại.",
   },
   {
     icon: Palette,
-    title: "Custom Design Tools",
+    title: "Vải Cao Cấp",
     description:
-      "Fine-tune colors, patterns, and styles with our intuitive design interface. Make every piece uniquely yours.",
-  },
-  {
-    icon: Shirt,
-    title: "Product Catalog",
-    description: "Browse thousands of AI-generated designs or create your own. From casual wear to haute couture.",
-  },
-  {
-    icon: Users,
-    title: "User Accounts",
-    description:
-      "Save your designs, track orders, and build your personal fashion portfolio with secure user accounts.",
+      "Chất liệu mềm mại, thoáng khí với chất lượng bền lâu và chú ý đến từng chi tiết.",
   },
   {
     icon: ShoppingBag,
-    title: "Seamless Shopping",
-    description: "Easy checkout process with multiple payment options. From design to doorstep in just a few clicks.",
+    title: "Thanh Toán Nhanh, An Toàn",
+    description: "Nhiều tùy chọn thanh toán và vận chuyển nhanh tại trang thanh toán.",
   },
   {
-    icon: Zap,
-    title: "Lightning Fast",
-    description: "Generate professional-quality designs in seconds. Our AI processes images faster than ever before.",
-  },
-  {
-    icon: Sparkles,
-    title: "Style Recommendations",
-    description: "Get personalized style suggestions based on your preferences and current fashion trends.",
+    icon: Users,
+    title: "Hướng Dẫn Kích Thước",
+    description:
+      "Thông số chi tiết và khuyến nghị kích thước để giúp bạn tìm được vừa vặn hoàn hảo.",
   },
   {
     icon: Heart,
-    title: "Community Features",
-    description: "Share your creations, get inspired by others, and connect with fellow fashion enthusiasts.",
+    title: "Được Khách Hàng Yêu Thích",
+    description: "Hàng nghìn đánh giá năm sao về sự thoải mái, vừa vặn và phong cách.",
+  },
+  {
+    icon: ShoppingBag,
+    title: "Đổi Trả Dễ Dàng",
+    description: "Đổi trả miễn phí trong 30 ngày và tùy chọn tín dụng cửa hàng tức thì.",
+  },
+  {
+    icon: Palette,
+    title: "Phong Cách Đa Dạng",
+    description: "Từ những món cơ bản cuối tuần đến những món nổi bật, tất cả ở một nơi.",
+  },
+  {
+    icon: Users,
+    title: "Hỗ Trợ Chuyên Nghiệp",
+    description: "Chăm sóc khách hàng thân thiện sẵn sàng giúp đỡ với đơn hàng và kích thước.",
   },
 ]
 
@@ -53,11 +53,11 @@ export function FeaturesSection() {
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-16">
           <h2 className="text-3xl lg:text-5xl font-bold text-balance">
-            {"Powerful Features for "}
-            <span className="text-primary">{"Creative Fashion"}</span>
+            {"Thiết Kế Cho "}
+            <span className="text-primary">{"Phong Cách Hàng Ngày"}</span>
           </h2>
           <p className="text-xl text-muted-foreground text-pretty max-w-3xl mx-auto">
-            {"Everything you need to transform your fashion ideas into reality with cutting-edge AI technology"}
+            {"Mua sắm những món đồ chất lượng với chi tiết tinh tế, vừa vặn dễ dàng và giao hàng không căng thẳng."}
           </p>
         </div>
 

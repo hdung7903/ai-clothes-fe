@@ -49,8 +49,8 @@ export default function VerifyEmailPage() {
     <div className="min-h-[calc(100dvh-8rem)] flex items-center justify-center px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Verify your email</CardTitle>
-          <CardDescription>Enter the 6-digit code sent to your email</CardDescription>
+          <CardTitle className="text-2xl">Xác thực email của bạn</CardTitle>
+          <CardDescription>Nhập mã 6 chữ số được gửi đến email của bạn</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {error && (
@@ -61,18 +61,18 @@ export default function VerifyEmailPage() {
 
           {success && (
             <Alert>
-              <AlertDescription>Email verified! Redirecting to login…</AlertDescription>
+              <AlertDescription>Email đã được xác thực! Đang chuyển hướng đến trang đăng nhập…</AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">We sent a code to</p>
+              <p className="text-sm text-muted-foreground">Chúng tôi đã gửi mã đến</p>
               <p className="text-sm font-medium break-all">{email || '—'}</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Verification code</label>
+              <label className="text-sm font-medium">Mã xác thực</label>
               <div className="flex justify-center">
                 <InputOTP maxLength={6} value={code} onChange={setCode}>
                   <InputOTPGroup>
@@ -90,10 +90,10 @@ export default function VerifyEmailPage() {
 
           <div className="space-y-3">
             <Button className="w-full" onClick={onVerify} disabled={isLoading || !email || code.length !== 6}>
-              Verify Email
+              Xác Thực Email
             </Button>
             <Button variant="ghost" className="w-full" onClick={onResend} disabled={isLoading || !email}>
-              Resend Code
+              Gửi Lại Mã
             </Button>
           </div>
         </CardContent>
