@@ -73,6 +73,28 @@ function getStatusLabelFromCode(code: number | null): string {
   return STATUS_CODE_TO_LABEL[code] ?? String(code)
 }
 
+// Allowed transitions and labels for UI
+const ALLOWED_TARGETS: Record<string, string[]> = {
+  PENDING: ['ACCEPTED', 'REJECTED'],
+  ACCEPTED: ['PROCESSING', 'REJECTED'],
+  PROCESSING: ['SHIPPED', 'REJECTED'],
+  SHIPPED: ['RETURNED'],
+}
+
+const STATUS_KEY_TO_VN_LABEL: Record<string, string> = {
+  PENDING: 'Chờ xử lý',
+  ACCEPTED: 'Đã duyệt',
+  REJECTED: 'Từ chối',
+  PROCESSING: 'Đang xử lý',
+  SHIPPED: 'Đã gửi hàng',
+  RETURNED: 'Trả hàng',
+  DELIVERED: 'Đã giao hàng',
+  CONFIRM_RECEIVED: 'Xác nhận đã nhận',
+  CANCELLED: 'Đã hủy',
+}
+
+// (deduped above)
+
 // Payment status mapping
 const PAYMENT_STRING_TO_CODE: Record<string, number> = {
   ONLINE_PAYMENT_AWAITING: 0,
@@ -121,7 +143,8 @@ export default function Page({ params }: PageProps) {
   const [success, setSuccess] = React.useState<string | null>(null)
 
   // Form states
-  const [orderStatus, setOrderStatus] = React.useState<number | null>(null)
+  const [orderStatus, setOrderStatus] = React.useState<string | null>(null)
+  const [restock, setRestock] = React.useState<boolean>(false)
   const [paymentStatus, setPaymentStatus] = React.useState<number | null>(null)
   const [note, setNote] = React.useState<string>("")
 
@@ -154,7 +177,7 @@ export default function Page({ params }: PageProps) {
         
         if (response.success && response.data) {
           setOrder(response.data)
-          setOrderStatus(getStatusCodeFromString(response.data.status))
+          setOrderStatus(normalizeStatusKey(response.data.status))
           setPaymentStatus(getPaymentStatusCodeFromString(response.data.paymentStatus))
         } else {
           setError('Không thể tải thông tin đơn hàng')
@@ -180,8 +203,12 @@ export default function Page({ params }: PageProps) {
       setError(null)
       setSuccess(null)
 
+      const currentKey = normalizeStatusKey(order.status)
+      const selectedKey = orderStatus ?? currentKey
+      const statusCode = STATUS_STRING_TO_CODE[selectedKey] ?? getStatusCodeFromString(selectedKey)
       const payload: AdminUpdateOrderStatusRequest = {
-        status: (orderStatus ?? getStatusCodeFromString(order.status)),
+        status: statusCode,
+        notes: restock && (selectedKey === 'REJECTED' || selectedKey === 'RETURNED') ? 'restock=true' : undefined,
       }
 
       const response = await adminUpdateOrderStatus(order.orderId, payload)
@@ -397,21 +424,35 @@ export default function Page({ params }: PageProps) {
                 
                 <div className="space-y-2">
                   <Label htmlFor="new-order-status">Trạng thái mới</Label>
-                  <Select value={orderStatus !== null ? String(orderStatus) : undefined} onValueChange={(v) => setOrderStatus(Number(v))}>
+                  <Select value={orderStatus ?? undefined} onValueChange={(v) => setOrderStatus(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn trạng thái mới" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Chờ xử lý</SelectItem>
-                      <SelectItem value="1">Từ chối</SelectItem>
-                      <SelectItem value="2">Đang xử lý</SelectItem>
-                      <SelectItem value="3">Đã gửi hàng</SelectItem>
-                      <SelectItem value="4">Đã giao hàng</SelectItem>
-                      <SelectItem value="5">Xác nhận đã nhận</SelectItem>
-                      <SelectItem value="6">Đã hủy</SelectItem>
+                      {
+                        (() => {
+                          const currentKey = normalizeStatusKey(order.status)
+                          const targets = ALLOWED_TARGETS[currentKey]
+                          if (!targets || targets.length === 0) {
+                            return (
+                              <div className="px-2 py-1 text-sm text-muted-foreground">Không có trạng thái khả dụng</div>
+                            )
+                          }
+                          return targets.map((key) => (
+                            <SelectItem key={key} value={key}>{STATUS_KEY_TO_VN_LABEL[key] ?? key}</SelectItem>
+                          ))
+                        })()
+                      }
                     </SelectContent>
                   </Select>
                 </div>
+
+                {(orderStatus === 'REJECTED' || orderStatus === 'RETURNED') && (
+                  <div className="flex items-center gap-2">
+                    <input id="restock" type="checkbox" className="h-4 w-4" checked={restock} onChange={(e) => setRestock(e.target.checked)} />
+                    <Label htmlFor="restock">Hoàn nhập kho (restock)</Label>
+                  </div>
+                )}
 
             
 
@@ -421,7 +462,7 @@ export default function Page({ params }: PageProps) {
                       className="w-full" 
                       disabled={
                         saving ||
-                        (orderStatus === null ? true : orderStatus === getStatusCodeFromString(order.status))
+                        (() => { const currentKey = normalizeStatusKey(order.status); return !ALLOWED_TARGETS[currentKey] || !orderStatus || currentKey === orderStatus })()
                       }
                     >
                       {saving ? <Spinner className="h-4 w-4 mr-2" /> : null}
@@ -432,7 +473,7 @@ export default function Page({ params }: PageProps) {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Xác nhận cập nhật</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Bạn có chắc chắn muốn thay đổi trạng thái đơn hàng từ "{order.status}" thành "{getStatusLabelFromCode(orderStatus)}"?
+                        Bạn có chắc chắn muốn thay đổi trạng thái đơn hàng từ "{STATUS_KEY_TO_VN_LABEL[normalizeStatusKey(order.status)] ?? order.status}" thành "{orderStatus ? (STATUS_KEY_TO_VN_LABEL[orderStatus] ?? orderStatus) : ''}"{restock && (orderStatus === 'REJECTED' || orderStatus === 'RETURNED') ? ' (Hoàn nhập kho)' : ''}?
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

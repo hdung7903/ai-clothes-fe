@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Trash2, Eye, EyeOff, Lock, Unlock, MoveUp, MoveDown, Upload, Smile } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -64,17 +64,22 @@ interface ResizeState {
   startSize: number;
 }
 
+// Interface cho ref methods
+export interface CanvasRef {
+  addImageDecoration: (imageUrl: string, imageName: string) => void;
+}
+
 interface TShirtDesignerProps {
   initialImage?: string;
   imageSource?: 'local' | 'url';
   designType?: 'tshirt' | 'hoodie' | 'polo' | 'tank' | 'longsleeve' | 'custom';
 }
 
-const TShirtDesigner: React.FC<TShirtDesignerProps> = ({ 
+const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({ 
   initialImage = '/photo.png',
   imageSource = 'local',
   designType: initialDesignType = 'tshirt'
-}) => {
+}, ref) => {
   const [shirtImage, setShirtImage] = useState<string>(
     imageSource === 'local' ? initialImage : initialImage
   );
@@ -91,6 +96,8 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
+  const [lastClickPosition, setLastClickPosition] = useState<{x: number, y: number} | null>(null);
+  const [clickCount, setClickCount] = useState(0);
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -173,13 +180,6 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
     }
     ctx.restore();
     
-    // Draw print area guide
-    const pa = printAreaRef.current;
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5]);
-    ctx.strokeRect(pa.x, pa.y, pa.width, pa.height);
-    ctx.setLineDash([]);
     
     // Draw decorations
     decorations.forEach(dec => {
@@ -231,6 +231,18 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
         drawResizeHandles(ctx, bounds);
       }
       
+      // Debug: Vẽ bounds cho tất cả emoji (chỉ khi debug)
+      if (dec.type === 'emoji' && process.env.NODE_ENV === 'development') {
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        const bounds = getDecorationBounds(dec);
+        ctx.strokeRect(-bounds.width / 2, -bounds.height / 2, bounds.width, bounds.height);
+        ctx.setLineDash([]);
+      }
+      
       ctx.restore();
     });
   };
@@ -257,11 +269,36 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
 
   const getDecorationBounds = (dec: Decoration): Bounds => {
     if (dec.type === 'emoji') {
-      return { width: dec.size * 1.2, height: dec.size * 1.2 };
+      // Tăng bounds cho emoji để dễ click hơn, với minimum size
+      const size = Math.max(dec.size * 2, 100); // Tăng lên 2x và minimum 100px
+      return { width: size, height: size };
     } else if (dec.type === 'image') {
       return { width: dec.width, height: dec.height };
     }
     return { width: 50, height: 50 };
+  };
+
+  // Debug function để kiểm tra collision
+  const isPointInDecoration = (x: number, y: number, dec: Decoration): boolean => {
+    const bounds = getDecorationBounds(dec);
+    const dx = x - dec.x;
+    const dy = y - dec.y;
+    const isInside = Math.abs(dx) <= bounds.width / 2 && Math.abs(dy) <= bounds.height / 2;
+    
+    // Debug log cho emoji
+    if (dec.type === 'emoji') {
+      console.log(`Checking emoji ${dec.content} at (${dec.x}, ${dec.y}) with bounds ${bounds.width}x${bounds.height}`);
+      console.log(`Click at (${x}, ${y}), offset (${dx}, ${dy}), isInside: ${isInside}`);
+      
+      // Nếu emoji và click gần nhau (trong vòng 50px), coi như click được
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance < 50) {
+        console.log(`Emoji ${dec.content} is close enough (distance: ${distance})`);
+        return true;
+      }
+    }
+    
+    return isInside;
   };
 
   useEffect(() => {
@@ -277,40 +314,85 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    for (let i = decorations.length - 1; i >= 0; i--) {
-      const dec = decorations[i];
-      if (dec.locked || !dec.visible) continue;
-      
-      const bounds = getDecorationBounds(dec);
-      const dx = x - dec.x;
-      const dy = y - dec.y;
-      
-      if (Math.abs(dx) <= bounds.width / 2 && Math.abs(dy) <= bounds.height / 2) {
-        setSelectedId(dec.id);
-        
-        const handleSize = 10;
-        const handles = [
-          { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2 },
-          { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2 },
-          { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2 },
-          { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2 },
-        ];
-        
-        for (const handle of handles) {
-          if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
-            const startSize = dec.type === 'emoji' ? dec.size : dec.width;
-            setResizing({ startX: x, startY: y, startSize });
-            return;
-          }
-        }
-        
-        setDragging(true);
-        setDragOffset({ x: dx, y: dy });
-        return;
-      }
+    console.log('Mouse down at:', x, y);
+    console.log('Decorations:', decorations.map(d => ({ id: d.id, x: d.x, y: d.y, visible: d.visible, locked: d.locked })));
+    
+    // Kiểm tra xem có phải click ở cùng vị trí không (để cycle qua decorations)
+    const isSamePosition = lastClickPosition && 
+      Math.abs(x - lastClickPosition.x) < 5 && 
+      Math.abs(y - lastClickPosition.y) < 5;
+    
+    if (isSamePosition) {
+      setClickCount(prev => prev + 1);
+    } else {
+      setClickCount(1);
+      setLastClickPosition({ x, y });
     }
     
-    setSelectedId(null);
+    // Tìm tất cả decorations có thể click được tại vị trí này
+    const clickableDecorations = decorations
+      .map((dec, index) => ({ dec, index }))
+      .filter(({ dec }) => !dec.locked && dec.visible)
+      .filter(({ dec }) => isPointInDecoration(x, y, dec));
+    
+    console.log('Clickable decorations:', clickableDecorations.map(({ dec, index }) => ({ id: dec.id, index })));
+    console.log('Click count:', clickCount);
+    
+    if (clickableDecorations.length > 0) {
+      // Nếu có nhiều decorations và click nhiều lần, cycle qua chúng
+      let selectedIndex;
+      if (clickableDecorations.length > 1 && isSamePosition) {
+        selectedIndex = (clickCount - 1) % clickableDecorations.length;
+      } else {
+        // Chọn decoration có z-index cao nhất (index cao nhất trong mảng)
+        selectedIndex = clickableDecorations.length - 1;
+      }
+      
+      const { dec, index } = clickableDecorations[selectedIndex];
+      console.log(`Selected decoration ${dec.id} at index ${index} (selected index: ${selectedIndex})`);
+      setSelectedId(dec.id);
+      
+      // Kiểm tra resize handles trước
+      const bounds = getDecorationBounds(dec);
+      const handleSize = 10;
+      const handles = [
+        { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2 },
+        { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2 },
+        { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2 },
+        { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2 },
+      ];
+      
+      let isResizeHandle = false;
+      for (const handle of handles) {
+        if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
+          const startSize = dec.type === 'emoji' ? dec.size : dec.width;
+          setResizing({ startX: x, startY: y, startSize });
+          isResizeHandle = true;
+          console.log('Resize handle clicked');
+          break;
+        }
+      }
+      
+      if (!isResizeHandle) {
+        // Nếu không phải resize handle thì bắt đầu drag
+        const dx = x - dec.x;
+        const dy = y - dec.y;
+        setDragging(true);
+        setDragOffset({ x: dx, y: dy });
+        console.log('Started dragging with offset:', dx, dy);
+        
+        // Force re-render để đảm bảo dragging state được cập nhật
+        setTimeout(() => {
+          console.log('Dragging state after timeout:', dragging);
+        }, 100);
+      }
+    } else {
+      // Nếu không click vào decoration nào thì bỏ chọn
+      console.log('No decoration clicked, deselecting');
+      setSelectedId(null);
+      setClickCount(0);
+      setLastClickPosition(null);
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -320,13 +402,16 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
+    console.log('Mouse move:', { x, y, dragging, resizing, selectedId });
+    
     if (resizing && selectedId !== null) {
       const dx = x - resizing.startX;
       const dy = y - resizing.startY;
       const delta = Math.max(dx, dy);
       const newSize = Math.max(20, resizing.startSize + delta);
       
-      setDecorations(decorations.map(d => {
+      console.log('Resizing to:', newSize);
+      setDecorations(prevDecorations => prevDecorations.map(d => {
         if (d.id === selectedId) {
           if (d.type === 'emoji') {
             return { ...d, size: newSize };
@@ -342,28 +427,78 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
         return d;
       }));
     } else if (dragging && selectedId !== null) {
-      setDecorations(decorations.map(d => 
+      const newX = x - dragOffset.x;
+      const newY = y - dragOffset.y;
+      console.log('Dragging to:', { newX, newY, dragOffset });
+      
+      setDecorations(prevDecorations => prevDecorations.map(d => 
         d.id === selectedId 
-          ? { ...d, x: x - dragOffset.x, y: y - dragOffset.y }
+          ? { ...d, x: newX, y: newY }
           : d
       ));
     }
   };
 
+  // Thêm global mouse move listener để đảm bảo drag hoạt động
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (dragging && selectedId !== null) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const newX = x - dragOffset.x;
+        const newY = y - dragOffset.y;
+        console.log('Global mouse move dragging to:', { newX, newY, dragOffset });
+        
+        setDecorations(prevDecorations => prevDecorations.map(d => 
+          d.id === selectedId 
+            ? { ...d, x: newX, y: newY }
+            : d
+        ));
+      }
+    };
+
+    const handleGlobalMouseUp = () => {
+      if (dragging) {
+        console.log('Global mouse up, stopping drag');
+        setDragging(false);
+        setResizing(null);
+      }
+    };
+
+    if (dragging) {
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove);
+      document.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [dragging, selectedId, dragOffset]);
+
   const handleMouseUp = () => {
+    console.log('Mouse up:', { dragging, resizing, selectedId });
     setDragging(false);
     setResizing(null);
   };
 
   const addEmojiDecoration = (emojiObject: any) => {
-    const pa = printAreaRef.current;
+    // Đặt emoji ở trung tâm canvas thay vì print area
+    const canvas = canvasRef.current;
+    const centerX = canvas ? canvas.width / 2 : 300;
+    const centerY = canvas ? canvas.height / 2 : 375;
+    
     const newDecoration: EmojiDecoration = {
       id: Date.now(),
       type: 'emoji',
       content: emojiObject.emoji,
-      x: pa.x + pa.width / 2,
-      y: pa.y + pa.height / 2,
-      size: 80,
+      x: centerX,
+      y: centerY,
+      size: 80, // Tăng size mặc định để dễ click hơn
       rotation: 0,
       visible: true,
       locked: false,
@@ -372,6 +507,7 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
       name: emojiObject.names?.[0] || 'Emoji'
     };
     
+    console.log('Adding emoji decoration at center:', newDecoration);
     setDecorations([...decorations, newDecoration]);
     setSelectedId(newDecoration.id);
     setShowEmojiPicker(false);
@@ -423,6 +559,11 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
     
     img.src = imageUrl;
   };
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    addImageDecoration
+  }));
 
   const handleDecorationImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -652,6 +793,7 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            style={{ touchAction: 'none' }}
           />
         </div>
       </div>
@@ -1021,6 +1163,6 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
       )}
     </div>
   );
-};
+})
 
 export default TShirtDesigner;

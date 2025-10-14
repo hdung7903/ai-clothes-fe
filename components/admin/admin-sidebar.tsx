@@ -35,7 +35,6 @@ export function AdminSidebar({
         title: "Bảng điều khiển",
         url: "/admin/dashboard",
         icon: LayoutDashboard,
-        isActive: true,
       },
       {
         title: "Quản lý người dùng",

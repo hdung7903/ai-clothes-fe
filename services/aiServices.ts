@@ -87,7 +87,9 @@ async function requestAiJson<TReq, TRes>(
     const init: RequestInit = {
       method: options.method ?? 'POST',
       headers: withAuth({ ...defaultHeaders, ...(options.headers ?? {}) }),
-      credentials: 'include',
+      // Avoid sending site cookies to a different-origin AI server to prevent CORS failures
+      credentials: 'omit',
+      mode: 'cors',
     };
 
     if (options.payload !== undefined) {
@@ -135,8 +137,7 @@ export async function askQuestion(request: { question: string }): Promise<AskQue
   }
   
   const requestWithUserId: AskData = {
-    // uuid: userId,
-    uuid: "1",
+    uuid: userId,
     question: request.question
   };
   

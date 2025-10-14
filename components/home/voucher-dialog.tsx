@@ -22,32 +22,32 @@ const VOUCHERS: Voucher[] = [
   {
     id: "welcome-10",
     code: "WELCOME10",
-    title: "Welcome 10% Off",
-    description: "Save 10% on your first order",
-    discountText: "10% OFF",
+    title: "Chào mừng giảm 10%",
+    description: "Tiết kiệm 10% cho đơn hàng đầu tiên",
+    discountText: "GIẢM 10%",
     minSpend: "$30",
     category: "popular",
-    expiresAt: "Dec 31, 2024",
+    expiresAt: "31 Thg 12, 2024",
   },
   {
     id: "freeship",
     code: "FREESHIP",
-    title: "Free Shipping",
-    description: "Enjoy free shipping on all orders",
+    title: "Miễn phí vận chuyển",
+    description: "Miễn phí vận chuyển cho mọi đơn hàng",
     discountText: "FREE SHIP",
     minSpend: "$50",
     category: "new",
-    expiresAt: "Dec 31, 2024",
+    expiresAt: "31 Thg 12, 2024",
   },
   {
     id: "bundle-15",
     code: "BUNDLE15",
-    title: "Bundle and Save",
-    description: "Buy 2+ items and get extra discount",
-    discountText: "15% OFF",
+    title: "Mua kèm tiết kiệm",
+    description: "Mua từ 2 sản phẩm được giảm thêm",
+    discountText: "GIẢM 15%",
     minSpend: "$100",
     category: "limited",
-    expiresAt: "Dec 20, 2024",
+    expiresAt: "20 Thg 12, 2024",
   },
 ]
 
@@ -96,7 +96,7 @@ export function VoucherDialog() {
     return true
   }, [dontShowAgain])
 
-  // Show dialog with delay
+  // Hiển thị hộp thoại sau một khoảng trễ
   useEffect(() => {
     if (!shouldShowDialog()) return
 
@@ -108,7 +108,7 @@ export function VoucherDialog() {
     return () => clearTimeout(timer)
   }, [shouldShowDialog])
 
-  // Handle dialog close
+  // Đóng hộp thoại
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen)
     if (!nextOpen) {
@@ -117,26 +117,26 @@ export function VoucherDialog() {
     }
   }, [])
 
-  // Copy voucher code
+  // Sao chép mã voucher
   const handleCopy = useCallback(async (code: string) => {
     try {
       await navigator.clipboard.writeText(code)
       setCopiedCode(code)
       
-      // Reset copied state after 2 seconds
+      // Đặt lại trạng thái sau 2 giây
       setTimeout(() => setCopiedCode(null), 2000)
     } catch (error) {
-      console.error("Failed to copy:", error)
+      console.error("Sao chép thất bại:", error)
     }
   }, [])
 
-  // Apply voucher (close dialog and copy)
+  // Áp dụng voucher (đóng hộp thoại và sao chép)
   const handleApply = useCallback((code: string) => {
     handleCopy(code)
     setTimeout(() => setOpen(false), 500)
   }, [handleCopy])
 
-  // Infinite scroll observer
+  // Theo dõi cuộn vô hạn
   useEffect(() => {
     if (!open) return
 
@@ -159,7 +159,7 @@ export function VoucherDialog() {
     return () => observer.disconnect()
   }, [open, allVouchers.length])
 
-  // Get category badge color
+  // Lấy màu huy hiệu theo danh mục
   const getCategoryColor = (category?: string) => {
     switch (category) {
       case "popular":
@@ -182,7 +182,7 @@ export function VoucherDialog() {
           handleOpenChange(false)
         }}
       >
-        {/* Header */}
+        {/* Phần đầu */}
         <DialogHeader className="px-6 pt-6 pb-4 space-y-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -190,16 +190,16 @@ export function VoucherDialog() {
                 <Gift className="h-5 w-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-xl">🎉 Special Offers Just For You!</DialogTitle>
+                <DialogTitle className="text-xl">🎉 Ưu đãi dành riêng cho bạn!</DialogTitle>
                 <DialogDescription className="text-sm">
-                  Choose your favorite voucher and save on your order
+                  Chọn voucher yêu thích và tiết kiệm cho đơn hàng của bạn
                 </DialogDescription>
               </div>
             </div>
           </div>
         </DialogHeader>
 
-        {/* Vouchers List */}
+        {/* Danh sách voucher */}
         <div 
           ref={containerRef}
           className="px-6 pb-6 overflow-y-auto"
@@ -211,7 +211,7 @@ export function VoucherDialog() {
                 key={voucher.id}
                 className="group relative flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-primary/50 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50"
               >
-                {/* Category Badge */}
+                {/* Huy hiệu danh mục */}
                 {voucher.category && (
                   <div className="absolute top-3 right-3">
                     <Badge 
@@ -223,7 +223,7 @@ export function VoucherDialog() {
                   </div>
                 )}
 
-                {/* Content */}
+                {/* Nội dung */}
                 <div className="flex items-start gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold text-lg shrink-0">
                     {voucher.code.substring(0, 2)}
@@ -243,7 +243,7 @@ export function VoucherDialog() {
                     <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
                       {voucher.minSpend && (
                         <span className="flex items-center gap-1">
-                          <span className="font-medium">Min:</span> {voucher.minSpend}
+                          <span className="font-medium">Tối thiểu:</span> {voucher.minSpend}
                         </span>
                       )}
                       {voucher.expiresAt && (
@@ -251,7 +251,7 @@ export function VoucherDialog() {
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {voucher.expiresAt}
+                            HSD: {voucher.expiresAt}
                           </span>
                         </>
                       )}
@@ -259,7 +259,7 @@ export function VoucherDialog() {
                   </div>
                 </div>
 
-                {/* Actions */}
+                {/* Hành động */}
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700">
                     <code className="text-sm font-mono font-semibold text-primary flex-1">
@@ -284,11 +284,11 @@ export function VoucherDialog() {
                     className="h-9 font-semibold"
                     onClick={() => handleApply(voucher.code)}
                   >
-                    Apply
+                    Áp dụng
                   </Button>
                 </div>
 
-                {/* Discount Badge */}
+                {/* Huy hiệu giảm giá */}
                 <div className="absolute -top-2 -left-2 rotate-[-8deg]">
                   <Badge className="bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold px-3 py-1 shadow-lg">
                     {voucher.discountText}
@@ -297,7 +297,7 @@ export function VoucherDialog() {
               </div>
             ))}
 
-            {/* Loading Sentinel */}
+            {/* Đang tải thêm */}
             {visibleCount < allVouchers.length && (
               <div
                 ref={sentinelRef}
@@ -305,14 +305,14 @@ export function VoucherDialog() {
               >
                 <div className="flex items-center gap-2">
                   <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span>Loading more vouchers...</span>
+                  <span>Đang tải thêm voucher...</span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Chân trang */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -325,12 +325,12 @@ export function VoucherDialog() {
                 htmlFor="dont-show"
                 className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer"
               >
-                Don't show this again today
+                Không hiển thị lại hôm nay
               </label>
             </div>
             
             <div className="text-xs text-gray-500">
-              {displayedVouchers.length} of {allVouchers.length} vouchers
+              {displayedVouchers.length} / {allVouchers.length} voucher
             </div>
           </div>
         </div>
