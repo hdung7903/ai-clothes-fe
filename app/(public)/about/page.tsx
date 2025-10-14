@@ -13,35 +13,49 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-yellow-50">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-white py-20">
-        <div className="absolute inset-0 bg-black opacity-5"></div>
+      <section className="relative overflow-hidden bg-gradient-to-br from-white via-green-50/30 to-yellow-50/40 py-20">
+        <div className="absolute inset-0 bg-gradient-to-r from-green-600/5 to-yellow-500/5"></div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-20 right-20 w-64 h-64 bg-green-400/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-yellow-300/10 rounded-full blur-3xl"></div>
+        
         <div className="container mx-auto px-4 text-center relative z-10">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+          <Badge className="mb-6 bg-gradient-to-r from-green-600 to-yellow-500 text-white border-none px-6 py-2 text-sm font-medium">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Khởi Tạo Phong Cách Riêng
+          </Badge>
+          
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-700 via-green-600 to-yellow-600 bg-clip-text text-transparent leading-tight">
             Mỗi chiếc áo kể một câu chuyện
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
+          
+          <p className="text-xl text-gray-700 max-w-3xl mx-auto mb-8 leading-relaxed">
             TEECRAFT là startup chuyên về trang phục tùy chỉnh bằng AI, cung cấp nền tảng để khách hàng cá nhân hóa áo thun và sản phẩm thời trang ngay trên website. Kết hợp công nghệ AI với trải nghiệm thương mại điện tử hiện đại, chúng tôi giúp bạn thể hiện phong cách một cách dễ dàng, thú vị và khác biệt.
           </p>
+          
           {/* Hero Image */}
           <div className="mt-16 grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            <div className="relative w-full aspect-[3/2]">
+            <div className="relative w-full aspect-[3/2] group">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-yellow-400/20 rounded-xl group-hover:scale-105 transition-transform duration-300"></div>
               <Image
-                src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1600&q=80"
-                alt="Áo thun tùy chỉnh bằng AI"
+                src="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+                alt="Thiết kế áo thun tùy chỉnh với AI"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover rounded-xl shadow-xl"
+                className="object-cover rounded-xl shadow-2xl"
               />
             </div>
-            <div className="relative w-full aspect-[3/2]">
+            <div className="relative w-full aspect-[3/2] group">
+              <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 to-green-500/20 rounded-xl group-hover:scale-105 transition-transform duration-300"></div>
               <Image
-                src="https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1600&q=80"
-                alt="Thiết kế thời trang cá nhân hóa"
+                src="https://images.unsplash.com/photo-1556821840-3a63f95609a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+                alt="Cá nhân hóa thời trang hiện đại"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover rounded-xl shadow-xl"
+                className="object-cover rounded-xl shadow-2xl"
               />
             </div>
           </div>
@@ -49,11 +63,11 @@ export default function AboutPage() {
       </section>
 
       {/* Description Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4 max-w-4xl">
-          <Card className="border-none shadow-lg">
-            <CardContent className="pt-6">
-              <p className="text-lg text-gray-700 leading-relaxed">
+          <Card className="border-2 border-green-100 shadow-xl bg-gradient-to-br from-white to-green-50/30">
+            <CardContent className="pt-8">
+              <p className="text-lg text-gray-800 leading-relaxed">
                 Ra đời trong thời đại cá nhân hóa và chuyển đổi số, TEECRAFT thấu hiểu nhu cầu thể hiện bản sắc qua trang phục. Nền tảng của chúng tôi cho phép bạn tải ảnh, chọn kiểu dáng, tinh chỉnh chi tiết và tạo nên thiết kế độc nhất chỉ trong vài thao tác. Bên cạnh đó, kho thiết kế có sẵn do đội ngũ sáng tạo xây dựng giúp bạn lựa chọn nhanh chóng khi cần sự tiện lợi.
                 <br /><br />
                 Không chỉ là sản phẩm, chúng tôi mang đến trải nghiệm truyền cảm hứng. Mỗi chiếc áo được đầu tư tỉ mỉ từ chất liệu vải, phom dáng đến công nghệ in, đảm bảo bền bỉ, thoải mái và sắc nét. TEECRAFT kết nối AI với thời trang hiện đại, biến trang phục thành lời tuyên ngôn cá tính của bạn.
@@ -63,20 +77,20 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Mission, Vision, Objectives Sections - Rút gọn */}
-      <section className="py-20 bg-gray-50">
+      {/* Mission, Vision, Objectives Sections */}
+      <section className="py-20 bg-gradient-to-br from-green-50/50 via-white to-yellow-50/50">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="grid md:grid-cols-3 gap-8">
             {/* Mission */}
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-2 border-green-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border border-green-200">
                     <Lightbulb className="h-4 w-4 mr-1" /> Sứ Mệnh
                   </Badge>
-                  <Heart className="h-6 w-6 text-red-500" />
+                  <Heart className="h-6 w-6 text-green-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold">Sứ Mệnh Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-green-900">Sứ Mệnh Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -86,15 +100,15 @@ export default function AboutPage() {
             </Card>
 
             {/* Vision */}
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-2 border-yellow-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border border-yellow-200">
                     <Users className="h-4 w-4 mr-1" /> Tầm Nhìn
                   </Badge>
-                  <Target className="h-6 w-6 text-blue-500" />
+                  <Target className="h-6 w-6 text-yellow-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold">Tầm Nhìn Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-yellow-900">Tầm Nhìn Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -104,15 +118,15 @@ export default function AboutPage() {
             </Card>
 
             {/* Objectives */}
-            <Card className="border-none shadow-lg hover:shadow-xl transition-shadow">
+            <Card className="border-2 border-amber-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 bg-white">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                <div className="flex items-center justify-between mb-3">
+                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border border-amber-200">
                     <MapPin className="h-4 w-4 mr-1" /> Mục Tiêu
                   </Badge>
-                  <Sparkles className="h-6 w-6 text-purple-500" />
+                  <Sparkles className="h-6 w-6 text-amber-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold">Mục Tiêu Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-amber-900">Mục Tiêu Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -126,67 +140,87 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Sẵn sàng kể câu chuyện của bạn?</h2>
-          <p className="text-gray-600 mb-8 max-w-2xl mx-auto">Tham gia cộng đồng TEECRAFT và bắt đầu cá nhân hóa ngay hôm nay.</p>
+      {/* Contact Section - Phiên bản nhẹ nhàng */}
+      <section className="py-20 bg-white relative overflow-hidden">
+        {/* Decorative subtle accents */}
+        <div className="absolute top-10 right-10 w-32 h-32 bg-green-100 rounded-full blur-2xl opacity-30"></div>
+        <div className="absolute bottom-10 left-10 w-32 h-32 bg-yellow-100 rounded-full blur-2xl opacity-30"></div>
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <Badge className="mb-6 bg-gradient-to-r from-green-600 to-yellow-500 text-white border-none px-6 py-2 text-sm font-medium">
+            <Sparkles className="h-4 w-4 mr-2" />
+            Kết Nối Với Chúng Tôi
+          </Badge>
+          
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            Sẵn sàng kể câu chuyện của bạn?
+          </h2>
+          <p className="text-gray-600 mb-10 max-w-2xl mx-auto text-lg">
+            Tham gia cộng đồng TEECRAFT và bắt đầu cá nhân hóa ngay hôm nay.
+          </p>
           
           {/* Buttons */}
           <div className="flex justify-center mb-12">
             <a href="https://www.facebook.com/profile.php?id=61581261208179" target="_blank" rel="noopener noreferrer">
-              <Button className="flex items-center space-x-2 bg-black text-white hover:bg-gray-800">
-                <Facebook className="h-4 w-4" />
+              <Button className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-yellow-500 text-white hover:from-green-700 hover:to-yellow-600 shadow-lg hover:shadow-xl transition-all px-8 py-6 text-lg font-semibold">
+                <Facebook className="h-5 w-5" />
                 <span>Theo Dõi Facebook</span>
               </Button>
             </a>
           </div>
 
-          {/* Contact Details - Phone, Email, Address */}
+          {/* Contact Details */}
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto text-left mb-16">
             {/* Phone */}
-            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-              <Phone className="h-6 w-6 text-gray-600" />
+            <div className="flex items-center space-x-4 p-6 bg-gradient-to-br from-green-50 to-white rounded-xl shadow-md hover:shadow-lg transition-all border border-green-100">
+              <div className="p-3 bg-green-100 rounded-full">
+                <Phone className="h-6 w-6 text-green-700" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Số Điện Thoại</p>
-                <a href="tel:+84332210528" className="text-lg font-semibold text-gray-900 hover:text-blue-600">
+                <p className="text-sm font-medium text-gray-600">Số Điện Thoại</p>
+                <a href="tel:+84332210528" className="text-lg font-semibold text-green-700 hover:text-green-800">
                   0332 210 528
                 </a>
               </div>
             </div>
 
             {/* Email */}
-            <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
-              <Mail className="h-6 w-6 text-gray-600" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Email</p>
-                <a href="mailto:teecraft942025@gmail.com" className="text-lg font-semibold text-gray-900 hover:text-blue-600 whitespace-nowrap">
+            <div className="flex items-center space-x-4 p-6 bg-gradient-to-br from-yellow-50 to-white rounded-xl shadow-md hover:shadow-lg transition-all border border-yellow-100">
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <Mail className="h-6 w-6 text-yellow-700" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-600">Email</p>
+                <a href="mailto:teecraft942025@gmail.com" className="text-base font-semibold text-yellow-700 hover:text-yellow-800 break-all">
                   teecraft942025@gmail.com
                 </a>
               </div>
             </div>
 
             {/* Address */}
-            <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-lg">
-              <MapPin className="h-6 w-6 text-gray-600 mt-1" />
+            <div className="flex items-start space-x-4 p-6 bg-gradient-to-br from-amber-50 to-white rounded-xl shadow-md hover:shadow-lg transition-all border border-amber-100">
+              <div className="p-3 bg-amber-100 rounded-full mt-1">
+                <MapPin className="h-6 w-6 text-amber-700" />
+              </div>
               <div>
-                <p className="text-sm font-medium text-gray-500">Địa Chỉ</p>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-sm font-medium text-gray-600">Địa Chỉ</p>
+                <p className="text-base font-semibold text-amber-700">
                   Đê La Thành, Đống Đa, Hà Nội, Việt Nam
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Footer Image*/}
-          <div className="mt-16 relative w-full max-w-5xl mx-auto aspect-[16/6]">
+          {/* Footer Image - smaller and more subtle */}
+          <div className="mt-12 relative w-full max-w-4xl mx-auto aspect-[21/9] rounded-2xl overflow-hidden shadow-xl">
             <Image
-              src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2000&q=80"
-              alt="Cộng đồng thời trang"
+              src="https://images.unsplash.com/photo-1523381294911-8d3cead13475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+              alt="Workspace sáng tạo TEECRAFT"
               fill
-              sizes="(max-width: 1024px) 100vw, 1000px"
-              className="object-cover rounded-xl shadow-xl"
+              sizes="(max-width: 1024px) 100vw, 900px"
+              className="object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-900/20 to-transparent"></div>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Trash2, Eye, EyeOff, Lock, Unlock, MoveUp, MoveDown, Upload, Smile } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -64,17 +64,22 @@ interface ResizeState {
   startSize: number;
 }
 
+// Interface cho ref methods
+export interface CanvasRef {
+  addImageDecoration: (imageUrl: string, imageName: string) => void;
+}
+
 interface TShirtDesignerProps {
   initialImage?: string;
   imageSource?: 'local' | 'url';
   designType?: 'tshirt' | 'hoodie' | 'polo' | 'tank' | 'longsleeve' | 'custom';
 }
 
-const TShirtDesigner: React.FC<TShirtDesignerProps> = ({ 
+const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({ 
   initialImage = '/photo.png',
   imageSource = 'local',
   designType: initialDesignType = 'tshirt'
-}) => {
+}, ref) => {
   const [shirtImage, setShirtImage] = useState<string>(
     imageSource === 'local' ? initialImage : initialImage
   );
@@ -423,6 +428,11 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
     
     img.src = imageUrl;
   };
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    addImageDecoration
+  }));
 
   const handleDecorationImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1021,6 +1031,6 @@ const TShirtDesigner: React.FC<TShirtDesignerProps> = ({
       )}
     </div>
   );
-};
+})
 
 export default TShirtDesigner;
