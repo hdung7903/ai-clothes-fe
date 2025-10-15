@@ -13,6 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
+import { transformImageAi, generateNewImage } from "@/services/aiServices";
+import { useAppSelector } from "@/redux/hooks";
+import { base64ToDataUrl } from "@/utils/image";
 
 // Interface cho pending images (chờ lưu vào canvas)
 interface PendingImage {
@@ -45,6 +48,7 @@ function formatTimestamp(date: Date): string {
 // Interface cho canvas ref
 
 export default function DesignToolPage(): ReactElement {
+  const authUserId = useAppSelector((s) => s.auth.user?.id);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -125,26 +129,44 @@ export default function DesignToolPage(): ReactElement {
     }
 
     setIsLoading(true);
-    const uuid = crypto.randomUUID();
     const prompt = input.trim() || "Generate T-shirt design inspiration";
-    const body: any = { uuid, prompt, style, quality };
-
-    if (!isGenerate && uploadedImage) {
-      body.image_base64 = uploadedImage.split(",")[1];
-    }
+    const base64Payload = uploadedImage ? uploadedImage.split(",")[1] : undefined;
+    const uuid = authUserId || crypto.randomUUID();
 
     try {
-      const endpoint = isGenerate ? "/api/generate_new_image" : "/api/transform_image_ai";
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!response.ok) throw new Error("Lỗi xử lý API image");
-
-      const data = await response.json();
+      // Call AI service directly
+      let imageUrl = "";
       const action = isGenerate ? "generate" : "transform";
+      if (isGenerate) {
+        const res = await generateNewImage({ uuid, prompt, style, quality });
+        // Support both AIResponse shape and raw result fields
+        const anyRes: any = res as any;
+        const base64Result = res?.data?.generated_image_base64
+          ?? anyRes?.result_base64
+          ?? anyRes?.generated_image_base64
+          ?? null;
+        const urlResult = res?.data?.generated_image_url
+          ?? anyRes?.result_url
+          ?? anyRes?.generated_image_url
+          ?? null;
+        imageUrl = base64Result ? base64ToDataUrl(base64Result) : (urlResult ?? "");
+      } else {
+        if (!base64Payload) {
+          throw new Error("Thiếu dữ liệu ảnh để transform. Vui lòng upload ảnh và thử lại.");
+        }
+        const res = await transformImageAi({ uuid, image_base64: base64Payload, prompt, style, quality });
+        // Support both AIResponse shape and raw result fields
+        const anyRes: any = res as any;
+        const base64Result = res?.data?.transformed_image_base64
+          ?? anyRes?.result_base64
+          ?? anyRes?.transformed_image_base64
+          ?? null;
+        const urlResult = res?.data?.transformed_image_url
+          ?? anyRes?.result_url
+          ?? anyRes?.transformed_image_url
+          ?? null;
+        imageUrl = base64Result ? base64ToDataUrl(base64Result) : (urlResult ?? "");
+      }
       
       // Thêm message thông báo vào chat
       const assistantMessage: Message = {
@@ -158,9 +180,11 @@ export default function DesignToolPage(): ReactElement {
       setMessages((prev) => [...prev, assistantMessage]);
 
       // Thêm vào pending images (thumbnail chờ lưu)
+      if (!imageUrl) throw new Error("Phản hồi AI không có dữ liệu hình ảnh");
+
       const pendingImage: PendingImage = {
         id: Date.now().toString(),
-        url: `data:image/png;base64,${data.result_base64}`,
+        url: imageUrl,
         name: `${action === "transform" ? "Transformed" : "Generated"} Image`,
         style,
         quality,
@@ -190,8 +214,16 @@ export default function DesignToolPage(): ReactElement {
       const reader = new FileReader();
       reader.onload = (event) => {
         setUploadedImage(event.target?.result as string); // Chỉ preview, không push message
+        // Reset input value to allow re-uploading the same file or another file with same name
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       };
       reader.readAsDataURL(file);
+    }
+    // If user cancels selection, also ensure input is reset
+    else if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -220,7 +252,7 @@ export default function DesignToolPage(): ReactElement {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold mb-6 bg-gradient-to-r from-green-700 via-green-600 to-yellow-600 bg-clip-text text-transparent leading-tight">TEECRAFT Designer</h1>
+            <h1 className="text-2xl font-bold text-gray-900">TEECRAFT Designer</h1>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Beta</Badge>

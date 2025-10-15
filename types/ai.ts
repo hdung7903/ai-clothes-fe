@@ -35,7 +35,9 @@ export interface ModifyProduct {
 }
 
 export interface ApiAi {
-  api_key: string;
+  api_key?: string;
+  api_chatbot?: string;
+  api_image?: string;
   provider?: string;
   model?: string;
   [key: string]: any;

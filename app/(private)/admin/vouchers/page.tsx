@@ -104,11 +104,11 @@ export default function Page() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Vouchers</BreadcrumbPage>
+                  <BreadcrumbPage>Voucher</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -117,14 +117,14 @@ export default function Page() {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
-              <h1 className="text-xl font-semibold">Voucher Management</h1>
+              <h1 className="text-xl font-semibold">Quản lý voucher</h1>
               <Button asChild>
-                <Link href="/admin/vouchers/new">Add Voucher</Link>
+                <Link href="/admin/vouchers/new">Thêm voucher</Link>
               </Button>
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <Input
-                placeholder="Search vouchers by code or name"
+                placeholder="Tìm kiếm voucher theo mã hoặc tên"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
@@ -144,9 +144,9 @@ export default function Page() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                    <SelectItem value="active">Đang hoạt động</SelectItem>
+                    <SelectItem value="inactive">Không hoạt động</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
@@ -160,12 +160,12 @@ export default function Page() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="PERCENTAGE">Percentage</SelectItem>
-                    <SelectItem value="FIXED_AMOUNT">Fixed Amount</SelectItem>
+                    <SelectItem value="all">Tất cả loại</SelectItem>
+                    <SelectItem value="PERCENTAGE">Phần trăm</SelectItem>
+                    <SelectItem value="FIXED_AMOUNT">Số tiền cố định</SelectItem>
                   </SelectContent>
                 </Select>
-                <span className="text-sm text-muted-foreground">Rows per page</span>
+                <span className="text-sm text-muted-foreground">Số hàng mỗi trang</span>
                 <Select
                   value={String(pageSize)}
                   onValueChange={(v) => {
@@ -189,24 +189,24 @@ export default function Page() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Discount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Usage</TableHead>
-                  <TableHead>Valid Period</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Mã</TableHead>
+                  <TableHead>Tên</TableHead>
+                  <TableHead>Giảm giá</TableHead>
+                  <TableHead>Trạng thái</TableHead>
+                  <TableHead>Sử dụng</TableHead>
+                  <TableHead>Hiệu lực</TableHead>
+                  <TableHead className="text-right">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7}>Loading...</TableCell>
+                    <TableCell colSpan={7}>Đang tải...</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7}>No vouchers found.</TableCell>
+                    <TableCell colSpan={7}>Không tìm thấy voucher.</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.map((v) => (
@@ -217,7 +217,7 @@ export default function Page() {
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <Badge variant={isActive(v) ? "default" : "secondary"}>
-                          {isActive(v) ? "Active" : isExpired(v.validTo) ? "Expired" : "Inactive"}
+                          {isActive(v) ? "Đang hoạt động" : isExpired(v.validTo) ? "Hết hạn" : "Không hoạt động"}
                         </Badge>
                       </div>
                     </TableCell>
@@ -225,29 +225,29 @@ export default function Page() {
                     <TableCell>
                       <div className="text-sm">
                         <div>{new Date(v.validFrom).toLocaleDateString()}</div>
-                        <div className="text-muted-foreground">to {new Date(v.validTo).toLocaleDateString()}</div>
+                        <div className="text-muted-foreground">đến {new Date(v.validTo).toLocaleDateString()}</div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/vouchers/${v.voucherId}`}>View</Link>
+                        <Link href={`/admin/vouchers/${v.voucherId}`}>Xem</Link>
                       </Button>
                       <Button variant="secondary" size="sm" asChild>
-                        <Link href={`/admin/vouchers/${v.voucherId}/edit`}>Edit</Link>
+                        <Link href={`/admin/vouchers/${v.voucherId}/edit`}>Sửa</Link>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">Delete</Button>
+                          <Button variant="destructive" size="sm">Xóa</Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete voucher?</AlertDialogTitle>
+                            <AlertDialogTitle>Xóa voucher?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete voucher "{v.code}" - {v.name}.
+                              Hành động này không thể hoàn tác. Thao tác này sẽ xóa vĩnh viễn voucher "{v.code}" - {v.name}.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={async () => {
                                 try {
@@ -262,7 +262,7 @@ export default function Page() {
                                 }
                               }}
                             >
-                              Delete
+                              Xóa
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
