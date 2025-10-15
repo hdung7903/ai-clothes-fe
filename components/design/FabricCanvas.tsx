@@ -269,15 +269,16 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
 
   const getDecorationBounds = (dec: Decoration): Bounds => {
     if (dec.type === 'emoji') {
-      // Tăng bounds cho emoji để dễ click hơn, với minimum size
-      const size = Math.max(dec.size * 2, 100); // Tăng lên 2x và minimum 100px
-      return { width: size, height: size };
+      // Bounds thực tế của emoji dựa trên size
+      // Emoji thường chiếm khoảng 70-80% của font size
+      const actualSize = dec.size * 0.8;
+      return { width: actualSize, height: actualSize };
     } else if (dec.type === 'image') {
       return { width: dec.width, height: dec.height };
     }
     return { width: 50, height: 50 };
   };
-
+  
   // Debug function để kiểm tra collision
   const isPointInDecoration = (x: number, y: number, dec: Decoration): boolean => {
     const bounds = getDecorationBounds(dec);

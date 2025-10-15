@@ -2,13 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { MessageCircle, Send, X, Bot, User2, Loader2, AlertCircle, RefreshCw, Trash2, LogIn } from "lucide-react"
-
-// Mock Redux state for demo
-const useRouter = () => ({ push: (path: string) => console.log('Navigate to:', path) })
-const useSelector = (fn: any) => ({ 
-  isAuthenticated: true, 
-  user: { name: 'User' } 
-})
+import { useRouter } from "next/navigation"
+import { useSelector } from "react-redux"
+import { askSimpleQuestion } from "@/services/aiServices"
 
 type ChatMessage = {
   id: string
@@ -24,10 +20,17 @@ interface ChatDialogProps {
   title?: string
 }
 
-// Mock AI service
-const askSimpleQuestion = async (text: string) => {
-  await new Promise(resolve => setTimeout(resolve, 1000))
-  return `Đây là câu trả lời mẫu cho câu hỏi: "${text}". Tôi có thể giúp bạn với nhiều thông tin khác nhau về sản phẩm, thiết kế, và các câu hỏi chung.`
+
+// Client-side only UUID generator
+const generateId = () => {
+  if (typeof window === 'undefined') return 'temp-id'
+  return crypto.randomUUID()
+}
+
+// Client-side only date generator
+const getCurrentDate = () => {
+  if (typeof window === 'undefined') return new Date(0) // Use epoch for SSR
+  return new Date()
 }
 
 export default function ChatDialog({
@@ -39,15 +42,8 @@ export default function ChatDialog({
   
   const [open, setOpen] = useState(defaultOpen)
   const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: crypto.randomUUID(),
-      text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp bạn tìm hiểu về sản phẩm, thiết kế quần áo, hoặc trả lời bất kỳ câu hỏi nào. Bạn cần hỗ trợ gì?",
-      from: "bot",
-      timestamp: new Date(),
-      status: "sent",
-    },
-  ])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,6 +51,22 @@ export default function ChatDialog({
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const canSend = useMemo(() => input.trim().length > 0 && !isLoading && isAuthenticated, [input, isLoading, isAuthenticated])
+
+  // Initialize messages only on client side
+  useEffect(() => {
+    if (!isInitialized) {
+      setMessages([
+        {
+          id: generateId(),
+          text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp bạn tìm hiểu về sản phẩm, thiết kế quần áo, hoặc trả lời bất kỳ câu hỏi nào. Bạn cần hỗ trợ gì?",
+          from: "bot",
+          timestamp: getCurrentDate(),
+          status: "sent",
+        },
+      ])
+      setIsInitialized(true)
+    }
+  }, [isInitialized])
 
   useEffect(() => {
     if (!open) return
@@ -82,10 +94,10 @@ export default function ChatDialog({
     setError(null)
 
     const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       text,
       from: "user",
-      timestamp: new Date(),
+      timestamp: getCurrentDate(),
       status: "sending",
     }
     setMessages((prev) => [...prev, userMessage])
@@ -93,7 +105,16 @@ export default function ChatDialog({
 
     try {
       const response = await askSimpleQuestion(text)
-      const replyText = typeof response === "string" ? response : JSON.stringify(response)
+      // Handle different response formats
+      let replyText: string
+      if (typeof response === "string") {
+        replyText = response
+      } else if (response && typeof response === "object") {
+        // If response is an object, try to extract the message or text field
+        replyText = (response as any).message || (response as any).text || (response as any).answer || JSON.stringify(response)
+      } else {
+        replyText = String(response)
+      }
       
       setMessages((prev) => 
         prev.map((msg) => 
@@ -104,10 +125,10 @@ export default function ChatDialog({
       )
 
       const botMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         text: replyText || "Xin lỗi, tôi không thể trả lời câu hỏi này lúc này.",
         from: "bot",
-        timestamp: new Date(),
+        timestamp: getCurrentDate(),
         status: "sent",
       }
       setMessages((prev) => [...prev, botMessage])
@@ -125,10 +146,10 @@ export default function ChatDialog({
       )
 
       const errorMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         text: "Xin lỗi, có lỗi xảy ra khi kết nối với AI. Vui lòng thử lại sau.",
         from: "bot",
-        timestamp: new Date(),
+        timestamp: getCurrentDate(),
         status: "sent",
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -148,14 +169,19 @@ export default function ChatDialog({
 
   function clearChatHistory() {
     const welcomeMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       text: "Xin chào! Tôi là trợ lý AI của bạn. Tôi có thể giúp bạn tìm hiểu về sản phẩm, thiết kế quần áo, hoặc trả lời bất kỳ câu hỏi nào. Bạn cần hỗ trợ gì?",
       from: "bot",
-      timestamp: new Date(),
+      timestamp: getCurrentDate(),
       status: "sent",
     }
     setMessages([welcomeMessage])
     setError(null)
+  }
+
+  // Don't render until initialized to prevent hydration mismatch
+  if (!isInitialized) {
+    return null
   }
 
   return (

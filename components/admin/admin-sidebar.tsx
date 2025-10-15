@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent } from "lucide-react";
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings } from "lucide-react";
 
 import { NavAdmin } from "@/components/admin/nav-admin";
 import { NavUser } from "@/components/admin/nav-user";
@@ -80,6 +80,11 @@ export function AdminSidebar({
           { title: "Tất cả đơn hàng", url: "/admin/orders" },
           { title: "Tạo đơn hàng", url: "/admin/orders/new" },
         ],
+      },
+      {
+        title: "Cài đặt API",
+        url: "/admin/api-settings",
+        icon: Settings,
       },
     ],
   };
