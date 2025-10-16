@@ -27,7 +27,7 @@ export function AdminSidebar({
     user: {
       name: "Quản trị viên TEECRAFT",
       email: user?.fullName || user?.email || "",
-      avatar: "/avatars/shadcn.jpg",
+			avatar: "",
     },
 
     navMain: [

@@ -10,13 +10,14 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useAppDispatch } from "@/redux/hooks"
-import { logoutUser } from "@/redux/authSlice"
+import { logoutUser, logout } from "@/redux/authSlice"
 
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
 } from "@/components/ui/avatar"
+import { UserRound } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,10 +49,22 @@ export function NavUser({
 
   const handleLogout = async () => {
     try {
+      console.log('🔄 Starting logout from component...');
       await dispatch(logoutUser()).unwrap()
+      console.log('✅ Logout successful, redirecting to login...');
       router.push('/auth/login')
     } catch (error) {
-      console.error('Logout failed:', error)
+      console.error('❌ Logout failed:', error);
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        errorObject: error
+      });
+      
+      // Even if logout fails on the server, clear local state and redirect
+      console.log('🔄 Clearing local auth state as fallback...');
+      dispatch(logout()); // This will clear the local state
+      router.push('/auth/login');
     }
   }
 
@@ -66,7 +79,9 @@ export function NavUser({
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                <AvatarFallback className="rounded-lg p-0">
+                  <UserRound className="h-5 w-5" />
+                </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{user.name}</span>
@@ -85,7 +100,9 @@ export function NavUser({
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">CN</AvatarFallback>
+                  <AvatarFallback className="rounded-lg p-0">
+                    <UserRound className="h-5 w-5" />
+                  </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{user.name}</span>

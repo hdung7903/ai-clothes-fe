@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { createOrUpdateProductDesign } from '@/services/productDesignServices';
+import { toast } from 'sonner';
 import { Trash2, Eye, EyeOff, Lock, Unlock, MoveUp, MoveDown, Upload, Smile } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -73,12 +75,18 @@ interface TShirtDesignerProps {
   initialImage?: string;
   imageSource?: 'local' | 'url';
   designType?: 'tshirt' | 'hoodie' | 'polo' | 'tank' | 'longsleeve' | 'custom';
+  productId?: string;
+  productOptionValueId?: string;
+  designName?: string;
 }
 
 const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({ 
   initialImage = '/photo.png',
   imageSource = 'local',
-  designType: initialDesignType = 'tshirt'
+  designType: initialDesignType = 'tshirt',
+  productId,
+  productOptionValueId,
+  designName,
 }, ref) => {
   const [shirtImage, setShirtImage] = useState<string>(
     imageSource === 'local' ? initialImage : initialImage
@@ -96,6 +104,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
+  const [savingDesign, setSavingDesign] = useState(false);
   const [lastClickPosition, setLastClickPosition] = useState<{x: number, y: number} | null>(null);
   const [clickCount, setClickCount] = useState(0);
   
@@ -619,57 +628,39 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
     ));
   };
 
-  const exportDesign = async () => {
+  const saveDesign = async () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    
+    if (!productId || !productOptionValueId) {
+      toast.error('Thiếu productId hoặc productOptionValueId để lưu thiết kế.');
+      return;
+    }
+
     try {
-      const { default: jsPDF } = await import('jspdf');
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-      
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const availableWidth = pdfWidth - (margin * 2);
-      const availableHeight = pdfHeight - (margin * 2);
-      
-      // Calculate scale to fit while maintaining aspect ratio
-      const scaleX = availableWidth / canvas.width;
-      const scaleY = availableHeight / canvas.height;
-      const scale = Math.min(scaleX, scaleY);
-      
-      const finalWidth = canvas.width * scale;
-      const finalHeight = canvas.height * scale;
-      
-      // Center the image
-      const x = (pdfWidth - finalWidth) / 2;
-      const y = (pdfHeight - finalHeight) / 2;
-      
-      // Convert canvas to high-quality image data
-      const imgData = canvas.toDataURL('image/png', 1.0);
-      
-      // Add white background to remove any transparency issues
-      pdf.setFillColor(255, 255, 255);
-      pdf.rect(0, 0, pdfWidth, pdfHeight, 'F');
-      
-      // Add the design image only
-      pdf.addImage(imgData, 'PNG', x, y, finalWidth, finalHeight, undefined, 'FAST');
-      
-      // Save with dynamic filename
-      const filename = `thiet-ke-${designType}-${Date.now()}.pdf`;
-      pdf.save(filename);
-    } catch (error) {
-      console.error('Lỗi tạo PDF:', error);
-      // Fallback to PNG
-      const link = document.createElement('a');
-      link.download = `thiet-ke-${designType}.png`;
-      link.href = canvas.toDataURL('image/png', 1.0);
-      link.click();
+      setSavingDesign(true);
+      const imageDecorations = decorations.filter(d => d.type === 'image') as ImageDecoration[];
+      const icons = imageDecorations.map(d => ({ imageUrl: d.imageUrl }));
+
+      const payload = {
+        productDesignId: '',
+        productId,
+        productOptionValueId,
+        name: designName || `Thiết kế ${getDesignTypeLabel()}`,
+        icons,
+        templates: [],
+      };
+
+      const res = await createOrUpdateProductDesign(payload);
+      if (res.success) {
+        toast.success('Lưu thiết kế thành công!');
+      } else {
+        toast.error('Lưu thiết kế thất bại.');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Có lỗi xảy ra khi lưu thiết kế.');
+    } finally {
+      setSavingDesign(false);
     }
   };
 
@@ -777,10 +768,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
         <div className="bg-white border-b p-3 flex items-center justify-between flex-shrink-0">
           <h1 className="text-xl font-bold">Thiết Kế Áo</h1>
           <button
-            onClick={exportDesign}
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-medium text-sm"
+            onClick={saveDesign}
+            disabled={savingDesign}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-medium text-sm disabled:opacity-60"
           >
-            📄 Xuất PDF
+            💾 {savingDesign ? 'Đang lưu...' : 'Lưu Thiết Kế'}
           </button>
         </div>
         

@@ -1,0 +1,107 @@
+import type {
+  CreateOrUpdateProductDesignRequest,
+  CreateOrUpdateProductDesignResponse,
+  SearchProductDesignsResponse,
+  GetProductDesignByIdResponse,
+  DeleteProductDesignByIdResponse,
+  GetProductDesignsByProductResponse,
+} from '@/types/productDesign';
+
+const defaultJsonHeaders: HeadersInit = {
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+
+function getBaseUrl(): string {
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '');
+  }
+  return '';
+}
+
+function getAccessToken(): string | null {
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { accessToken?: string };
+    return parsed?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function withAuth(headers: HeadersInit): HeadersInit {
+  const h = new Headers(headers as HeadersInit);
+  const token = getAccessToken();
+  if (token) h.set('Authorization', `Bearer ${token}`);
+  return h;
+}
+
+export interface SearchProductDesignsQuery {
+  PageNumber: number;
+  PageSize: number;
+  SearchTerm?: string;
+  ProductId?: string;
+  ProductOptionValueId?: string;
+}
+
+export async function createOrUpdateProductDesign(payload: CreateOrUpdateProductDesignRequest): Promise<CreateOrUpdateProductDesignResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + '/api/ProductDesign/CreateOrUpdateProductDesign', {
+    method: 'POST',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<CreateOrUpdateProductDesignResponse>;
+}
+
+export async function searchProductDesigns(query: SearchProductDesignsQuery): Promise<SearchProductDesignsResponse> {
+  const baseUrl = getBaseUrl();
+  const url = new URL(baseUrl + '/api/ProductDesign/Search', typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+  });
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth({ 'Accept': 'application/json' }),
+    credentials: 'include',
+  });
+  return res.json() as Promise<SearchProductDesignsResponse>;
+}
+
+export async function getProductDesignById(productDesignId: string): Promise<GetProductDesignByIdResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + `/api/ProductDesign/${encodeURIComponent(productDesignId)}`, {
+    method: 'GET',
+    headers: withAuth({ 'Accept': 'application/json' }),
+    credentials: 'include',
+  });
+  return res.json() as Promise<GetProductDesignByIdResponse>;
+}
+
+export async function deleteProductDesignById(productDesignId: string): Promise<DeleteProductDesignByIdResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + `/api/ProductDesign/${encodeURIComponent(productDesignId)}`, {
+    method: 'DELETE',
+    headers: withAuth({ 'Accept': 'application/json' }),
+    credentials: 'include',
+  });
+  return res.json() as Promise<DeleteProductDesignByIdResponse>;
+}
+
+export async function getProductDesignsByProduct(productId: string, productOptionValueId?: string): Promise<GetProductDesignsByProductResponse> {
+  const baseUrl = getBaseUrl();
+  const url = new URL(baseUrl + `/api/ProductDesign/Product/${encodeURIComponent(productId)}`, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  if (productOptionValueId) url.searchParams.set('productOptionValueId', productOptionValueId);
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth({ 'Accept': 'application/json' }),
+    credentials: 'include',
+  });
+  return res.json() as Promise<GetProductDesignsByProductResponse>;
+}
+
+
+
+

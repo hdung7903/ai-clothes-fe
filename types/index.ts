@@ -9,4 +9,6 @@ export * from './product';
 export * from './voucher';
 export * from './ai';
 export * from './order';
+export * from './template';
+export * from './productDesign';
 

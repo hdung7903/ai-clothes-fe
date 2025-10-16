@@ -138,23 +138,34 @@ export const logoutUser = createAsyncThunk(
   'auth/logoutUser',
   async (_, { getState, rejectWithValue }) => {
     try {
+      console.log('🔄 Starting logout process...');
       const state = getState() as { auth: AuthState };
       const refreshTokenValue = state.auth.tokens?.refreshToken;
+      
       if (refreshTokenValue) {
         try {
+          console.log('🔄 Revoking refresh token...');
           await revokeToken({ refreshToken: refreshTokenValue });
-        } catch {
+          console.log('✅ Refresh token revoked successfully');
+        } catch (revokeError) {
+          console.warn('⚠️ Failed to revoke refresh token:', revokeError);
           // best-effort revoke; continue to logOut
         }
       }
 
+      console.log('🔄 Calling logout API...');
       const response = await logOut();
+      console.log('📡 Logout API response:', response);
+      
       if (response.success) {
+        console.log('✅ Logout successful');
         return true;
       } else {
+        console.error('❌ Logout failed with errors:', response.errors);
         return rejectWithValue(response.errors || { general: ['Logout failed'] });
       }
     } catch (error) {
+      console.error('❌ Logout network error:', error);
       return rejectWithValue({ general: ['Network error occurred'] });
     }
   }

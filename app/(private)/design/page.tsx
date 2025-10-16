@@ -314,6 +314,45 @@ export default function DesignToolPage(): ReactElement {
 
           {/* Input Area */}
           <div className="p-4 border-t flex-shrink-0 bg-gray-50">
+            {/* Pending Images (thumbnails chờ lưu) - Moved above input */}
+            {pendingImages.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg border">
+                <h4 className="font-medium text-sm mb-2 text-blue-800">Ảnh AI sẵn sàng thêm vào thiết kế:</h4>
+                <div className="flex flex-wrap gap-2">
+                  {pendingImages.map((img) => (
+                    <div key={img.id} className="bg-white rounded-lg p-2 shadow-sm border flex flex-col items-center">
+                      <img 
+                        src={img.url} 
+                        alt={img.name} 
+                        className="w-16 h-16 rounded object-cover mb-1"
+                      />
+                      <div className="text-center">
+                        <p className="text-xs text-gray-600 truncate w-16">{img.name}</p>
+                        <Badge variant="outline" className="text-xs mt-1">{img.style}</Badge>
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveToCanvas(img.url, img.name)}
+                          className="h-6 px-2 text-xs"
+                        >
+                          Lưu vào áo
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemovePending(img.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
                 <Textarea
@@ -419,45 +458,6 @@ export default function DesignToolPage(): ReactElement {
                 Generate
               </Button>
             </div>
-
-            {/* Pending Images (thumbnails chờ lưu) */}
-            {pendingImages.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-lg border">
-                <h4 className="font-medium text-sm mb-2 text-blue-800">Ảnh AI sẵn sàng thêm vào thiết kế:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {pendingImages.map((img) => (
-                    <div key={img.id} className="bg-white rounded-lg p-2 shadow-sm border flex flex-col items-center">
-                      <img 
-                        src={img.url} 
-                        alt={img.name} 
-                        className="w-16 h-16 rounded object-cover mb-1"
-                      />
-                      <div className="text-center">
-                        <p className="text-xs text-gray-600 truncate w-16">{img.name}</p>
-                        <Badge variant="outline" className="text-xs mt-1">{img.style}</Badge>
-                      </div>
-                      <div className="flex gap-1 mt-1">
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveToCanvas(img.url, img.name)}
-                          className="h-6 px-2 text-xs"
-                        >
-                          Lưu vào áo
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemovePending(img.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Download className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
