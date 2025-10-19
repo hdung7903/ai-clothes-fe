@@ -21,10 +21,21 @@ interface ChatDialogProps {
 }
 
 
-// Client-side only UUID generator
+// Client-side only UUID generator with fallback
 const generateId = () => {
   if (typeof window === 'undefined') return 'temp-id'
-  return crypto.randomUUID()
+  
+  // Try to use crypto.randomUUID() if available
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  
+  // Fallback UUID generation for older browsers/environments
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0
+    const v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
 }
 
 // Client-side only date generator
