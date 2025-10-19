@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { User, Heart, Settings, History, Palette } from "lucide-react"
+import { User, History, Palette } from "lucide-react"
 
 export default function AccountPage() {
   return (
@@ -8,8 +8,8 @@ export default function AccountPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-2">My Account</h1>
-            <p className="text-muted-foreground">Manage your account and design preferences</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Tài Khoản Của Tôi</h1>
+            <p className="text-muted-foreground">Quản lý tài khoản và tùy chọn thiết kế của bạn</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -18,9 +18,9 @@ export default function AccountPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <History className="h-5 w-5 text-primary" />
-                    Order History
+                    Lịch Sử Đơn Hàng
                   </CardTitle>
-                  <CardDescription>View your past orders and track current ones</CardDescription>
+                  <CardDescription>Xem các đơn hàng trước đây và theo dõi đơn hàng hiện tại</CardDescription>
                 </CardHeader>
               </Card>
             </Link>
@@ -30,21 +30,9 @@ export default function AccountPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Palette className="h-5 w-5 text-primary" />
-                    My Saved Designs
+                    Thiết Kế Đã Lưu
                   </CardTitle>
-                  <CardDescription>Access your saved and draft designs</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-
-            <Link href="/account/favorites">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-primary" />
-                    Favorite Designs
-                  </CardTitle>
-                  <CardDescription>Your liked and bookmarked designs</CardDescription>
+                  <CardDescription>Truy cập các thiết kế đã lưu và bản nháp của bạn</CardDescription>
                 </CardHeader>
               </Card>
             </Link>
@@ -54,21 +42,9 @@ export default function AccountPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
-                    Account Info
+                    Thông Tin Tài Khoản
                   </CardTitle>
-                  <CardDescription>Update your profile and change password</CardDescription>
-                </CardHeader>
-              </Card>
-            </Link>
-
-            <Link href="/account/preferences">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5 text-primary" />
-                    Preferences
-                  </CardTitle>
-                  <CardDescription>Customize your design preferences</CardDescription>
+                  <CardDescription>Cập nhật hồ sơ và thay đổi mật khẩu</CardDescription>
                 </CardHeader>
               </Card>
             </Link>

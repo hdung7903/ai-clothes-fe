@@ -41,7 +41,7 @@ function getBaseUrl(): string {
 
 async function requestJson<TReq, TRes>(path: string, options: Omit<RequestInit, 'body'> & { payload?: TReq; query?: Record<string, string | number | boolean | undefined>; }): Promise<ApiEnvelope<TRes>> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + path, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL(path, baseUrl);
 
   if (options.query) {
     Object.entries(options.query).forEach(([key, value]) => {

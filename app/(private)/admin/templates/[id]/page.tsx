@@ -17,7 +17,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { getTemplateById } from "@/services/templateServices"
+import { deleteTemplateById, getTemplateById } from "@/services/templateServices"
+import { Button } from "@/components/ui/button"
 import type { TemplateDetail } from "@/types/template"
 
 export default function Page() {
@@ -25,6 +26,7 @@ export default function Page() {
   const id = params?.id as string
   const [isLoading, setIsLoading] = React.useState(true)
   const [data, setData] = React.useState<TemplateDetail | null>(null)
+  const [isDeleting, setIsDeleting] = React.useState(false)
 
   React.useEffect(() => {
     let ignore = false
@@ -69,10 +71,21 @@ export default function Page() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          {isLoading && <div>Đang tải...</div>}
-          {!isLoading && !data && <div>Không tìm thấy template.</div>}
+          {isLoading && <div className="text-sm text-muted-foreground">Đang tải...</div>}
+          {!isLoading && !data && (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+              <div className="h-12 w-12 rounded-full border" />
+              <div className="space-y-1">
+                <p className="font-medium">Không tìm thấy template</p>
+                <p className="text-sm text-muted-foreground">Có thể template đã bị xóa hoặc ID không hợp lệ.</p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <a href="/admin/templates">Quay lại danh sách</a>
+              </Button>
+            </div>
+          )}
           {!isLoading && data && (
-            <Card className="max-w-3xl">
+            <Card className="max-w-4xl">
               <CardHeader>
                 <CardTitle>{data.productName} - {data.printAreaName}</CardTitle>
                 <CardDescription>
@@ -80,10 +93,10 @@ export default function Page() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-6">
+                <div className="flex flex-col gap-6 md:flex-row">
                   {data.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={data.imageUrl} alt={data.printAreaName} className="h-40 w-40 rounded object-cover border" />
+                    <img src={data.imageUrl} alt={data.printAreaName} className="h-56 w-56 rounded object-cover ring-1 ring-border" />
                   )}
                   <div className="space-y-2 text-sm">
                     <div><span className="text-muted-foreground">Template ID:</span> <span className="font-mono">{data.id}</span></div>
@@ -93,6 +106,29 @@ export default function Page() {
                     <div><span className="text-muted-foreground">Cập nhật:</span> {new Date(data.lastModifiedAt).toLocaleString()}</div>
                   </div>
                 </div>
+                <div className="mt-6 flex items-center justify-end gap-2">
+                  <Button asChild variant="secondary">
+                    <a href={`/admin/templates/${data.id}/edit`}>Chỉnh sửa</a>
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={isDeleting}
+                    onClick={async () => {
+                      if (!confirm('Xóa template này?')) return
+                      try {
+                        setIsDeleting(true)
+                        const res = await deleteTemplateById(data.id)
+                        if (res.success) {
+                          window.location.href = '/admin/templates'
+                        }
+                      } finally {
+                        setIsDeleting(false)
+                      }
+                    }}
+                  >
+                    {isDeleting ? 'Đang xóa...' : 'Xóa'}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -101,5 +137,6 @@ export default function Page() {
     </SidebarProvider>
   )
 }
+
 
 

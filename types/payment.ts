@@ -18,6 +18,12 @@ export interface SepayWebhookPayload {
 export type SepayWebhookResponse = ApiEnvelope<string>;
 export type QrCodeResponse = ApiEnvelope<string>;
 
+// Request body for creating a payment QR code
+export interface QrCodeRequest {
+  amount: number;
+  paymentCode: string;
+}
+
 
 
 

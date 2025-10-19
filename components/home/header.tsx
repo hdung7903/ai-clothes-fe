@@ -92,7 +92,7 @@ export function Header() {
                 <DropdownMenuItem asChild>
                   <Link href="/account" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    <span>Hồ Sơ</span>
+                    <span>Tài Khoản</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -202,7 +202,7 @@ export function Header() {
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
                         <User className="h-4 w-4" />
-                        <span>Hồ Sơ</span>
+                        <span>Tài Khoản</span>
                       </Link>
                       <Link 
                         href="/account/orders" 

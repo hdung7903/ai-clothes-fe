@@ -59,7 +59,7 @@ export interface SearchVouchersQuery {
 
 export async function searchVouchers(query: SearchVouchersQuery): Promise<SearchVouchersResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + '/api/Voucher/Search', typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL('/api/Voucher/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });

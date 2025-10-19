@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,21 +17,21 @@ import { registerUser, clearError, requestEmailVerificationAction } from "@/redu
 
 const registerSchema = z
   .object({
-    firstName: z.string().min(2, "First name must be at least 2 characters"),
-    lastName: z.string().min(2, "Last name must be at least 2 characters"),
-    email: z.string().email("Please enter a valid email address"),
+    firstName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
+    lastName: z.string().min(2, "Họ phải có ít nhất 2 ký tự"),
+    email: z.string().email("Vui lòng nhập địa chỉ email hợp lệ"),
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters")
+      .min(8, "Mật khẩu phải có ít nhất 8 ký tự")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password must contain at least one uppercase letter, one lowercase letter, and one number",
+        "Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường và 1 số",
       ),
     confirmPassword: z.string(),
-    acceptTerms: z.boolean().refine((val) => val === true, "You must accept the terms and conditions"),
+    acceptTerms: z.boolean().refine((val) => val === true, "Bạn phải đồng ý với điều khoản và chính sách"),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
+    message: "Mật khẩu xác nhận không khớp",
     path: ["confirmPassword"],
   })
 
@@ -82,6 +83,9 @@ export function RegisterForm() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
+          <Image src="/branch.png" alt="AI Clothes" width={120} height={120} priority />
+        </div>
+        <div className="flex justify-center">
           <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
             <svg className="h-6 w-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -89,8 +93,8 @@ export function RegisterForm() {
           </div>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Account Created!</h3>
-          <p className="text-muted-foreground">Your account has been created successfully. Redirecting to login...</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Tạo tài khoản thành công!</h3>
+          <p className="text-muted-foreground">Tài khoản của bạn đã được tạo. Đang chuyển đến trang đăng nhập...</p>
         </div>
       </div>
     )
@@ -98,6 +102,9 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="flex justify-center">
+        <Image src="/branch.png" alt="AI Clothes" width={120} height={120} priority />
+      </div>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -106,10 +113,10 @@ export function RegisterForm() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="firstName">First Name</Label>
+          <Label htmlFor="firstName">Tên</Label>
           <Input
             id="firstName"
-            placeholder="John"
+            placeholder="Tên"
             {...register("firstName")}
             className={errors.firstName ? "border-destructive" : ""}
           />
@@ -117,10 +124,10 @@ export function RegisterForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="lastName">Last Name</Label>
+          <Label htmlFor="lastName">Họ</Label>
           <Input
             id="lastName"
-            placeholder="Doe"
+            placeholder="Họ"
             {...register("lastName")}
             className={errors.lastName ? "border-destructive" : ""}
           />
@@ -133,7 +140,7 @@ export function RegisterForm() {
         <Input
           id="email"
           type="email"
-          placeholder="john@example.com"
+          placeholder="nhan@example.com"
           {...register("email")}
           className={errors.email ? "border-destructive" : ""}
         />
@@ -141,12 +148,12 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Mật khẩu</Label>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="Create a strong password"
+            placeholder="Tạo mật khẩu mạnh"
             {...register("password")}
             className={errors.password ? "border-destructive pr-10" : "pr-10"}
           />
@@ -168,12 +175,12 @@ export function RegisterForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
         <div className="relative">
           <Input
             id="confirmPassword"
             type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm your password"
+            placeholder="Xác nhận mật khẩu"
             {...register("confirmPassword")}
             className={errors.confirmPassword ? "border-destructive pr-10" : "pr-10"}
           />
@@ -202,13 +209,13 @@ export function RegisterForm() {
           className="mt-1"
         />
         <Label htmlFor="acceptTerms" className="text-sm font-normal leading-5">
-          I agree to the{" "}
+          Tôi đồng ý với{" "}
           <a href="/terms" className="text-primary hover:text-primary/80 underline">
-            Terms of Service
+            Điều khoản dịch vụ
           </a>{" "}
-          and{" "}
+          và{" "}
           <a href="/privacy" className="text-primary hover:text-primary/80 underline">
-            Privacy Policy
+            Chính sách bảo mật
           </a>
         </Label>
       </div>
@@ -218,10 +225,10 @@ export function RegisterForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating account...
+            Đang tạo tài khoản...
           </>
         ) : (
-          "Create Account"
+          "Tạo tài khoản"
         )}
       </Button>
     </form>

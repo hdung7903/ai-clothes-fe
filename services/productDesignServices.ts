@@ -58,7 +58,7 @@ export async function createOrUpdateProductDesign(payload: CreateOrUpdateProduct
 
 export async function searchProductDesigns(query: SearchProductDesignsQuery): Promise<SearchProductDesignsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + '/api/ProductDesign/Search', typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL('/api/ProductDesign/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -92,7 +92,7 @@ export async function deleteProductDesignById(productDesignId: string): Promise<
 
 export async function getProductDesignsByProduct(productId: string, productOptionValueId?: string): Promise<GetProductDesignsByProductResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + `/api/ProductDesign/Product/${encodeURIComponent(productId)}`, typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL(`/api/ProductDesign/Product/${encodeURIComponent(productId)}`, baseUrl);
   if (productOptionValueId) url.searchParams.set('productOptionValueId', productOptionValueId);
   const res = await fetch(url.toString(), {
     method: 'GET',
@@ -101,6 +101,7 @@ export async function getProductDesignsByProduct(productId: string, productOptio
   });
   return res.json() as Promise<GetProductDesignsByProductResponse>;
 }
+
 
 
 

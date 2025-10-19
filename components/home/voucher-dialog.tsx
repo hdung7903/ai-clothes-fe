@@ -5,51 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { X, Gift, Copy, Check, Clock } from "lucide-react"
-
-type Voucher = {
-  id: string
-  code: string
-  title: string
-  description: string
-  discountText: string
-  expiresAt?: string
-  minSpend?: string
-  category?: "popular" | "new" | "limited"
-}
-
-const VOUCHERS: Voucher[] = [
-  {
-    id: "welcome-10",
-    code: "WELCOME10",
-    title: "Chào mừng giảm 10%",
-    description: "Tiết kiệm 10% cho đơn hàng đầu tiên",
-    discountText: "GIẢM 10%",
-    minSpend: "$30",
-    category: "popular",
-    expiresAt: "31 Thg 12, 2024",
-  },
-  {
-    id: "freeship",
-    code: "FREESHIP",
-    title: "Miễn phí vận chuyển",
-    description: "Miễn phí vận chuyển cho mọi đơn hàng",
-    discountText: "FREE SHIP",
-    minSpend: "$50",
-    category: "new",
-    expiresAt: "31 Thg 12, 2024",
-  },
-  {
-    id: "bundle-15",
-    code: "BUNDLE15",
-    title: "Mua kèm tiết kiệm",
-    description: "Mua từ 2 sản phẩm được giảm thêm",
-    discountText: "GIẢM 15%",
-    minSpend: "$100",
-    category: "limited",
-    expiresAt: "20 Thg 12, 2024",
-  },
-]
+import { X, Gift, Copy, Check, Clock, AlertCircle } from "lucide-react"
+import { searchVouchers } from "@/services/voucherService"
+import type { VoucherSummaryItem } from "@/types/voucher"
 
 const DISPLAY_CONFIG = {
   DELAY_MS: 3000, // 3 seconds delay
@@ -62,29 +20,52 @@ export function VoucherDialog() {
   const [open, setOpen] = useState(false)
   const [dontShowAgain, setDontShowAgain] = useState(false)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
-  const [visibleCount, setVisibleCount] = useState(DISPLAY_CONFIG.PAGE_SIZE)
+  const [vouchers, setVouchers] = useState<VoucherSummaryItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [pageNumber, setPageNumber] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   
   const containerRef = useRef<HTMLDivElement | null>(null)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const hasShownRef = useRef(false)
 
-  // Generate expanded vouchers list
-  const allVouchers = useMemo(() => {
-    const expanded: Voucher[] = []
-    for (let i = 0; i < 60; i++) {
-      const base = VOUCHERS[i % VOUCHERS.length]
-      expanded.push({
-        ...base,
-        id: `${base.id}-${i}`,
+  // Load vouchers from API
+  const loadVouchers = useCallback(async (page: number = 1, append: boolean = false) => {
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const response = await searchVouchers({
+        IsActive: true,
+        SortBy: 'CREATED_ON',
+        SortDescending: true,
+        PageNumber: page,
+        PageSize: DISPLAY_CONFIG.PAGE_SIZE
       })
+      
+      if (response.success && response.data) {
+        const newVouchers = response.data.items
+        setVouchers(prev => append ? [...prev, ...newVouchers] : newVouchers)
+        setHasMore(page < response.data.totalPages)
+        setPageNumber(page)
+      } else {
+        setError('Không thể tải danh sách voucher')
+      }
+    } catch (err) {
+      setError('Lỗi khi tải voucher')
+      console.error('Error loading vouchers:', err)
+    } finally {
+      setIsLoading(false)
     }
-    return expanded
   }, [])
 
-  const displayedVouchers = useMemo(
-    () => allVouchers.slice(0, visibleCount),
-    [allVouchers, visibleCount]
-  )
+  // Load more vouchers
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      loadVouchers(pageNumber + 1, true)
+    }
+  }, [isLoading, hasMore, pageNumber, loadVouchers])
 
   // Check if should show dialog
   const shouldShowDialog = useCallback(() => {
@@ -96,9 +77,14 @@ export function VoucherDialog() {
     return true
   }, [dontShowAgain])
 
+  // Load vouchers when component mounts
+  useEffect(() => {
+    loadVouchers(1, false)
+  }, [loadVouchers])
+
   // Hiển thị hộp thoại sau một khoảng trễ
   useEffect(() => {
-    if (!shouldShowDialog()) return
+    if (!shouldShowDialog() || vouchers.length === 0) return
 
     const timer = setTimeout(() => {
       setOpen(true)
@@ -106,13 +92,12 @@ export function VoucherDialog() {
     }, DISPLAY_CONFIG.DELAY_MS)
 
     return () => clearTimeout(timer)
-  }, [shouldShowDialog])
+  }, [shouldShowDialog, vouchers.length])
 
   // Đóng hộp thoại
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen)
     if (!nextOpen) {
-      setVisibleCount(DISPLAY_CONFIG.PAGE_SIZE)
       setCopiedCode(null)
     }
   }, [])
@@ -147,9 +132,7 @@ export function VoucherDialog() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => 
-            Math.min(prev + DISPLAY_CONFIG.PAGE_SIZE, allVouchers.length)
-          )
+          loadMore()
         }
       },
       { root: container, rootMargin: "100px", threshold: 0.1 }
@@ -157,10 +140,53 @@ export function VoucherDialog() {
 
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [open, allVouchers.length])
+  }, [open, loadMore])
+
+  // Format discount text
+  const formatDiscountText = (voucher: VoucherSummaryItem) => {
+    if (voucher.discountType === 'PERCENTAGE') {
+      return `GIẢM ${voucher.discountValue}%`
+    } else {
+      return `GIẢM ${voucher.discountValue.toLocaleString('vi-VN')}₫`
+    }
+  }
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('vi-VN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })
+  }
+
+  // Check if voucher is expired
+  const isExpired = (validTo: string) => {
+    return new Date(validTo) < new Date()
+  }
+
+  // Check if voucher is available
+  const isAvailable = (voucher: VoucherSummaryItem) => {
+    const now = new Date()
+    const validFrom = new Date(voucher.validFrom)
+    const validTo = new Date(voucher.validTo)
+    
+    return now >= validFrom && now <= validTo && voucher.isActive
+  }
+
+  // Get category based on usage
+  const getCategory = (voucher: VoucherSummaryItem) => {
+    if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit * 0.8) {
+      return 'limited'
+    }
+    if (voucher.usedCount > 50) {
+      return 'popular'
+    }
+    return 'new'
+  }
 
   // Lấy màu huy hiệu theo danh mục
-  const getCategoryColor = (category?: string) => {
+  const getCategoryColor = (category: string) => {
     switch (category) {
       case "popular":
         return "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
@@ -205,111 +231,153 @@ export function VoucherDialog() {
           className="px-6 pb-6 overflow-y-auto"
           style={{ maxHeight: DISPLAY_CONFIG.MAX_HEIGHT }}
         >
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {displayedVouchers.map((voucher) => (
-              <div
-                key={voucher.id}
-                className="group relative flex flex-col gap-3 rounded-xl border border-gray-200 dark:border-gray-800 p-4 hover:border-primary/50 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50"
-              >
-                {/* Huy hiệu danh mục */}
-                {voucher.category && (
-                  <div className="absolute top-3 right-3">
-                    <Badge 
-                      variant="secondary" 
-                      className={`text-xs uppercase font-semibold ${getCategoryColor(voucher.category)}`}
-                    >
-                      {voucher.category}
-                    </Badge>
-                  </div>
-                )}
-
-                {/* Nội dung */}
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold text-lg shrink-0">
-                    {voucher.code.substring(0, 2)}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start gap-2 mb-1">
-                      <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                        {voucher.title}
-                      </span>
+          {error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                <p className="text-destructive font-medium mb-2">Không thể tải voucher</p>
+                <p className="text-sm text-muted-foreground mb-4">{error}</p>
+                <Button onClick={() => loadVouchers(1, false)} variant="outline">
+                  Thử lại
+                </Button>
+              </div>
+            </div>
+          ) : vouchers.length === 0 && !isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Gift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground font-medium mb-2">Chưa có voucher nào</p>
+                <p className="text-sm text-muted-foreground">Vui lòng quay lại sau</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+              {vouchers.map((voucher) => {
+                const category = getCategory(voucher)
+                const available = isAvailable(voucher)
+                const expired = isExpired(voucher.validTo)
+                
+                return (
+                  <div
+                    key={voucher.voucherId}
+                    className={`group relative flex flex-col gap-3 rounded-xl border p-4 transition-all duration-200 ${
+                      available 
+                        ? 'border-gray-200 dark:border-gray-800 hover:border-primary/50 hover:shadow-md bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50'
+                        : 'border-gray-200 dark:border-gray-800 bg-gray-100 dark:bg-gray-800 opacity-60'
+                    }`}
+                  >
+                    {/* Huy hiệu danh mục */}
+                    <div className="absolute top-3 right-3">
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs uppercase font-semibold ${getCategoryColor(category)}`}
+                      >
+                        {category}
+                      </Badge>
                     </div>
-                    
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {voucher.description}
-                    </p>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-                      {voucher.minSpend && (
-                        <span className="flex items-center gap-1">
-                          <span className="font-medium">Tối thiểu:</span> {voucher.minSpend}
-                        </span>
-                      )}
-                      {voucher.expiresAt && (
-                        <>
-                          <span>•</span>
+                    {/* Trạng thái không khả dụng */}
+                    {!available && (
+                      <div className="absolute top-3 left-3">
+                        <Badge variant="destructive" className="text-xs">
+                          {expired ? 'Hết hạn' : 'Chưa áp dụng'}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Nội dung */}
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold text-lg shrink-0">
+                        {voucher.code.substring(0, 2)}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2 mb-1">
+                          <span className="text-base font-bold text-gray-900 dark:text-gray-100">
+                            {voucher.name}
+                          </span>
+                        </div>
+                        
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          {voucher.discountType === 'PERCENTAGE' 
+                            ? `Giảm ${voucher.discountValue}% cho đơn hàng`
+                            : `Giảm ${voucher.discountValue.toLocaleString('vi-VN')}₫ cho đơn hàng`
+                          }
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            HSD: {voucher.expiresAt}
+                            HSD: {formatDate(voucher.validTo)}
                           </span>
-                        </>
-                      )}
+                          {voucher.usageLimit && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
+                                <span className="font-medium">Đã dùng:</span> {voucher.usedCount}/{voucher.usageLimit}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hành động */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700">
+                        <code className="text-sm font-mono font-semibold text-primary flex-1">
+                          {voucher.code}
+                        </code>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2"
+                          onClick={() => handleCopy(voucher.code)}
+                        >
+                          {copiedCode === voucher.code ? (
+                            <Check className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      <Button
+                        size="sm"
+                        className="h-9 font-semibold"
+                        onClick={() => handleApply(voucher.code)}
+                        disabled={!available}
+                      >
+                        {available ? 'Áp dụng' : 'Không khả dụng'}
+                      </Button>
+                    </div>
+
+                    {/* Huy hiệu giảm giá */}
+                    <div className="absolute -top-2 -left-2 rotate-[-8deg]">
+                      <Badge className="bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold px-3 py-1 shadow-lg">
+                        {formatDiscountText(voucher)}
+                      </Badge>
                     </div>
                   </div>
-                </div>
+                )
+              })}
 
-                {/* Hành động */}
-                <div className="flex items-center gap-2 mt-2">
-                  <div className="flex items-center gap-2 flex-1 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700">
-                    <code className="text-sm font-mono font-semibold text-primary flex-1">
-                      {voucher.code}
-                    </code>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={() => handleCopy(voucher.code)}
-                    >
-                      {copiedCode === voucher.code ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
+              {/* Đang tải thêm */}
+              {isLoading && (
+                <div className="col-span-full flex items-center justify-center py-8 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span>Đang tải thêm voucher...</span>
                   </div>
-                  
-                  <Button
-                    size="sm"
-                    className="h-9 font-semibold"
-                    onClick={() => handleApply(voucher.code)}
-                  >
-                    Áp dụng
-                  </Button>
                 </div>
+              )}
 
-                {/* Huy hiệu giảm giá */}
-                <div className="absolute -top-2 -left-2 rotate-[-8deg]">
-                  <Badge className="bg-gradient-to-r from-orange-500 to-pink-600 text-white font-bold px-3 py-1 shadow-lg">
-                    {voucher.discountText}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-
-            {/* Đang tải thêm */}
-            {visibleCount < allVouchers.length && (
-              <div
-                ref={sentinelRef}
-                className="col-span-full flex items-center justify-center py-8 text-sm text-gray-500"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                  <span>Đang tải thêm voucher...</span>
-                </div>
-              </div>
-            )}
-          </div>
+              {/* Sentinel for infinite scroll */}
+              {hasMore && !isLoading && (
+                <div ref={sentinelRef} className="col-span-full h-1" />
+              )}
+            </div>
+          )}
         </div>
 
         {/* Chân trang */}
@@ -330,7 +398,7 @@ export function VoucherDialog() {
             </div>
             
             <div className="text-xs text-gray-500">
-              {displayedVouchers.length} / {allVouchers.length} voucher
+              {vouchers.length} voucher{isLoading ? ' (đang tải...)' : ''}
             </div>
           </div>
         </div>

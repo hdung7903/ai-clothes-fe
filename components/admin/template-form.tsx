@@ -44,7 +44,7 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
                 imageUrl: res.data.imageUrl,
               })
             } else {
-              setError(res.message || 'Không tải được dữ liệu template')
+              setError('Không tải được dữ liệu template')
             }
           }
         } catch {
@@ -71,7 +71,7 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
       if (res.success) {
         router.push('/admin/templates')
       } else {
-        setError(res.message || 'Lưu template thất bại')
+        setError('Lưu template thất bại')
       }
     } catch {
       setError('Lưu template thất bại')
@@ -89,7 +89,7 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
   }
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card className="mx-auto w-full max-w-4xl">
       <CardHeader>
         <CardTitle>
           {mode === 'create' ? 'Tạo Template mới' : 'Chỉnh sửa Template'}
@@ -106,62 +106,79 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
             </Alert>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="productId">Product ID *</Label>
-            <Input
-              id="productId"
-              value={formData.productId}
-              onChange={(e) => handleInputChange('productId', e.target.value)}
-              placeholder="VD: 7b1c3e0c-..."
-              required
-              disabled={isLoading}
-            />
-          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="productId">Product ID *</Label>
+                <Input
+                  id="productId"
+                  value={formData.productId}
+                  onChange={(e) => handleInputChange('productId', e.target.value)}
+                  placeholder="VD: 7b1c3e0c-..."
+                  required
+                  disabled={isLoading}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="productOptionValueId">Product Option Value ID *</Label>
-            <Input
-              id="productOptionValueId"
-              value={formData.productOptionValueId}
-              onChange={(e) => handleInputChange('productOptionValueId', e.target.value)}
-              placeholder="VD: 0c8a4f2a-..."
-              required
-              disabled={isLoading}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="productOptionValueId">Product Option Value ID *</Label>
+                <Input
+                  id="productOptionValueId"
+                  value={formData.productOptionValueId}
+                  onChange={(e) => handleInputChange('productOptionValueId', e.target.value)}
+                  placeholder="VD: 0c8a4f2a-..."
+                  required
+                  disabled={isLoading}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="printAreaName">Print Area Name *</Label>
-            <Input
-              id="printAreaName"
-              value={formData.printAreaName}
-              onChange={(e) => handleInputChange('printAreaName', e.target.value)}
-              placeholder="VD: Front, Back, Sleeve..."
-              required
-              disabled={isLoading}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="printAreaName">Print Area Name *</Label>
+                <Input
+                  id="printAreaName"
+                  value={formData.printAreaName}
+                  onChange={(e) => handleInputChange('printAreaName', e.target.value)}
+                  placeholder="VD: Front, Back, Sleeve..."
+                  required
+                  disabled={isLoading}
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">Image URL *</nLabel>
-            <Input
-              id="imageUrl"
-              value={formData.imageUrl}
-              onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-              placeholder="https://..."
-              required
-              disabled={isLoading}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="imageUrl">Image URL *</Label>
+                <Input
+                  id="imageUrl"
+                  value={formData.imageUrl}
+                  onChange={(e) => handleInputChange('imageUrl', e.target.value)}
+                  placeholder="https://..."
+                  required
+                  disabled={isLoading}
+                />
+              </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>Hủy</Button>
-            <Button type="submit" disabled={isLoading}>{isLoading ? 'Đang lưu...' : (mode === 'create' ? 'Tạo Template' : 'Cập nhật')}</Button>
+              <div className="flex justify-start gap-2 pt-2 md:justify-end">
+                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>Hủy</Button>
+                <Button type="submit" disabled={isLoading}>{isLoading ? 'Đang lưu...' : (mode === 'create' ? 'Tạo Template' : 'Cập nhật')}</Button>
+              </div>
+            </div>
+
+            <div className="flex items-start justify-center">
+              <div className="w-full max-w-sm rounded-lg border p-3">
+                <div className="mb-2 text-sm font-medium text-muted-foreground">Xem trước hình ảnh</div>
+                {formData.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={formData.imageUrl} alt={formData.printAreaName || 'Preview'} className="aspect-square w-full rounded-md object-cover ring-1 ring-border" />
+                ) : (
+                  <div className="aspect-square w-full rounded-md border bg-muted/40" />
+                )}
+              </div>
+            </div>
           </div>
         </form>
       </CardContent>
     </Card>
   )
 }
+
 
 

@@ -60,7 +60,7 @@ export interface SearchProductsQuery {
 
 export async function searchProducts(query: SearchProductsQuery): Promise<SearchProductsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + '/api/Product/Search', typeof window === 'undefined' ? 'http://localhost' : window.location.origin);
+  const url = new URL('/api/Product/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });

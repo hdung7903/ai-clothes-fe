@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,8 +16,8 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { loginUser, clearError, fetchUserProfile } from "@/redux/authSlice"
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(5, "Password must be at least 5 characters"),
+  email: z.string().email("Vui lòng nhập địa chỉ email hợp lệ"),
+  password: z.string().min(5, "Mật khẩu phải có ít nhất 5 ký tự"),
   rememberMe: z.boolean().default(false),
 })
 
@@ -40,12 +41,17 @@ export function LoginForm() {
 
   const rememberMe = watch("rememberMe")
 
-  // Redirect on successful login
+  // Điều hướng sau khi đăng nhập dựa trên vai trò người dùng
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated) return
+    if (!user) return
+
+    if (Array.isArray(user.roles) && user.roles.includes('Administrator')) {
+      router.push('/admin/dashboard')
+    } else {
       router.push('/')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
 
   // Fetch profile once we have tokens
   useEffect(() => {
@@ -66,6 +72,9 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="flex justify-center">
+        <Image src="/branch.png" alt="AI Clothes" width={120} height={120} priority />
+      </div>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -77,7 +86,7 @@ export function LoginForm() {
         <Input
           id="email"
           type="email"
-          placeholder="Enter your email"
+          placeholder="Nhập email của bạn"
           {...register("email")}
           className={errors.email ? "border-destructive" : ""}
         />
@@ -85,12 +94,12 @@ export function LoginForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">Mật khẩu</Label>
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
+            placeholder="Nhập mật khẩu"
             {...register("password")}
             className={errors.password ? "border-destructive pr-10" : "pr-10"}
           />
@@ -118,7 +127,7 @@ export function LoginForm() {
           onCheckedChange={(checked) => setValue("rememberMe", !!checked)}
         />
         <Label htmlFor="rememberMe" className="text-sm font-normal">
-          Remember me
+          Ghi nhớ đăng nhập
         </Label>
       </div>
 
@@ -126,10 +135,10 @@ export function LoginForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Signing in...
+            Đang đăng nhập...
           </>
         ) : (
-          "Sign In"
+          "Đăng nhập"
         )}
       </Button>
     </form>

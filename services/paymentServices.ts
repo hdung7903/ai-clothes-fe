@@ -1,6 +1,7 @@
-import type { SepayWebhookPayload, SepayWebhookResponse, QrCodeResponse } from '@/types/payment';
+import type { ApiEnvelope } from '@/types/shared';
+import type { QrCodeRequest, QrCodeResponse, SepayWebhookPayload, SepayWebhookResponse } from '@/types/payment';
 
-const defaultHeaders: HeadersInit = {
+const defaultJsonHeaders: HeadersInit = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
@@ -30,27 +31,28 @@ function withAuth(headers: HeadersInit): HeadersInit {
   return h;
 }
 
+// POST /api/Payment/QrCode
+export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + '/api/Payment/QrCode', {
+    method: 'POST',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<QrCodeResponse>;
+}
+
+// POST /api/Payment/WebHook/Sepay
 export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayWebhookResponse> {
   const baseUrl = getBaseUrl();
   const res = await fetch(baseUrl + '/api/Payment/WebHook/Sepay', {
     method: 'POST',
-    headers: withAuth(defaultHeaders),
+    headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
   return res.json() as Promise<SepayWebhookResponse>;
-}
-
-export async function getQrCode(amount: number): Promise<QrCodeResponse> {
-  const baseUrl = getBaseUrl();
-  const url = new URL('/api/Payment/QrCode', baseUrl);
-  url.searchParams.set('amount', String(amount));
-  const res = await fetch(url.toString(), {
-    method: 'GET',
-    headers: withAuth({ 'Accept': 'application/json' }),
-    credentials: 'include',
-  });
-  return res.json() as Promise<QrCodeResponse>;
 }
 
 

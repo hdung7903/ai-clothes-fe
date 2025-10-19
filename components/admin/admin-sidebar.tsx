@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings } from "lucide-react";
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings, LayoutTemplate } from "lucide-react";
 
 import { NavAdmin } from "@/components/admin/nav-admin";
 import { NavUser } from "@/components/admin/nav-user";
@@ -61,6 +61,15 @@ export function AdminSidebar({
         items: [
           { title: "Tất cả danh mục", url: "/admin/categories" },
           { title: "Thêm danh mục", url: "/admin/categories/new" },
+        ],
+      },
+      {
+        title: "Quản lý template",
+        url: "/admin/templates",
+        icon: LayoutTemplate,
+        items: [
+          { title: "Tất cả template", url: "/admin/templates" },
+          { title: "Thêm template", url: "/admin/templates/new" },
         ],
       },
       {

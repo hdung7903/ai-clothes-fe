@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -14,7 +15,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { requestPasswordResetAction, clearError } from "@/redux/authSlice"
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Vui lòng nhập địa chỉ email hợp lệ"),
 })
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
@@ -56,18 +57,21 @@ export function ForgotPasswordForm() {
     return (
       <div className="text-center space-y-4">
         <div className="flex justify-center">
+          <Image src="/branch.png" alt="AI Clothes" width={120} height={120} priority />
+        </div>
+        <div className="flex justify-center">
           <CheckCircle className="h-12 w-12 text-primary" />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">Check your email</h3>
-          <p className="text-muted-foreground">We've sent password reset instructions to your email address.</p>
+          <h3 className="text-lg font-semibold text-foreground mb-2">Kiểm tra email của bạn</h3>
+          <p className="text-muted-foreground">Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến email của bạn.</p>
         </div>
         <div className="grid grid-cols-1 gap-2">
           <Button onClick={() => router.push(`/auth/reset-password?email=${encodeURIComponent(lastEmail)}`)} className="w-full">
-            Continue to reset
+            Tiếp tục đặt lại mật khẩu
           </Button>
           <Button variant="outline" onClick={() => setIsSuccess(false)} className="w-full">
-            Send another email
+            Gửi lại email khác
           </Button>
         </div>
       </div>
@@ -76,6 +80,9 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <div className="flex justify-center">
+        <Image src="/branch.png" alt="AI Clothes" width={120} height={120} priority />
+      </div>
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
@@ -87,7 +94,7 @@ export function ForgotPasswordForm() {
         <Input
           id="email"
           type="email"
-          placeholder="Enter your email address"
+          placeholder="Nhập địa chỉ email của bạn"
           {...register("email")}
           className={errors.email ? "border-destructive" : ""}
         />
@@ -98,10 +105,10 @@ export function ForgotPasswordForm() {
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Sending reset email...
+            Đang gửi email đặt lại...
           </>
         ) : (
-          "Send Reset Email"
+          "Gửi email đặt lại"
         )}
       </Button>
     </form>

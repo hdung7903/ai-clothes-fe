@@ -22,6 +22,8 @@ import { clearCart } from "@/redux/cartSlice"
 import { logout } from "@/redux/authSlice"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { createQrCode } from "@/services/paymentServices"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
 export default function CheckoutPage() {
   const cartItems = useAppSelector((s) => s.cart.items)
@@ -35,6 +37,23 @@ export default function CheckoutPage() {
   const [voucherCode, setVoucherCode] = useState<string>("")
   const [discount, setDiscount] = useState<number>(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Online payment state
+  const [paymentQr, setPaymentQr] = useState<string | null>(null)
+  const [paymentDeadline, setPaymentDeadline] = useState<number | null>(null)
+  const [countdownMs, setCountdownMs] = useState<number>(0)
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState<boolean>(false)
+  const [paymentResultOpen, setPaymentResultOpen] = useState<boolean>(false)
+  const [paymentResultType, setPaymentResultType] = useState<'success' | 'failure' | null>(null)
+
+  function formatCountdown(ms: number): string {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const mm = String(minutes).padStart(2, '0')
+    const ss = String(seconds).padStart(2, '0')
+    return `${mm}:${ss}`
+  }
 
   // Form state
   const [firstName, setFirstName] = useState<string>("")
@@ -134,6 +153,64 @@ export default function CheckoutPage() {
       mounted = false
     }
   }, [])
+
+  // Countdown for online payment session (5 minutes)
+  useEffect(() => {
+    if (!paymentDeadline) return
+    const tick = () => {
+      const ms = Math.max(0, paymentDeadline - Date.now())
+      setCountdownMs(ms)
+      if (ms === 0) {
+        setPaymentQr(null)
+        setPaymentDeadline(null)
+        setPaymentDialogOpen(false)
+        toast.error("Phiên thanh toán đã hết hạn sau 5 phút. Vui lòng thử lại.")
+      }
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [paymentDeadline])
+
+  function handleMarkPaid() {
+    setPaymentDialogOpen(false)
+    setPaymentResultType('success')
+    setPaymentResultOpen(true)
+  }
+
+  function handleMarkFailed() {
+    setPaymentDialogOpen(false)
+    setPaymentResultType('failure')
+    setPaymentResultOpen(true)
+  }
+
+  async function handleRetryPayment() {
+    if (!paymentQr) {
+      try {
+        const qrRes = await createQrCode({ amount: Math.max(0, subtotal - discount), paymentCode: 'SEPAY' })
+        if (qrRes.success) {
+          setPaymentQr(qrRes.data ?? null)
+          setPaymentDeadline(Date.now() + 5 * 60 * 1000)
+          setPaymentDialogOpen(true)
+          setPaymentResultOpen(false)
+        } else {
+          const payErr = qrRes.errors ? Object.values(qrRes.errors).flat().join(', ') : 'Không lấy được thông tin thanh toán'
+          toast.error(payErr)
+        }
+      } catch {
+        toast.error('Không thể khởi tạo lại thanh toán. Vui lòng thử lại.')
+      }
+    } else {
+      setPaymentDialogOpen(true)
+      setPaymentResultOpen(false)
+    }
+  }
+
+  function handleChangeMethodToCOD() {
+    setPaymentMethod('COD')
+    setPaymentResultOpen(false)
+    toast.message('Đã chuyển sang phương thức COD')
+  }
 
   function applyVoucher() {
     const code = voucherCode.trim().toUpperCase()
@@ -242,9 +319,28 @@ export default function CheckoutPage() {
       const response = await createOrder(orderRequest)
       
       if (response.success && response.data) {
-        toast.success("Đơn hàng đã được tạo thành công!")
-        dispatch(clearCart())
-        router.push(`/account/orders`)
+        if (paymentMethod === 'ONLINE_PAYMENT') {
+          // Start 5-minute payment window and request payment info (e.g., QR)
+          try {
+            const qrRes = await createQrCode({ amount: Math.max(0, subtotal - discount), paymentCode: 'SEPAY' })
+            if (qrRes.success) {
+              setPaymentQr(qrRes.data ?? null)
+              setPaymentDeadline(Date.now() + 5 * 60 * 1000)
+              setPaymentDialogOpen(true)
+              toast.success("Đơn hàng đã tạo. Vui lòng thanh toán online trong 5 phút.")
+            } else {
+              const payErr = qrRes.errors ? Object.values(qrRes.errors).flat().join(', ') : 'Không lấy được thông tin thanh toán'
+              toast.error(payErr)
+            }
+          } catch (e) {
+            toast.error("Không thể khởi tạo thanh toán online. Vui lòng thử lại.")
+          }
+          // Do not clear cart or redirect yet; wait for payment
+        } else {
+          toast.success("Đơn hàng đã được tạo thành công!")
+          dispatch(clearCart())
+          router.push(`/account/orders`)
+        }
       } else {
         const errorMessage = response.errors 
           ? Object.values(response.errors).flat().join(', ')
@@ -531,6 +627,13 @@ export default function CheckoutPage() {
                       <Label htmlFor="pay-online">Thanh toán online</Label>
                     </div>
                   </RadioGroup>
+                  {paymentQr && (
+                    <div className="mt-4">
+                      <Button variant="outline" type="button" onClick={() => setPaymentDialogOpen(true)}>
+                        Xem mã QR thanh toán
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -597,6 +700,73 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Quét mã QR để thanh toán</DialogTitle>
+            <DialogDescription>
+              Vui lòng hoàn tất thanh toán trong {formatCountdown(countdownMs)}.
+            </DialogDescription>
+          </DialogHeader>
+          {paymentQr ? (
+            <div className="flex flex-col items-center gap-3">
+              <img
+                src={paymentQr}
+                alt="QR thanh toán"
+                className="rounded-md border w-64 h-64 object-contain bg-white"
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Không có mã QR khả dụng.</p>
+          )}
+          <DialogFooter>
+            <div className="flex w-full justify-between gap-2">
+              <Button variant="secondary" onClick={handleMarkFailed}>Có vấn đề / Thất bại</Button>
+              <Button onClick={handleMarkPaid}>Tôi đã thanh toán</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={paymentResultOpen} onOpenChange={setPaymentResultOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {paymentResultType === 'success' ? 'Thanh toán thành công' : 'Thanh toán thất bại'}
+            </DialogTitle>
+            <DialogDescription>
+              {paymentResultType === 'success'
+                ? 'Cảm ơn bạn! Chúng tôi đang xử lý đơn hàng của bạn.'
+                : 'Rất tiếc, có vẻ như thanh toán chưa hoàn tất. Bạn có thể thử lại hoặc đổi phương thức.'}
+            </DialogDescription>
+          </DialogHeader>
+          {paymentResultType === 'success' ? (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Bạn có thể xem tình trạng đơn hàng trong mục Đơn hàng của tôi.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm text-muted-foreground">
+                Hãy đảm bảo bạn chuyển đúng số tiền trong thời hạn. Nếu vẫn gặp vấn đề, vui lòng thử lại hoặc đổi phương thức.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            {paymentResultType === 'success' ? (
+              <div className="flex w-full justify-between gap-2">
+                <Button variant="secondary" onClick={() => { setPaymentResultOpen(false); router.push('/') }}>Tiếp tục mua sắm</Button>
+                <Button onClick={() => { setPaymentResultOpen(false); dispatch(clearCart()); router.push('/account/orders') }}>Xem đơn hàng</Button>
+              </div>
+            ) : (
+              <div className="flex w-full justify-between gap-2">
+                <Button variant="secondary" onClick={handleChangeMethodToCOD}>Đổi sang COD</Button>
+                <Button onClick={handleRetryPayment}>Thử lại thanh toán</Button>
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

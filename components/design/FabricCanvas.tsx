@@ -2,9 +2,11 @@
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { createOrUpdateProductDesign } from '@/services/productDesignServices';
+import { searchTemplates, type SearchTemplatesQuery } from '@/services/templateServices';
 import { toast } from 'sonner';
 import { Trash2, Eye, EyeOff, Lock, Unlock, MoveUp, MoveDown, Upload, Smile } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import type { TemplateSummaryItem } from '@/types/template';
 
 // Dynamic import for emoji-picker-react - proper way
 const EmojiPicker = dynamic(
@@ -99,7 +101,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
-  const [showShirtTypeDialog, setShowShirtTypeDialog] = useState(false);
+  const [showTemplateDialog, setShowTemplateDialog] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -107,6 +109,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
   const [savingDesign, setSavingDesign] = useState(false);
   const [lastClickPosition, setLastClickPosition] = useState<{x: number, y: number} | null>(null);
   const [clickCount, setClickCount] = useState(0);
+  
+  // Template selection states
+  const [templates, setTemplates] = useState<TemplateSummaryItem[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
@@ -141,6 +147,29 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
     };
     img.src = shirtImage;
   }, [shirtImage]);
+
+  // Fetch templates on component mount
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      setTemplatesLoading(true);
+      try {
+        const query: SearchTemplatesQuery = {
+          PageNumber: 1,
+          PageSize: 50,
+        };
+        const response = await searchTemplates(query);
+        if (response.success && response.data) {
+          setTemplates(response.data.items);
+        }
+      } catch (error) {
+        console.error("Error fetching templates:", error);
+      } finally {
+        setTemplatesLoading(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -671,7 +700,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
       reader.onload = (event) => {
         if (event.target?.result) {
           setShirtImage(event.target.result as string);
-          setShowShirtTypeDialog(false);
+          setShowTemplateDialog(false);
         }
       };
       reader.readAsDataURL(file);
@@ -681,7 +710,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
   const handleImageUrlSubmit = () => {
     if (tempImageUrl.trim()) {
       setShirtImage(tempImageUrl.trim());
-      setShowShirtTypeDialog(false);
+      setShowTemplateDialog(false);
       setTempImageUrl('');
     }
   };
@@ -691,12 +720,12 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
       <div className="w-64 bg-white border-r overflow-y-auto flex-shrink-0">
         <div className="p-4">
           <div className="mb-4">
-            <h3 className="font-semibold mb-2 text-sm">Loại Áo</h3>
+            <h3 className="font-semibold mb-2 text-sm">Mẫu Áo</h3>
             <button
-              onClick={() => setShowShirtTypeDialog(true)}
+              onClick={() => setShowTemplateDialog(true)}
               className="w-full bg-purple-500 text-white px-3 py-2 rounded hover:bg-purple-600 flex items-center justify-center gap-2 font-medium text-sm"
             >
-              <Upload size={16} /> Chọn Loại Áo
+              <Upload size={16} /> Chọn Mẫu Áo
             </button>
           </div>
           
@@ -980,173 +1009,97 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
         </div>
       </div>
       
-      {/* Shirt Type Selection Dialog */}
-      {showShirtTypeDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowShirtTypeDialog(false)}>
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-xl font-bold mb-4">Chọn Loại Áo</h3>
+      {/* Template Selection Dialog */}
+      {showTemplateDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowTemplateDialog(false)}>
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-xl font-bold mb-4">Chọn Mẫu Áo</h3>
             
-            <div className="space-y-6">
-              <div>
-                <h4 className="text-lg font-semibold mb-3">Mẫu Áo Cơ Bản</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <button
-                    onClick={() => {
-                      setShirtImage('/tshirt-front.png');
-                      setDesignType('tshirt');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">👕</div>
-                    <div className="text-sm font-medium">Áo Thun</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/custom-hoodie.png');
-                      setDesignType('hoodie');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🧥</div>
-                    <div className="text-sm font-medium">Áo Hoodie</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/photo.png');
-                      setDesignType('polo');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">👔</div>
-                    <div className="text-sm font-medium">Áo Polo</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('https://i.imgur.com/5QKxXXp.png');
-                      setDesignType('tank');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🩱</div>
-                    <div className="text-sm font-medium">Áo Tank Top</div>
-                  </button>
+            {templatesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                  <p className="text-gray-600">Đang tải mẫu áo...</p>
                 </div>
               </div>
-              
-              <div>
-                <h4 className="text-lg font-semibold mb-3">Mẫu Thiết Kế Có Sẵn</h4>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <button
-                    onClick={() => {
-                      setShirtImage('/custom-t-shirt-design.jpg');
-                      setDesignType('tshirt');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🎨</div>
-                    <div className="text-sm font-medium">Thiết Kế T-Shirt</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/floral-t-shirt-design.jpg');
-                      setDesignType('tshirt');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🌸</div>
-                    <div className="text-sm font-medium">Thiết Kế Hoa</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/geometric-hoodie-design.jpg');
-                      setDesignType('hoodie');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🔷</div>
-                    <div className="text-sm font-medium">Thiết Kế Hình Học</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/minimalist-hoodie-design.jpg');
-                      setDesignType('hoodie');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">⚪</div>
-                    <div className="text-sm font-medium">Thiết Kế Tối Giản</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/vintage-band-t-shirt.jpg');
-                      setDesignType('tshirt');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🎸</div>
-                    <div className="text-sm font-medium">Thiết Kế Vintage</div>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShirtImage('/abstract-dress-design.jpg');
-                      setDesignType('custom');
-                      setShowShirtTypeDialog(false);
-                    }}
-                    className="p-4 bg-gray-50 hover:bg-green-50 border-2 border-gray-200 hover:border-green-300 rounded-lg text-center transition-all"
-                  >
-                    <div className="text-3xl mb-2">🎭</div>
-                    <div className="text-sm font-medium">Thiết Kế Trừu Tượng</div>
-                  </button>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="text-lg font-semibold mb-3">Tùy Chỉnh</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Tải Lên Từ Máy Tính</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="w-full border-2 border-gray-300 rounded p-2 text-sm"
-                    />
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Mẫu Áo Có Sẵn</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {templates.map((template) => (
+                      <button
+                        key={template.id}
+                        onClick={() => {
+                          setShirtImage(template.imageUrl);
+                          setDesignType('tshirt'); // Default to tshirt, could be enhanced to detect from template
+                          setShowTemplateDialog(false);
+                        }}
+                        className="p-4 bg-gray-50 hover:bg-blue-50 border-2 border-gray-200 hover:border-blue-300 rounded-lg text-center transition-all group"
+                      >
+                        <div className="mb-3">
+                          <img 
+                            src={template.imageUrl} 
+                            alt={template.productName}
+                            className="w-full h-24 object-cover rounded shadow-sm group-hover:shadow-md transition-shadow"
+                          />
+                        </div>
+                        <div className="text-sm font-medium text-gray-800 truncate">
+                          {template.productName}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate mt-1">
+                          {template.productOptionValue}
+                        </div>
+                      </button>
+                    ))}
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Sử Dụng URL Hình Ảnh</label>
-                    <div className="flex gap-2">
+                  {templates.length === 0 && !templatesLoading && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Không có mẫu áo nào được tìm thấy.</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <h4 className="text-lg font-semibold mb-3">Tùy Chỉnh</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Tải Lên Từ Máy Tính</label>
                       <input
-                        type="text"
-                        value={tempImageUrl}
-                        onChange={(e) => setTempImageUrl(e.target.value)}
-                        placeholder="https://example.com/image.png"
-                        className="flex-1 border-2 border-gray-300 rounded px-3 py-2 text-sm"
-                        onKeyPress={(e) => e.key === 'Enter' && handleImageUrlSubmit()}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="w-full border-2 border-gray-300 rounded p-2 text-sm"
                       />
-                      <button
-                        onClick={handleImageUrlSubmit}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium text-sm"
-                      >
-                        Tải
-                      </button>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold mb-2">Sử Dụng URL Hình Ảnh</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={tempImageUrl}
+                          onChange={(e) => setTempImageUrl(e.target.value)}
+                          placeholder="https://example.com/image.png"
+                          className="flex-1 border-2 border-gray-300 rounded px-3 py-2 text-sm"
+                          onKeyPress={(e) => e.key === 'Enter' && handleImageUrlSubmit()}
+                        />
+                        <button
+                          onClick={handleImageUrlSubmit}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-medium text-sm"
+                        >
+                          Tải
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
             
             <button
-              onClick={() => setShowShirtTypeDialog(false)}
+              onClick={() => setShowTemplateDialog(false)}
               className="w-full mt-6 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded font-medium text-sm"
             >
               Hủy

@@ -64,12 +64,15 @@ export default function DesignToolPage(): ReactElement {
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]); // Ảnh AI chờ lưu
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  
 
   // Gửi message chat (giữ nguyên, chỉ text)
   const handleSendMessage = async () => {
@@ -466,7 +469,7 @@ export default function DesignToolPage(): ReactElement {
           <div className="w-full h-[80vh] flex items-center justify-center p-4">
             <TShirtDesigner 
               ref={canvasRef} // ForwardRef để gọi addImageDecoration
-              initialImage="/photo.png" // Default shirt, không dùng AI image
+              initialImage="/photo.png"
               imageSource="local" 
               designType="tshirt"
             />
