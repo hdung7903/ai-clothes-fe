@@ -125,10 +125,10 @@ export default function Page({ params }: PageProps) {
 
   function mapOptionsToRequest(options: ProductOptionDetail[] | undefined) {
     return (options ?? []).map((opt) => ({
-      optionId: opt.optionId,
+      optionId: opt.optionId || `opt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: opt.name,
       values: (opt.values ?? []).map((v) => ({
-        optionValueId: v.optionValueId,
+        optionValueId: v.optionValueId || `val_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         value: v.value,
         imageUrl: v.images ?? [],
       })),
@@ -137,7 +137,7 @@ export default function Page({ params }: PageProps) {
 
   function mapVariantsToRequest(variants: ProductVariantDetail[] | undefined) {
     return (variants ?? []).map((v) => ({
-      id: v.variantId,
+      id: v.variantId || `var_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       sku: v.sku,
       price: v.price,
       stock: v.stock,
@@ -148,7 +148,7 @@ export default function Page({ params }: PageProps) {
   // Helper functions for options
   const addOption = () => {
     const newOption: ProductOptionRequest = {
-      optionId: `opt_${Date.now()}`,
+      optionId: `opt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       name: "",
       values: []
     }
@@ -167,7 +167,7 @@ export default function Page({ params }: PageProps) {
 
   const addOptionValue = (optionIndex: number) => {
     const newValue: ProductOptionValueRequest = {
-      optionValueId: `val_${Date.now()}`,
+      optionValueId: `val_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       value: "",
       imageUrl: []
     }
@@ -192,7 +192,7 @@ export default function Page({ params }: PageProps) {
   // Helper functions for variants
   const addVariant = () => {
     const newVariant: ProductVariantRequest = {
-      id: `var_${Date.now()}`,
+      id: `var_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       sku: "",
       price: 0,
       stock: 0,

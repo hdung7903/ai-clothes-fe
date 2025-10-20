@@ -11,6 +11,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, use, useCallback, useMemo } from "react"
 import { getProductById } from "@/services/productService"
+import { getTemplatesByProduct } from "@/services/templateServices"
 import { formatCurrency } from "../../../../utils/format"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { addItemSmart } from "@/redux/cartSlice"
@@ -28,6 +29,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [templateCount, setTemplateCount] = useState<number | null>(null)
   const [product, setProduct] = useState<{
     id: string
     name: string
@@ -105,6 +107,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             optionValues: v.optionValues,
           })),
         })
+
+        // Fetch available templates for this product
+        try {
+          const templatesRes = await getTemplatesByProduct(d.productId)
+          const list = templatesRes?.data ?? []
+          setTemplateCount(Array.isArray(list) ? list.length : 0)
+        } catch {
+          setTemplateCount(0)
+        }
       } catch (e) {
         setError("Không thể tải thông tin sản phẩm.")
       } finally {
@@ -361,6 +372,28 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               <div className="flex items-center gap-2 mb-4">
                 <span className="text-3xl font-bold text-primary">{formatCurrency(product.price, 'VND', 'vi-VN')}</span>
+              </div>
+
+              {/* Template availability note and navigate to design */}
+              <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3 bg-card">
+                <div className="text-sm text-muted-foreground">
+                  {templateCount === null && (
+                    <span>Đang kiểm tra mẫu thiết kế có sẵn…</span>
+                  )}
+                  {templateCount !== null && templateCount > 0 && (
+                    <span>
+                      Có {templateCount} mẫu thiết kế có sẵn cho sản phẩm này. Bạn có thể chọn và tùy chỉnh.
+                    </span>
+                  )}
+                  {templateCount !== null && templateCount === 0 && (
+                    <span>
+                      Chưa có mẫu thiết kế sẵn. Bạn có thể tự thiết kế theo ý thích.
+                    </span>
+                  )}
+                </div>
+                <Link href={`/design?productId=${encodeURIComponent(product.id)}`}>
+                  <Button variant="outline">Thiết kế ngay</Button>
+                </Link>
               </div>
             </div>
 

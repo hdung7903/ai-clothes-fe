@@ -57,13 +57,13 @@ export default function Page() {
   
   const [options, setOptions] = React.useState<ProductOptionRequest[]>([
     {
-      optionId: "color",
-      name: "Màu sắc",
+      optionId: null,
+      name: "COLOR",
       values: []
     },
     {
-      optionId: "size", 
-      name: "Kích thước",
+      optionId: null, 
+      name: "SIZE",
       values: []
     }
   ])
@@ -128,26 +128,25 @@ export default function Page() {
 
   // Auto-generate variants when options change
   React.useEffect(() => {
-    const colorOption = options.find(opt => opt.optionId === "color")
-    const sizeOption = options.find(opt => opt.optionId === "size")
+    const colorOption = options.find(opt => opt.name === "COLOR")
+    const sizeOption = options.find(opt => opt.name === "SIZE")
     const basePriceNum = parseInt((basePriceText || '0').replace(/,/g, ''), 10) || 0
     
     if (colorOption && sizeOption && colorOption.values.length > 0 && sizeOption.values.length > 0) {
       const newVariants: ProductVariantRequest[] = []
       
-      colorOption.values.forEach(colorValue => {
-        sizeOption.values.forEach(sizeValue => {
-          const variantId = `variant_${colorValue.optionValueId}_${sizeValue.optionValueId}`
+      colorOption.values.forEach((colorValue, colorIndex) => {
+        sizeOption.values.forEach((sizeValue, sizeIndex) => {
           const sku = `${formData.name.replace(/\s+/g, '').toUpperCase()}_${colorValue.value.toUpperCase()}_${sizeValue.value.toUpperCase()}`
           
           newVariants.push({
-            id: variantId,
+            id: null, // Sử dụng null cho tạo mới
             sku: sku,
             price: basePriceNum,
             stock: 0,
             optionValues: {
-              [colorOption.optionId]: colorValue.optionValueId,
-              [sizeOption.optionId]: sizeValue.optionValueId
+              [colorOption.name]: colorValue.value,
+              [sizeOption.name]: sizeValue.value
             }
           })
         })
@@ -159,54 +158,54 @@ export default function Page() {
     }
   }, [options, formData.name, basePriceText])
 
-  const updateOption = (optionId: string, field: keyof ProductOptionRequest, value: any) => {
+  const updateOption = (optionName: string, field: keyof ProductOptionRequest, value: any) => {
     setOptions(options.map(opt => 
-      opt.optionId === optionId ? { ...opt, [field]: value } : opt
+      opt.name === optionName ? { ...opt, [field]: value } : opt
     ))
   }
 
-  const addOptionValue = (optionId: string) => {
+  const addOptionValue = (optionName: string) => {
     const newValue = {
-      optionValueId: `value_${Date.now()}`,
+      optionValueId: null,
       value: "",
       imageUrl: []
     }
     setOptions(options.map(opt => 
-      opt.optionId === optionId 
+      opt.name === optionName 
         ? { ...opt, values: [...opt.values, newValue] }
         : opt
     ))
   }
 
-  const removeOptionValue = (optionId: string, valueId: string) => {
+  const removeOptionValue = (optionName: string, valueIndex: number) => {
     setOptions(options.map(opt => 
-      opt.optionId === optionId 
-        ? { ...opt, values: opt.values.filter(val => val.optionValueId !== valueId) }
+      opt.name === optionName 
+        ? { ...opt, values: opt.values.filter((_, index) => index !== valueIndex) }
         : opt
     ))
   }
 
-  const updateOptionValue = (optionId: string, valueId: string, field: keyof any, value: any) => {
+  const updateOptionValue = (optionName: string, valueIndex: number, field: keyof any, value: any) => {
     setOptions(options.map(opt => 
-      opt.optionId === optionId 
+      opt.name === optionName 
         ? {
             ...opt,
-            values: opt.values.map(val => 
-              val.optionValueId === valueId ? { ...val, [field]: value } : val
+            values: opt.values.map((val, index) => 
+              index === valueIndex ? { ...val, [field]: value } : val
             )
           }
         : opt
     ))
   }
 
-  const handleImageUpload = async (optionId: string, valueId: string, file: File) => {
-    const uploadKey = `${optionId}_${valueId}`
+  const handleImageUpload = async (optionName: string, valueIndex: number, file: File) => {
+    const uploadKey = `${optionName}_${valueIndex}`
     setUploadingImages(prev => new Set(prev).add(uploadKey))
     
     try {
       const response = await uploadImage(file)
       if (response.success && response.data) {
-        updateOptionValue(optionId, valueId, 'imageUrl', [response.data!])
+        updateOptionValue(optionName, valueIndex, 'imageUrl', [response.data!])
       } else {
         const errorMessage = response.errors ? Object.values(response.errors).flat().join(', ') : 'Upload ảnh thất bại'
         throw new Error(errorMessage)
@@ -222,14 +221,14 @@ export default function Page() {
     }
   }
 
-  const removeImage = (optionId: string, valueId: string) => {
-    updateOptionValue(optionId, valueId, 'imageUrl', [])
+  const removeImage = (optionName: string, valueIndex: number) => {
+    updateOptionValue(optionName, valueIndex, 'imageUrl', [])
   }
 
 
-  const updateVariant = (variantId: string, field: keyof ProductVariantRequest, value: any) => {
-    setVariants(variants.map(v => 
-      v.id === variantId ? { ...v, [field]: value } : v
+  const updateVariant = (variantIndex: number, field: keyof ProductVariantRequest, value: any) => {
+    setVariants(variants.map((v, index) => 
+      index === variantIndex ? { ...v, [field]: value } : v
     ))
   }
 
@@ -246,19 +245,16 @@ export default function Page() {
       if (selectedCategories.size === 0) {
         throw new Error("Danh mục là bắt buộc")
       }
-      if (variants.length === 0) {
-        throw new Error("Cần ít nhất một biến thể sản phẩm")
-      }
+      // Không cần validate variants khi tạo mới vì backend sẽ tự tạo
 
-      // Validate variants
-      for (const variant of variants) {
-        if (!variant.sku.trim()) {
-          throw new Error("SKU là bắt buộc cho tất cả biến thể")
-        }
-        if (variant.price <= 0) {
-          throw new Error("Giá phải lớn hơn 0")
-        }
-      }
+      // Tạo variants array với id: null
+      const variantsPayload = variants.map(variant => ({
+        id: null,
+        sku: variant.sku,
+        price: variant.price,
+        stock: variant.stock,
+        optionValues: variant.optionValues
+      }))
 
       const payload: CreateOrUpdateProductRequest = {
         productId: null, // Gửi null khi tạo mới, backend sẽ tự tạo ID
@@ -268,7 +264,7 @@ export default function Page() {
         basePrice: parseInt((basePriceText || String(formData.basePrice)).replace(/,/g, ''), 10) || 0,
         categoryId: Array.from(selectedCategories)[0], // Sử dụng danh mục đầu tiên được chọn
         options: options.filter(opt => opt.name.trim() !== ""),
-        variants: variants
+        variants: variantsPayload // Gửi array với id: null
       }
 
       const response = await createOrUpdateProduct(payload)
@@ -488,53 +484,57 @@ export default function Page() {
                </CardHeader>
                <CardContent className="space-y-6">
                  {options.map((option) => (
-                   <div key={option.optionId} className="border rounded-lg p-4 space-y-3">
+                   <div key={option.name} className="border rounded-lg p-4 space-y-3">
                      <div className="flex items-center gap-2">
-                       <Label className="text-sm font-medium min-w-[100px]">{option.name}</Label>
+                       <Label className="text-sm font-medium min-w-[100px]">
+                         {option.name === "COLOR" ? "Màu sắc" : option.name === "SIZE" ? "Kích thước" : option.name}
+                       </Label>
                        <div className="flex-1">
                          <div className="space-y-2">
                            <div className="flex items-center justify-between">
-                             <Label className="text-sm text-muted-foreground">Giá trị {option.name.toLowerCase()}</Label>
+                             <Label className="text-sm text-muted-foreground">
+                               Giá trị {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
+                             </Label>
                              <Button
                                type="button"
                                variant="outline"
                                size="sm"
-                               onClick={() => addOptionValue(option.optionId)}
+                               onClick={() => addOptionValue(option.name)}
                              >
                                <Plus className="h-4 w-4 mr-1" />
-                               Thêm {option.name.toLowerCase()}
+                               Thêm {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
                              </Button>
                            </div>
                            
-                           {option.values.map((value) => {
-                             const uploadKey = `${option.optionId}_${value.optionValueId}`
+                           {option.values.map((value, valueIndex) => {
+                             const uploadKey = `${option.name}_${valueIndex}`
                              const isUploading = uploadingImages.has(uploadKey)
                              const hasImage = value.imageUrl && value.imageUrl.length > 0
                              
                              return (
-                               <div key={value.optionValueId} className="border rounded-lg p-3 space-y-3">
+                               <div key={valueIndex} className="border rounded-lg p-3 space-y-3">
                                  <div className="flex items-center gap-2">
                                    <Input
-                                     placeholder={`Nhập ${option.name.toLowerCase()} (VD: ${option.optionId === 'color' ? 'Đỏ, Xanh, Vàng' : 'S, M, L, XL'})`}
+                                     placeholder={`Nhập ${option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name} (VD: ${option.name === 'COLOR' ? 'Đỏ, Xanh, Vàng' : 'S, M, L, XL'})`}
                                      value={value.value}
-                                     onChange={(e) => updateOptionValue(option.optionId, value.optionValueId, 'value', e.target.value)}
+                                     onChange={(e) => updateOptionValue(option.name, valueIndex, 'value', e.target.value)}
                                      className="flex-1"
                                    />
                                    <Button
                                      type="button"
                                      variant="outline"
                                      size="sm"
-                                     onClick={() => removeOptionValue(option.optionId, value.optionValueId)}
+                                     onClick={() => removeOptionValue(option.name, valueIndex)}
                                    >
                                      <X className="h-4 w-4" />
                                    </Button>
                                  </div>
                                  
                                 {/* Image Upload Section (only for color) */}
-                                {option.optionId === 'color' && (
+                                {option.name === 'COLOR' && (
                                   <div className="space-y-2">
                                     <Label className="text-xs text-muted-foreground">
-                                      Hình ảnh {option.name.toLowerCase()}
+                                      Hình ảnh {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
                                     </Label>
                                     
                                     {hasImage ? (
@@ -555,7 +555,7 @@ export default function Page() {
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => removeImage(option.optionId, value.optionValueId)}
+                                            onClick={() => removeImage(option.name, valueIndex)}
                                           >
                                             <X className="h-4 w-4" />
                                           </Button>
@@ -570,15 +570,15 @@ export default function Page() {
                                             onChange={(e) => {
                                               const file = e.target.files?.[0]
                                               if (file) {
-                                                handleImageUpload(option.optionId, value.optionValueId, file)
+                                                handleImageUpload(option.name, valueIndex, file)
                                               }
                                             }}
                                             className="hidden"
-                                            id={`image-${option.optionId}-${value.optionValueId}`}
+                                            id={`image-${option.name}-${valueIndex}`}
                                             disabled={isUploading}
                                           />
                                           <label 
-                                            htmlFor={`image-${option.optionId}-${value.optionValueId}`}
+                                            htmlFor={`image-${option.name}-${valueIndex}`}
                                             className="cursor-pointer"
                                           >
                                             {isUploading ? (
@@ -590,7 +590,7 @@ export default function Page() {
                                               <div className="space-y-2">
                                                 <Plus className="h-8 w-8 text-muted-foreground mx-auto" />
                                                 <p className="text-sm text-muted-foreground">
-                                                  Nhấn để upload ảnh {option.name.toLowerCase()}
+                                                  Nhấn để upload ảnh {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                   JPG, PNG, GIF tối đa 10MB
@@ -609,7 +609,7 @@ export default function Page() {
                            
                            {option.values.length === 0 && (
                              <div className="text-center py-4 text-muted-foreground text-sm">
-                               Chưa có {option.name.toLowerCase()} nào. Nhấn "Thêm {option.name.toLowerCase()}" để bắt đầu.
+                               Chưa có {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name} nào. Nhấn "Thêm {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}" để bắt đầu.
                              </div>
                            )}
                          </div>
@@ -620,27 +620,27 @@ export default function Page() {
                </CardContent>
              </Card>
 
-             {/* Variants Section */}
+             {/* Variants Section - Preview Only */}
              <Card>
                <CardHeader>
-                 <CardTitle>Biến thể sản phẩm</CardTitle>
+                 <CardTitle>Biến thể sản phẩm (Xem trước)</CardTitle>
                  <CardDescription>
-                   Các biến thể được tạo tự động dựa trên màu sắc và kích thước đã chọn. 
-                   {variants.length > 0 && ` Hiện có ${variants.length} biến thể.`}
+                   Các biến thể sẽ được tạo tự động bởi backend dựa trên màu sắc và kích thước đã chọn. 
+                   {variants.length > 0 && ` Hiện có ${variants.length} biến thể dự kiến.`}
                  </CardDescription>
                </CardHeader>
                <CardContent className="space-y-4">
                  {variants.length > 0 ? (
                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                     {variants.map((variant) => {
-                       const colorOption = options.find(opt => opt.optionId === "color")
-                       const sizeOption = options.find(opt => opt.optionId === "size")
+                     {variants.map((variant, variantIndex) => {
+                       const colorOption = options.find(opt => opt.name === "COLOR")
+                       const sizeOption = options.find(opt => opt.name === "SIZE")
                        
-                       const colorValue = colorOption?.values.find(val => val.optionValueId === variant.optionValues[colorOption.optionId])
-                       const sizeValue = sizeOption?.values.find(val => val.optionValueId === variant.optionValues[sizeOption.optionId])
+                       const colorValue = colorOption?.values.find(val => val.value === variant.optionValues[colorOption.name])
+                       const sizeValue = sizeOption?.values.find(val => val.value === variant.optionValues[sizeOption.name])
                        
                        return (
-                         <div key={variant.id} className="border rounded-lg p-4 space-y-3">
+                         <div key={`${variant.sku}-${variant.optionValues[colorOption?.name || 'COLOR']}-${variant.optionValues[sizeOption?.name || 'SIZE']}`} className="border rounded-lg p-4 space-y-3">
                            <div className="flex items-center justify-between">
                              <div className="flex items-center gap-2">
                                <Badge variant="outline">{colorValue?.value}</Badge>
@@ -650,11 +650,11 @@ export default function Page() {
                            
                            <div className="grid gap-2">
                              <div>
-                               <Label className="text-xs text-muted-foreground">SKU</Label>
+                               <Label className="text-xs text-muted-foreground">SKU (Dự kiến)</Label>
                                <Input
                                  placeholder="Mã SKU"
                                  value={variant.sku}
-                                 onChange={(e) => updateVariant(variant.id, 'sku', e.target.value)}
+                                 onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
                                  className="text-sm"
                                />
                              </div>
@@ -666,7 +666,7 @@ export default function Page() {
                                    step="1000"
                                    placeholder="0"
                                    value={variant.price}
-                                   onChange={(e) => updateVariant(variant.id, 'price', Number(e.target.value))}
+                                   onChange={(e) => updateVariant(variantIndex, 'price', Number(e.target.value))}
                                    className="text-sm"
                                  />
                                </div>
@@ -676,7 +676,7 @@ export default function Page() {
                                    type="number"
                                    placeholder="0"
                                    value={variant.stock}
-                                   onChange={(e) => updateVariant(variant.id, 'stock', Number(e.target.value))}
+                                   onChange={(e) => updateVariant(variantIndex, 'stock', Number(e.target.value))}
                                    className="text-sm"
                                  />
                                </div>
@@ -689,7 +689,7 @@ export default function Page() {
                  ) : (
                    <div className="text-center py-8 text-muted-foreground">
                      <p>Chưa có biến thể nào.</p>
-                     <p className="text-sm mt-1">Thêm màu sắc và kích thước để tạo biến thể tự động.</p>
+                     <p className="text-sm mt-1">Thêm màu sắc và kích thước để xem trước biến thể.</p>
                    </div>
                  )}
                </CardContent>

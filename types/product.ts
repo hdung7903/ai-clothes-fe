@@ -2,19 +2,19 @@ import type { ApiEnvelope } from './shared';
 
 // Create/Update Request
 export interface ProductOptionValueRequest {
-  optionValueId: string;
+  optionValueId: string | null;
   value: string;
   imageUrl: string[];
 }
 
 export interface ProductOptionRequest {
-  optionId: string;
-  name: string; // e.g., size, color
+  optionId: string | null;
+  name: string; // e.g., COLOR, SIZE
   values: ProductOptionValueRequest[];
 }
 
 export interface ProductVariantRequest {
-  id: string;
+  id: string | null;
   sku: string;
   price: number;
   stock: number;
