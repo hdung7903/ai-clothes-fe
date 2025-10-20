@@ -197,7 +197,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
                 min="0"
                 max={formData.discountType === 'PERCENTAGE' ? 100 : undefined}
                 step={formData.discountType === 'PERCENTAGE' ? 0.01 : 1000}
-                value={formData.discountValue}
+                value={formData.discountValue ?? ''}
                 onChange={(e) => handleInputChange('discountValue', parseFloat(e.target.value) || 0)}
                 required
                 disabled={isLoading}
