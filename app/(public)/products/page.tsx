@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Select, TreeSelect, SelectItem, SelectTrigger, SelectValue, TreeSelectContent, TreeSelectItem } from "@/components/ui/select"
+import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"
+import { TreeCheckbox } from "@/components/ui/checkbox"
 import { ShoppingCart, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ProductGridSkeleton } from "@/components/ui/loading/product-skeleton"
@@ -22,8 +23,8 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [products, setProducts] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("ALL")
-  const [categoryTree, setCategoryTree] = useState<Array<{ id: string; name: string; children: any[] }>>([])
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
+  const [categories, setCategories] = useState<any[]>([])
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -32,7 +33,7 @@ export default function ProductsPage() {
       try {
         const query: SearchProductsQuery = {
           SearchTerm: undefined,
-          CategoryId: selectedCategoryId === 'ALL' ? undefined : (selectedCategoryId || undefined),
+          CategoryId: selectedCategoryIds.length === 0 ? undefined : selectedCategoryIds[0], // For now, use first selected category
           MinPrice: undefined,
           MaxPrice: undefined,
           SortBy: 'CREATED_ON',
@@ -62,31 +63,14 @@ export default function ProductsPage() {
     }
 
     loadProducts()
-  }, [selectedCategoryId])
+  }, [selectedCategoryIds])
 
   useEffect(() => {
     const run = async () => {
       try {
         const res = await getAllCategories()
         const cats = res.data ?? []
-        const map = new Map<string, { id: string; name: string; children: any[]; parentId: string | null | undefined }>()
-        cats.forEach((c: any) => {
-          map.set(c.id, { id: c.id, name: c.name, children: [], parentId: c.parentCategoryId })
-        })
-        cats.forEach((c: any) => {
-          const node = map.get(c.id)!
-          if (Array.isArray(c.subCategories)) {
-            c.subCategories.forEach((childId: string) => {
-              const child = map.get(childId)
-              if (child) node.children.push(child)
-            })
-          }
-        })
-        const roots: Array<{ id: string; name: string; children: any[] }> = []
-        map.forEach((node) => {
-          if (!node.parentId) roots.push(node)
-        })
-        setCategoryTree(roots)
+        setCategories(cats)
       } catch {
         // ignore
       }
@@ -123,29 +107,12 @@ export default function ProductsPage() {
                 {/* Category Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Danh mục</label>
-                  <TreeSelect value={selectedCategoryId} onValueChange={(v) => setSelectedCategoryId(v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn danh mục" />
-                    </SelectTrigger>
-                    <TreeSelectContent>
-                      <SelectItem value="ALL">Tất cả danh mục</SelectItem>
-                      {categoryTree.map((node) => (
-                        <TreeSelectItem key={node.id} value={node.id}>
-                          {node.name}
-                          {node.children.map((child: any) => (
-                            <TreeSelectItem key={child.id} value={child.id}>
-                              {child.name}
-                              {child.children.map((gchild: any) => (
-                                <TreeSelectItem key={gchild.id} value={gchild.id}>
-                                  {gchild.name}
-                                </TreeSelectItem>
-                              ))}
-                            </TreeSelectItem>
-                          ))}
-                        </TreeSelectItem>
-                      ))}
-                    </TreeSelectContent>
-                  </TreeSelect>
+                  <div className="max-h-64 overflow-y-auto border rounded-md p-2">
+                    <TreeCheckbox 
+                      data={categories} 
+                      onSelectionChange={(selectedIds: string[]) => setSelectedCategoryIds(selectedIds)}
+                    />
+                  </div>
                 </div>
 
                 {/* Price Range */}
@@ -182,12 +149,12 @@ export default function ProductsPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
-                    <TreeSelectContent>
+                    <SelectContent>
                       <SelectItem value="newest">Mới nhất</SelectItem>
                       <SelectItem value="price-low">Giá: Thấp đến cao</SelectItem>
                       <SelectItem value="price-high">Giá: Cao đến thấp</SelectItem>
                       <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
-                    </TreeSelectContent>
+                    </SelectContent>
                   </Select>
                 </div>
 

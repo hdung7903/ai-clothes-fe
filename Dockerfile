@@ -25,8 +25,8 @@ WORKDIR /app
 # Copy production node_modules and built app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
-COPY .next ./.next
-COPY public ./public
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]

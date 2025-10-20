@@ -94,7 +94,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
     imageSource === 'local' ? initialImage : initialImage
   );
   const [designType, setDesignType] = useState(initialDesignType);
-  const [shirtColor, setShirtColor] = useState<ShirtColor>({ hex: '#ffffff' });
+  
   const [decorations, setDecorations] = useState<Decoration[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -197,26 +197,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw base image with color overlay
-    ctx.save();
-    
-    // Apply color tint using color blend mode
-    if (shirtColor.hex !== '#ffffff') {
-      // First draw the base image
-      ctx.drawImage(imageRef.current, 0, 0, canvas.width, canvas.height);
-      
-      // Apply color tint using color blend mode for accurate color replacement
-      ctx.globalCompositeOperation = 'color';
-      ctx.fillStyle = shirtColor.hex;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Restore blend mode
-      ctx.globalCompositeOperation = 'source-over';
-    } else {
-      // Draw original image without color tint
-      ctx.drawImage(imageRef.current, 0, 0, canvas.width, canvas.height);
-    }
-    ctx.restore();
+    // Draw original image without color tint
+    ctx.drawImage(imageRef.current, 0, 0, canvas.width, canvas.height);
     
     
     // Draw decorations
@@ -344,7 +326,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
     if (imageLoaded) {
       drawCanvas();
     }
-  }, [decorations, selectedId, shirtColor, imageLoaded]);
+  }, [decorations, selectedId, imageLoaded]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -729,26 +711,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(({
             </button>
           </div>
           
-          <div className="mb-4">
-            <h3 className="font-semibold mb-2 text-sm">Màu Sắc Áo</h3>
-            <div className="space-y-2">
-              <div>
-                <label className="text-xs text-gray-600">Màu: {shirtColor.hex}</label>
-                <input
-                  type="color"
-                  value={shirtColor.hex}
-                  onChange={(e) => setShirtColor({hex: e.target.value})}
-                  className="w-full h-10 rounded border-2 border-gray-300"
-                />
-              </div>
-              <button
-                onClick={() => setShirtColor({ hex: '#ffffff' })}
-                className="text-xs text-blue-600 hover:underline"
-              >
-                Đặt Lại Màu Gốc
-              </button>
-            </div>
-          </div>
+          
           
           <div className="mb-4">
             <h3 className="font-semibold mb-2 text-sm">Thêm Emoji</h3>

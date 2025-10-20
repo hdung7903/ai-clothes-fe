@@ -74,11 +74,11 @@ export default function Page() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Products</BreadcrumbPage>
+                  <BreadcrumbPage>Sản phẩm</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -87,14 +87,14 @@ export default function Page() {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
-              <h1 className="text-xl font-semibold">Product Management</h1>
+              <h1 className="text-xl font-semibold">Quản lý sản phẩm</h1>
               <Button asChild>
-                <Link href="/admin/products/new">Add Product</Link>
+                <Link href="/admin/products/new">Thêm sản phẩm</Link>
               </Button>
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <Input
-                placeholder="Search products by name or SKU"
+                placeholder="Tìm kiếm sản phẩm theo tên hoặc SKU"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
@@ -103,7 +103,7 @@ export default function Page() {
                 className="md:max-w-sm"
               />
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Rows per page</span>
+                <span className="text-sm text-muted-foreground">Số dòng mỗi trang</span>
                 <Select
                   value={String(pageSize)}
                   onValueChange={(v) => {
@@ -127,21 +127,21 @@ export default function Page() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Price Range</TableHead>
-                  <TableHead>Creator</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
+                  <TableHead>Khoảng giá</TableHead>
+                  <TableHead>Người tạo</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={4}>Loading...</TableCell>
+                    <TableCell colSpan={4}>Đang tải...</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4}>No products found.</TableCell>
+                    <TableCell colSpan={4}>Không tìm thấy sản phẩm nào.</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.map((p) => (
@@ -153,24 +153,24 @@ export default function Page() {
                     <TableCell>{p.createdBy?.name}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/products/${p.productId}`}>View</Link>
+                        <Link href={`/admin/products/${p.productId}`}>Xem</Link>
                       </Button>
                       <Button variant="secondary" size="sm" asChild>
-                        <Link href={`/admin/products/${p.productId}/edit`}>Edit</Link>
+                        <Link href={`/admin/products/${p.productId}/edit`}>Sửa</Link>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">Delete</Button>
+                          <Button variant="destructive" size="sm">Xóa</Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Delete product?</AlertDialogTitle>
+                            <AlertDialogTitle>Xóa sản phẩm?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete product "{p.name}".
+                              Hành động này không thể hoàn tác. Sản phẩm "{p.name}" sẽ bị xóa vĩnh viễn.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogCancel>Hủy</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={async () => {
                                 try {
@@ -185,7 +185,7 @@ export default function Page() {
                                 }
                               }}
                             >
-                              Delete
+                              Xóa
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>

@@ -32,6 +32,24 @@ const useTreeSelectContext = () => {
   return context;
 };
 
+// Helper function to check if node is a TreeSelectItem
+const isTreeSelectItem = (child: React.ReactNode): child is React.ReactElement<TreeSelectItemProps> => {
+  return React.isValidElement(child) && (child.type as any).displayName === 'TreeSelectItem';
+};
+
+// Helper function to extract text content
+const getTextContent = (node: React.ReactNode): string => {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return getTextContent(node.props.children);
+  }
+  if (Array.isArray(node)) {
+    return node.map(getTextContent).join('');
+  }
+  return '';
+};
+
 // TreeSelectItem Component
 function TreeSelectItem({
   className,
@@ -43,7 +61,9 @@ function TreeSelectItem({
 }: TreeSelectItemProps) {
   const { selectedValue, expandedIds, toggleExpand, handleSelect } = useTreeSelectContext();
   
-  const hasChildren = React.Children.count(children) > 0;
+  // Filter only TreeSelectItem children (nested items)
+  const nestedItems = React.Children.toArray(children).filter(isTreeSelectItem);
+  const hasChildren = nestedItems.length > 0;
   const isExpanded = expandedIds.has(value);
   const isSelected = selectedValue === value;
 
@@ -56,29 +76,24 @@ function TreeSelectItem({
   };
 
   const handleClick = (e: React.MouseEvent) => {
-    // Only handle selection if it's not a parent with children or if it's a leaf node
     if (!hasChildren) {
-      // Extract text content from children for the label
-      const getTextContent = (node: React.ReactNode): string => {
-        if (typeof node === 'string') return node;
-        if (typeof node === 'number') return String(node);
-        if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-          return getTextContent(node.props.children);
-        }
-        if (Array.isArray(node)) {
-          return node.map(getTextContent).join('');
-        }
-        return '';
-      };
-
-      const label = getTextContent(children);
-      handleSelect(value, label);
+      const textContent = getTextContent(
+        React.Children.toArray(children).find(
+          child => typeof child === 'string' || typeof child === 'number' || 
+                   (React.isValidElement(child) && child.type !== TreeSelectItem)
+        )
+      );
+      handleSelect(value, textContent);
     } else {
-      // For parent nodes, just toggle expansion
       e.preventDefault();
       toggleExpand(value);
     }
   };
+
+  // Extract label (non-TreeSelectItem children)
+  const labelContent = React.Children.toArray(children).find(
+    child => !isTreeSelectItem(child)
+  );
 
   return (
     <>
@@ -110,22 +125,18 @@ function TreeSelectItem({
         {!hasChildren && <span className="w-4" />}
         
         <SelectPrimitive.ItemText>
-          {typeof children === 'string' || typeof children === 'number' 
-            ? children 
-            : React.Children.toArray(children).find(child => 
-                typeof child === 'string' || typeof child === 'number'
-              )
-          }
+          {labelContent}
         </SelectPrimitive.ItemText>
       </SelectPrimitive.Item>
 
       {hasChildren && isExpanded && (
         <div>
-          {React.Children.map(children, (child) => {
-            if (React.isValidElement<TreeSelectItemProps>(child) && child.type === TreeSelectItem) {
+          {nestedItems.map((child, idx) => {
+            if (isTreeSelectItem(child)) {
               return React.cloneElement(child, {
                 level: level + 1,
-              });
+                key: idx,
+              } as any);
             }
             return null;
           })}
@@ -134,6 +145,8 @@ function TreeSelectItem({
     </>
   );
 }
+
+TreeSelectItem.displayName = 'TreeSelectItem';
 
 // TreeSelectContent Component (wrapper for SelectContent with context)
 interface TreeSelectContentProps extends React.ComponentProps<typeof SelectPrimitive.Content> {
