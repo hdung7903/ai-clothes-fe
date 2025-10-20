@@ -24,6 +24,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
   const [voucher, setVoucher] = React.useState<Voucher | null>(null)
 
   const [formData, setFormData] = React.useState<CreateOrUpdateVoucherRequest>({
+    voucherId: null, // Gửi null khi tạo mới
     code: '',
     name: '',
     description: '',

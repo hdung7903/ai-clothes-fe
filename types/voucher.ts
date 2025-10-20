@@ -4,7 +4,7 @@ export interface Voucher {
   name: string;
   description?: string;
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number;
+  discountValue: number | null;
   minOrderAmount?: number;
   maxDiscountAmount?: number;
   usageLimit?: number;
@@ -26,7 +26,7 @@ export interface VoucherSummaryItem {
   code: string;
   name: string;
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number;
+  discountValue: number | null;
   isActive: boolean;
   validFrom: string;
   validTo: string;
@@ -39,12 +39,12 @@ export interface VoucherSummaryItem {
 }
 
 export interface CreateOrUpdateVoucherRequest {
-  voucherId?: string;
+  voucherId: string | null;
   code: string;
   name: string;
   description?: string;
   discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number;
+  discountValue: number | null;
   minOrderAmount?: number;
   maxDiscountAmount?: number;
   usageLimit?: number;

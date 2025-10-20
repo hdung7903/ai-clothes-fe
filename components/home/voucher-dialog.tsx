@@ -45,7 +45,34 @@ export function VoucherDialog() {
       })
       
       if (response.success && response.data) {
-        const newVouchers = response.data.items
+        // Map API response to VoucherSummaryItem format
+        const newVouchers = response.data.items.map((item: any) => {
+          // Determine discount type based on value and description
+          let discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' = 'FIXED_AMOUNT'
+          if (item.discountType) {
+            discountType = item.discountType
+          } else if (item.discountValue && item.discountValue <= 100) {
+            // If discount value is <= 100 and no type specified, assume percentage
+            discountType = 'PERCENTAGE'
+          } else if (item.description && item.description.includes('%')) {
+            // Check description for percentage indicator
+            discountType = 'PERCENTAGE'
+          }
+          
+          return {
+            voucherId: item.id,
+            code: item.code,
+            name: item.description || item.code,
+            discountType,
+            discountValue: item.discountValue,
+            isActive: item.isActive,
+            validFrom: item.startDate,
+            validTo: item.endDate,
+            usageLimit: undefined, // Not provided in API response
+            usedCount: item.usedCount,
+            createdBy: undefined // Not provided in API response
+          }
+        })
         setVouchers(prev => append ? [...prev, ...newVouchers] : newVouchers)
         setHasMore(page < response.data.totalPages)
         setPageNumber(page)
@@ -145,9 +172,9 @@ export function VoucherDialog() {
   // Format discount text
   const formatDiscountText = (voucher: VoucherSummaryItem) => {
     if (voucher.discountType === 'PERCENTAGE') {
-      return `GIẢM ${voucher.discountValue}%`
+      return `GIẢM ${voucher.discountValue || 0}%`
     } else {
-      return `GIẢM ${voucher.discountValue.toLocaleString('vi-VN')}₫`
+      return `GIẢM ${(voucher.discountValue || 0).toLocaleString('vi-VN')}₫`
     }
   }
 
@@ -202,7 +229,7 @@ export function VoucherDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="w-[95vw] sm:max-w-[1100px] p-0 overflow-hidden gap-0"
+        className="w-[95vw] sm:max-w-[1100px] p-0 overflow-hidden gap-0 mt-20"
         onEscapeKeyDown={(e) => {
           e.preventDefault()
           handleOpenChange(false)
@@ -228,7 +255,7 @@ export function VoucherDialog() {
         {/* Danh sách voucher */}
         <div 
           ref={containerRef}
-          className="px-6 pb-6 overflow-y-auto"
+          className="p-6 overflow-y-auto"
           style={{ maxHeight: DISPLAY_CONFIG.MAX_HEIGHT }}
         >
           {error ? (
@@ -252,14 +279,14 @@ export function VoucherDialog() {
             </div>
           ) : (
             <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-              {vouchers.map((voucher) => {
+              {vouchers.map((voucher, index) => {
                 const category = getCategory(voucher)
                 const available = isAvailable(voucher)
                 const expired = isExpired(voucher.validTo)
                 
                 return (
                   <div
-                    key={voucher.voucherId}
+                    key={voucher.voucherId || `voucher-${index}`}
                     className={`group relative flex flex-col gap-3 rounded-xl border p-4 transition-all duration-200 ${
                       available 
                         ? 'border-gray-200 dark:border-gray-800 hover:border-primary/50 hover:shadow-md bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50'
@@ -300,8 +327,8 @@ export function VoucherDialog() {
                         
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                           {voucher.discountType === 'PERCENTAGE' 
-                            ? `Giảm ${voucher.discountValue}% cho đơn hàng`
-                            : `Giảm ${voucher.discountValue.toLocaleString('vi-VN')}₫ cho đơn hàng`
+                            ? `Giảm ${voucher.discountValue || 0}% cho đơn hàng`
+                            : `Giảm ${(voucher.discountValue || 0).toLocaleString('vi-VN')}₫ cho đơn hàng`
                           }
                         </p>
 

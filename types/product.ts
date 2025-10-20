@@ -22,7 +22,7 @@ export interface ProductVariantRequest {
 }
 
 export interface CreateOrUpdateProductRequest {
-  productId: string;
+  productId: string | null;
   name: string;
   description: string;
   imageUrl: string;

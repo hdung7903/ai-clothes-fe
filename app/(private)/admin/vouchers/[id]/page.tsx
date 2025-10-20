@@ -57,9 +57,9 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
 
   const formatDiscountValue = (voucher: Voucher) => {
     if (voucher.discountType === 'PERCENTAGE') {
-      return `${voucher.discountValue}%`
+      return `${voucher.discountValue || 0}%`
     }
-    return formatCurrency(voucher.discountValue, 'VND', 'vi-VN')
+    return formatCurrency(voucher.discountValue || 0, 'VND', 'vi-VN')
   }
 
   const formatUsage = (voucher: Voucher) => {

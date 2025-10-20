@@ -65,7 +65,7 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
     try {
       const payload: CreateOrUpdateTemplateRequest = {
         ...formData,
-        templateId: mode === 'edit' ? (formData.templateId || templateId || "") : (formData.templateId || "00000000-0000-0000-0000-000000000000"),
+        templateId: mode === 'edit' ? (formData.templateId || templateId || "") : null, // Gửi null khi tạo mới
       }
       const res = await createOrUpdateTemplate(payload)
       if (res.success) {

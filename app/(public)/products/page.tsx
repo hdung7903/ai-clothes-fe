@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"
-import { TreeCheckbox } from "@/components/ui/checkbox"
+import { TreeSelect } from 'antd'
 import { ShoppingCart, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ProductGridSkeleton } from "@/components/ui/loading/product-skeleton"
@@ -25,6 +25,18 @@ export default function ProductsPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
   const [categories, setCategories] = useState<any[]>([])
+
+  // Convert categories to Ant Design TreeSelect format
+  const convertToTreeData = (categories: any[]): any[] => {
+    return categories.map(category => ({
+      title: category.name,
+      value: category.id,
+      key: category.id,
+      children: category.subCategories && category.subCategories.length > 0 
+        ? convertToTreeData(category.subCategories) 
+        : undefined
+    }))
+  }
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -107,12 +119,25 @@ export default function ProductsPage() {
                 {/* Category Filter */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Danh mục</label>
-                  <div className="max-h-64 overflow-y-auto border rounded-md p-2">
-                    <TreeCheckbox 
-                      data={categories} 
-                      onSelectionChange={(selectedIds: string[]) => setSelectedCategoryIds(selectedIds)}
-                    />
-                  </div>
+                  <TreeSelect
+                    style={{ width: '100%' }}
+                    value={selectedCategoryIds}
+                    onChange={setSelectedCategoryIds}
+                    treeData={convertToTreeData(categories)}
+                    treeCheckable={true}
+                    showCheckedStrategy={TreeSelect.SHOW_CHILD}
+                    placeholder="Chọn danh mục"
+                    maxTagCount="responsive"
+                    treeDefaultExpandAll={false}
+                    styles={{
+                      popup: {
+                        root: {
+                          maxHeight: 200,
+                          overflow: 'auto'
+                        }
+                      }
+                    }}
+                  />
                 </div>
 
                 {/* Price Range */}

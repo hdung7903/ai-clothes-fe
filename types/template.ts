@@ -3,7 +3,7 @@ import type { PagedResult } from './product';
 
 // Create/Update
 export interface CreateOrUpdateTemplateRequest {
-  templateId: string;
+  templateId: string | null;
   productId: string;
   productOptionValueId: string;
   printAreaName: string;

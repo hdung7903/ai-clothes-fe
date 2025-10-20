@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/sidebar"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox, TreeCheckbox } from "@/components/ui/checkbox"
+import { TreeSelect } from 'antd'
+import 'antd/dist/reset.css'
 import { Trash2, Plus, X } from "lucide-react"
 import * as React from "react"
 import { createOrUpdateProduct } from "@/services/productService"
@@ -43,6 +44,7 @@ export default function Page() {
   const [isMainUploading, setIsMainUploading] = React.useState(false)
   const [selectedCategories, setSelectedCategories] = React.useState<Set<string>>(new Set())
   const [pendingCategorySelection, setPendingCategorySelection] = React.useState<string[]>([])
+  const [basePriceText, setBasePriceText] = React.useState<string>("")
 
   // Form state
   const [formData, setFormData] = React.useState({
@@ -92,6 +94,18 @@ export default function Page() {
     setPendingCategorySelection(selectedIds)
   }, [])
 
+  // Convert categories to Ant Design TreeSelect format
+  const convertToTreeData = (categories: Category[]): any[] => {
+    return categories.map(category => ({
+      title: category.name,
+      value: category.id,
+      key: category.id,
+      children: category.subCategories && category.subCategories.length > 0 
+        ? convertToTreeData(category.subCategories) 
+        : undefined
+    }))
+  }
+
   // Use useEffect to update selectedCategories after render
   React.useEffect(() => {
     setSelectedCategories(new Set(pendingCategorySelection))
@@ -116,6 +130,7 @@ export default function Page() {
   React.useEffect(() => {
     const colorOption = options.find(opt => opt.optionId === "color")
     const sizeOption = options.find(opt => opt.optionId === "size")
+    const basePriceNum = parseInt((basePriceText || '0').replace(/,/g, ''), 10) || 0
     
     if (colorOption && sizeOption && colorOption.values.length > 0 && sizeOption.values.length > 0) {
       const newVariants: ProductVariantRequest[] = []
@@ -128,7 +143,7 @@ export default function Page() {
           newVariants.push({
             id: variantId,
             sku: sku,
-            price: formData.basePrice,
+            price: basePriceNum,
             stock: 0,
             optionValues: {
               [colorOption.optionId]: colorValue.optionValueId,
@@ -142,7 +157,7 @@ export default function Page() {
     } else {
       setVariants([])
     }
-  }, [options, formData.name, formData.basePrice])
+  }, [options, formData.name, basePriceText])
 
   const updateOption = (optionId: string, field: keyof ProductOptionRequest, value: any) => {
     setOptions(options.map(opt => 
@@ -246,11 +261,11 @@ export default function Page() {
       }
 
       const payload: CreateOrUpdateProductRequest = {
-        productId: `product_${Date.now()}`,
+        productId: null, // Gửi null khi tạo mới, backend sẽ tự tạo ID
         name: formData.name,
         description: formData.description,
         imageUrl: formData.imageUrl,
-        basePrice: formData.basePrice,
+        basePrice: parseInt((basePriceText || String(formData.basePrice)).replace(/,/g, ''), 10) || 0,
         categoryId: Array.from(selectedCategories)[0], // Sử dụng danh mục đầu tiên được chọn
         options: options.filter(opt => opt.name.trim() !== ""),
         variants: variants
@@ -401,11 +416,19 @@ export default function Page() {
                     <Label htmlFor="basePrice">Giá cơ bản (VNĐ) *</Label>
                     <Input 
                       id="basePrice" 
-                      type="number" 
-                      step="1000" 
+                      inputMode="numeric"
                       placeholder="0" 
-                      value={formData.basePrice}
-                      onChange={(e) => setFormData({...formData, basePrice: Number(e.target.value)})}
+                      value={basePriceText}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        // allow only digits
+                        const digits = raw.replace(/\D+/g, '')
+                        setBasePriceText(digits)
+                      }}
+                      onBlur={() => {
+                        const num = parseInt((basePriceText || '0').replace(/,/g, ''), 10) || 0
+                        setFormData({ ...formData, basePrice: num })
+                      }}
                       required
                     />
                   </div>
@@ -420,12 +443,25 @@ export default function Page() {
                 <CardContent className="grid gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="category">Danh mục *</Label>
-                    <div className="border rounded-md p-3 max-h-60 overflow-y-auto">
-                      <TreeCheckbox 
-                        data={categories}
-                        onSelectionChange={handleCategorySelectionChange}
-                      />
-                    </div>
+                    <TreeSelect
+                      style={{ width: '100%' }}
+                      value={Array.from(selectedCategories)}
+                      onChange={handleCategorySelectionChange}
+                      treeData={convertToTreeData(categories)}
+                      treeCheckable={true}
+                      showCheckedStrategy={TreeSelect.SHOW_CHILD}
+                      placeholder="Chọn danh mục"
+                      maxTagCount="responsive"
+                      treeDefaultExpandAll={false}
+                      styles={{
+                        popup: {
+                          root: {
+                            maxHeight: 300,
+                            overflow: 'auto'
+                          }
+                        }
+                      }}
+                    />
                     {selectedCategories.size > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {Array.from(selectedCategories).map(categoryId => {
@@ -494,77 +530,79 @@ export default function Page() {
                                    </Button>
                                  </div>
                                  
-                                 {/* Image Upload Section */}
-                                 <div className="space-y-2">
-                                   <Label className="text-xs text-muted-foreground">
-                                     Hình ảnh {option.name.toLowerCase()}
-                                   </Label>
-                                   
-                                   {hasImage ? (
-                                     <div className="space-y-2">
-                                       <div className="flex items-center gap-2">
-                                         <img 
-                                           src={value.imageUrl[0]} 
-                                           alt={value.value}
-                                           className="w-16 h-16 object-cover rounded border"
-                                         />
-                                         <div className="flex-1">
-                                           <p className="text-sm text-muted-foreground">Đã upload ảnh</p>
-                                           <p className="text-xs text-muted-foreground truncate">
-                                             {value.imageUrl[0].split('/').pop()}
-                                           </p>
-                                         </div>
-                                         <Button
-                                           type="button"
-                                           variant="outline"
-                                           size="sm"
-                                           onClick={() => removeImage(option.optionId, value.optionValueId)}
-                                         >
-                                           <X className="h-4 w-4" />
-                                         </Button>
-                                       </div>
-                                     </div>
-                                   ) : (
-                                     <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-                                       <div className="text-center">
-                                         <input
-                                           type="file"
-                                           accept="image/*"
-                                           onChange={(e) => {
-                                             const file = e.target.files?.[0]
-                                             if (file) {
-                                               handleImageUpload(option.optionId, value.optionValueId, file)
-                                             }
-                                           }}
-                                           className="hidden"
-                                           id={`image-${option.optionId}-${value.optionValueId}`}
-                                           disabled={isUploading}
-                                         />
-                                         <label 
-                                           htmlFor={`image-${option.optionId}-${value.optionValueId}`}
-                                           className="cursor-pointer"
-                                         >
-                                           {isUploading ? (
-                                             <div className="space-y-2">
-                                               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                                               <p className="text-sm text-muted-foreground">Đang upload...</p>
-                                             </div>
-                                           ) : (
-                                             <div className="space-y-2">
-                                               <Plus className="h-8 w-8 text-muted-foreground mx-auto" />
-                                               <p className="text-sm text-muted-foreground">
-                                                 Nhấn để upload ảnh {option.name.toLowerCase()}
-                                               </p>
-                                               <p className="text-xs text-muted-foreground">
-                                                 JPG, PNG, GIF tối đa 10MB
-                                               </p>
-                                             </div>
-                                           )}
-                                         </label>
-                                       </div>
-                                     </div>
-                                   )}
-                                 </div>
+                                {/* Image Upload Section (only for color) */}
+                                {option.optionId === 'color' && (
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">
+                                      Hình ảnh {option.name.toLowerCase()}
+                                    </Label>
+                                    
+                                    {hasImage ? (
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2">
+                                          <img 
+                                            src={value.imageUrl[0]} 
+                                            alt={value.value}
+                                            className="w-16 h-16 object-cover rounded border"
+                                          />
+                                          <div className="flex-1">
+                                            <p className="text-sm text-muted-foreground">Đã upload ảnh</p>
+                                            <p className="text-xs text-muted-foreground truncate">
+                                              {value.imageUrl[0].split('/').pop()}
+                                            </p>
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => removeImage(option.optionId, value.optionValueId)}
+                                          >
+                                            <X className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                                        <div className="text-center">
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0]
+                                              if (file) {
+                                                handleImageUpload(option.optionId, value.optionValueId, file)
+                                              }
+                                            }}
+                                            className="hidden"
+                                            id={`image-${option.optionId}-${value.optionValueId}`}
+                                            disabled={isUploading}
+                                          />
+                                          <label 
+                                            htmlFor={`image-${option.optionId}-${value.optionValueId}`}
+                                            className="cursor-pointer"
+                                          >
+                                            {isUploading ? (
+                                              <div className="space-y-2">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                                <p className="text-sm text-muted-foreground">Đang upload...</p>
+                                              </div>
+                                            ) : (
+                                              <div className="space-y-2">
+                                                <Plus className="h-8 w-8 text-muted-foreground mx-auto" />
+                                                <p className="text-sm text-muted-foreground">
+                                                  Nhấn để upload ảnh {option.name.toLowerCase()}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                  JPG, PNG, GIF tối đa 10MB
+                                                </p>
+                                              </div>
+                                            )}
+                                          </label>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                                </div>
                              )
                            })}
