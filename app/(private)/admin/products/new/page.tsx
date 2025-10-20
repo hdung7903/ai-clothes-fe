@@ -74,7 +74,8 @@ export default function Page() {
       if (res.success && res.data) {
         setFormData((prev) => ({ ...prev, imageUrl: res.data! }))
       } else {
-        throw new Error(res.message || 'Upload ảnh thất bại')
+        const errorMessage = res.errors ? Object.values(res.errors).flat().join(', ') : 'Upload ảnh thất bại'
+        throw new Error(errorMessage)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi upload ảnh')
@@ -192,7 +193,8 @@ export default function Page() {
       if (response.success && response.data) {
         updateOptionValue(optionId, valueId, 'imageUrl', [response.data!])
       } else {
-        throw new Error(response.message || "Upload ảnh thất bại")
+        const errorMessage = response.errors ? Object.values(response.errors).flat().join(', ') : 'Upload ảnh thất bại'
+        throw new Error(errorMessage)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra khi upload ảnh")
@@ -259,7 +261,8 @@ export default function Page() {
       if (response.success) {
         router.push("/admin/products")
       } else {
-        throw new Error(response.message || "Có lỗi xảy ra khi tạo sản phẩm")
+        const errorMessage = response.errors ? Object.values(response.errors).flat().join(', ') : "Có lỗi xảy ra khi tạo sản phẩm"
+        throw new Error(errorMessage)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra")
