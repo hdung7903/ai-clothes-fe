@@ -72,7 +72,7 @@ export default function Page() {
     try {
       const res = await uploadImage(file)
       if (res.success && res.data) {
-        setFormData((prev) => ({ ...prev, imageUrl: res.data }))
+        setFormData((prev) => ({ ...prev, imageUrl: res.data! }))
       } else {
         throw new Error(res.message || 'Upload ảnh thất bại')
       }
@@ -190,7 +190,7 @@ export default function Page() {
     try {
       const response = await uploadImage(file)
       if (response.success && response.data) {
-        updateOptionValue(optionId, valueId, 'imageUrl', [response.data])
+        updateOptionValue(optionId, valueId, 'imageUrl', [response.data!])
       } else {
         throw new Error(response.message || "Upload ảnh thất bại")
       }
