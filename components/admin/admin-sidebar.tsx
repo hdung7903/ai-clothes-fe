@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings, LayoutTemplate } from "lucide-react";
 
 import { NavAdmin } from "@/components/admin/nav-admin";
@@ -106,10 +107,10 @@ export function AdminSidebar({
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <Link href="/admin/dashboard">
                 <Image src="/branch.png" alt="logo" width={32} height={32} />
                 <span className="text-base font-semibold">TEECRAFT</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

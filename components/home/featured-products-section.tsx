@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ProductGridSkeleton } from "@/components/ui/loading/product-skeleton"
 import { searchProducts, type SearchProductsQuery } from "@/services/productService"
@@ -77,26 +77,28 @@ export function FeaturedProductsSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
             <Card key={product.id} className="overflow-hidden group">
-              <div className="aspect-square relative bg-muted">
-                <img
-                  src={product.image || "/placeholder.svg"}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  loading="lazy"
-                />
-              </div>
-              <CardHeader>
+              <CardHeader className="p-0">
+                <div className="aspect-square relative bg-muted">
+                  <img
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="pb-3">
                 <CardTitle className="text-lg line-clamp-1">{product.name}</CardTitle>
                 {product.priceRange && (
-                  <CardDescription>
+                  <CardDescription className="mt-1">
                     {formatCurrency(product.priceRange.min, 'VND', 'vi-VN')}
                     {product.priceRange.max !== product.priceRange.min &&
                       ` - ${formatCurrency(product.priceRange.max ,'VND', 'vi-VN')}`}
                   </CardDescription>
                 )}
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-3">
+              </CardContent>
+              <CardFooter className="pt-0">
+                <div className="flex gap-3 w-full">
                   <Link href={`/products/${product.id}`} className="flex-1">
                     <Button variant="outline" className="w-full">Xem chi tiết</Button>
                   </Link>
@@ -104,7 +106,7 @@ export function FeaturedProductsSection() {
                     <Button>Thêm vào giỏ</Button>
                   </Link>
                 </div>
-              </CardContent>
+              </CardFooter>
             </Card>
           ))}
         </div>

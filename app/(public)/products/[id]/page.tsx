@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState, use, useCallback, useMemo } from "react"
 import { getProductById } from "@/services/productService"
 import { getTemplatesByProduct } from "@/services/templateServices"
+import type { TemplateSummaryItem } from "@/types/template"
 import { formatCurrency } from "../../../../utils/format"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { addItemSmart } from "@/redux/cartSlice"
@@ -30,6 +31,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [error, setError] = useState<string | null>(null)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [templateCount, setTemplateCount] = useState<number | null>(null)
+  const [templates, setTemplates] = useState<TemplateSummaryItem[]>([])
+  const [selectedTemplateOptionValueId, setSelectedTemplateOptionValueId] = useState<string | null>(null)
   const [product, setProduct] = useState<{
     id: string
     name: string
@@ -111,10 +114,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         // Fetch available templates for this product
         try {
           const templatesRes = await getTemplatesByProduct(d.productId)
-          const list = templatesRes?.data ?? []
-          setTemplateCount(Array.isArray(list) ? list.length : 0)
+          const list = Array.isArray(templatesRes?.data) ? templatesRes.data : []
+          setTemplates(list)
+          setTemplateCount(list.length)
+          setSelectedTemplateOptionValueId(list.length > 0 ? list[0].productOptionValueId : null)
         } catch {
+          setTemplates([])
           setTemplateCount(0)
+          setSelectedTemplateOptionValueId(null)
         }
       } catch (e) {
         setError("Không thể tải thông tin sản phẩm.")
@@ -371,29 +378,51 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               {product.category && <Badge className="mb-2">{product.category}</Badge>}
               <h1 className="text-3xl font-bold text-foreground mb-2">{product.name}</h1>
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-3xl font-bold text-primary">{formatCurrency(product.price, 'VND', 'vi-VN')}</span>
+                <span className="text-3xl font-bold text-primary">{formatCurrency(selectedVariant?.price ?? product.price, 'VND', 'vi-VN')}</span>
               </div>
 
-              {/* Template availability note and navigate to design */}
-              <div className="mt-2 flex items-center justify-between gap-3 rounded-md border p-3 bg-card">
+              {/* Template availability and selection */}
+              <div className="mt-2 flex flex-col gap-3 rounded-md border p-3 bg-card">
                 <div className="text-sm text-muted-foreground">
                   {templateCount === null && (
                     <span>Đang kiểm tra mẫu thiết kế có sẵn…</span>
                   )}
                   {templateCount !== null && templateCount > 0 && (
                     <span>
-                      Có {templateCount} mẫu thiết kế có sẵn cho sản phẩm này. Bạn có thể chọn và tùy chỉnh.
+                      Có {templateCount} mẫu thiết kế có sẵn cho sản phẩm này.
                     </span>
                   )}
                   {templateCount !== null && templateCount === 0 && (
                     <span>
-                      Chưa có mẫu thiết kế sẵn. Bạn có thể tự thiết kế theo ý thích.
+                      Chưa có mẫu thiết kế sẵn.
                     </span>
                   )}
                 </div>
-                <Link href={`/design?productId=${encodeURIComponent(product.id)}`}>
-                  <Button variant="outline">Thiết kế ngay</Button>
-                </Link>
+
+                {templates.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {templates.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedTemplateOptionValueId(t.productOptionValueId)}
+                        className={`rounded-md border p-2 text-left transition-colors ${selectedTemplateOptionValueId === t.productOptionValueId ? 'border-primary ring-1 ring-primary' : 'hover:border-primary/50'}`}
+                      >
+                        <div className="aspect-square w-full overflow-hidden rounded-md bg-muted mb-2">
+                          <img src={t.imageUrl || '/placeholder.svg'} alt={t.printAreaName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="text-xs font-medium line-clamp-1">{t.productOptionName}: {t.productOptionValue}</div>
+                        <div className="text-[10px] text-muted-foreground line-clamp-1">{t.printAreaName}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {templates.length > 0 && selectedTemplateOptionValueId && (
+                  <Link href={`/design?productId=${encodeURIComponent(product.id)}&productOptionValueId=${encodeURIComponent(selectedTemplateOptionValueId)}`}>
+                    <Button variant="outline">Thiết kế ngay</Button>
+                  </Link>
+                )}
               </div>
             </div>
 

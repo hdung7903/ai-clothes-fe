@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, X, Upload, Eye, EyeOff } from "lucide-react"
-import { Tree, TreeItem } from "@/components/ui/tree"
+import { TreeSelect } from "antd"
 import {
   SidebarInset,
   SidebarProvider,
@@ -48,7 +48,7 @@ export default function Page({ params }: PageProps) {
   const [name, setName] = React.useState("")
   const [description, setDescription] = React.useState("")
   const [imageUrl, setImageUrl] = React.useState("")
-  const [basePrice, setBasePrice] = React.useState<number | "">("")
+  const [basePrice, setBasePrice] = React.useState<string>("")
   const [categoryId, setCategoryId] = React.useState("")
   
   // Options state
@@ -83,7 +83,7 @@ export default function Page({ params }: PageProps) {
             setName(data.name ?? "")
             setDescription(data.description ?? "")
             setImageUrl(data.imageUrl ?? "")
-            setBasePrice(Number.isFinite(data.basePrice) ? data.basePrice : "")
+            setBasePrice(Number.isFinite(data.basePrice) ? data.basePrice.toString() : "")
             setCategoryId(data.category?.categoryId ?? "")
             
             // Map options
@@ -96,7 +96,7 @@ export default function Page({ params }: PageProps) {
           }
         }
       } catch {
-        if (!ignore) setError("Failed to load product.")
+        if (!ignore) setError("Không thể tải sản phẩm.")
       } finally {
         if (!ignore) setIsLoading(false)
       }
@@ -256,39 +256,55 @@ export default function Page({ params }: PageProps) {
     try {
       const finalCategoryId = categoryId || product.category?.categoryId || ""
       if (!finalCategoryId) {
-        throw new Error("Category is required")
+        throw new Error("Danh mục là bắt buộc")
       }
+      
+      // Validate numeric inputs
+      const basePriceValue = basePrice ? Number(basePrice) : 0
+      if (isNaN(basePriceValue) || basePriceValue < 0) {
+        throw new Error("Giá cơ bản phải là số hợp lệ và không âm")
+      }
+      
+      // Validate variant prices and stock
+      for (const variant of variants) {
+        if (isNaN(variant.price) || variant.price < 0) {
+          throw new Error(`Giá của biến thể ${variant.sku || 'không có SKU'} không hợp lệ`)
+        }
+        if (isNaN(variant.stock) || variant.stock < 0) {
+          throw new Error(`Tồn kho của biến thể ${variant.sku || 'không có SKU'} không hợp lệ`)
+        }
+      }
+      
       await createOrUpdateProduct({
         productId: product.productId,
         name,
         description,
         imageUrl,
-        basePrice: typeof basePrice === "number" ? basePrice : Number(basePrice || 0),
+        basePrice: basePriceValue,
         categoryId: finalCategoryId,
         options,
         variants,
       })
-    } catch {
-      setError("Failed to save product.")
+      
+      // Redirect to admin products list after successful update
+      window.location.href = '/admin/products'
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể lưu sản phẩm.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Render categories recursively as a tree
-  const renderCategoryNodes = (nodes: Category[]) => {
-    return nodes.map((node) => (
-      <TreeItem
-        key={node.id}
-        id={node.id}
-        label={node.name}
-        data={{ id: node.id, name: node.name }}
-      >
-        {node.subCategories && node.subCategories.length > 0
-          ? renderCategoryNodes(node.subCategories)
-          : null}
-      </TreeItem>
-    ))
+  // Convert categories to TreeSelect format
+  const convertCategoriesToTreeData = (nodes: Category[]): any[] => {
+    return nodes.map((node) => ({
+      title: node.name,
+      value: node.id,
+      key: node.id,
+      children: node.subCategories && node.subCategories.length > 0 
+        ? convertCategoriesToTreeData(node.subCategories)
+        : undefined
+    }))
   }
 
   return (
@@ -302,15 +318,15 @@ export default function Page({ params }: PageProps) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/products">Products</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/products">Sản phẩm</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Edit {id}</BreadcrumbPage>
+                  <BreadcrumbPage>Chỉnh sửa {id}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -318,9 +334,9 @@ export default function Page({ params }: PageProps) {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Edit Product</h1>
+            <h1 className="text-xl font-semibold">Chỉnh sửa sản phẩm</h1>
             <Button variant="outline" asChild>
-              <Link href={`/admin/products/${id}`}>Cancel</Link>
+              <Link href="/admin/products">Hủy</Link>
             </Button>
           </div>
           
@@ -328,30 +344,30 @@ export default function Page({ params }: PageProps) {
           {product && (
             <Card>
               <CardHeader>
-                <CardTitle>Current Product Data</CardTitle>
+                <CardTitle>Thông tin sản phẩm hiện tại</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-sm font-medium">Product ID</Label>
+                      <Label className="text-sm font-medium">Mã sản phẩm</Label>
                       <p className="text-sm text-muted-foreground font-mono">{product.productId}</p>
                     </div>
                     <div>
-                      <Label className="text-sm font-medium">Category</Label>
+                      <Label className="text-sm font-medium">Danh mục</Label>
                       <p className="text-sm text-muted-foreground">{product.category?.name}</p>
                     </div>
                   </div>
                   
                   <div>
-                    <Label className="text-sm font-medium">Options ({product.options?.length || 0})</Label>
+                    <Label className="text-sm font-medium">Tùy chọn ({product.options?.length || 0})</Label>
                     <div className="mt-2 space-y-2">
                       {product.options?.map((option, index) => (
                         <div key={option.optionId} className="border rounded p-3">
                           <div className="flex items-center gap-2 mb-2">
                             <Badge variant="outline">{option.name}</Badge>
                             <span className="text-sm text-muted-foreground">
-                              {option.values?.length || 0} values
+                              {option.values?.length || 0} giá trị
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-1">
@@ -367,7 +383,7 @@ export default function Page({ params }: PageProps) {
                   </div>
                   
                   <div>
-                    <Label className="text-sm font-medium">Variants ({product.variants?.length || 0})</Label>
+                    <Label className="text-sm font-medium">Biến thể ({product.variants?.length || 0})</Label>
                     <div className="mt-2 space-y-2">
                       {product.variants?.map((variant, index) => (
                         <div key={variant.variantId} className="border rounded p-3">
@@ -375,7 +391,7 @@ export default function Page({ params }: PageProps) {
                             <div className="flex items-center gap-2">
                               <Badge variant="outline">{variant.sku}</Badge>
                               <span className="text-sm font-medium">{formatCurrency(variant.price, 'VND', 'vi-VN')}</span>
-                              <span className="text-sm text-muted-foreground">Stock: {variant.stock}</span>
+                              <span className="text-sm text-muted-foreground">Tồn kho: {variant.stock}</span>
                             </div>
                           </div>
                           <div className="flex flex-wrap gap-1">
@@ -394,40 +410,40 @@ export default function Page({ params }: PageProps) {
             </Card>
           )}
           <div className="grid gap-6">
-            {isLoading && <div>Loading...</div>}
+            {isLoading && <div>Đang tải...</div>}
             {!isLoading && error && <div className="text-destructive mb-3">{error}</div>}
             
             <form className="grid gap-6" onSubmit={onSubmit}>
               {/* Basic Product Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
+                  <CardTitle>Thông tin cơ bản</CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="name">Product Name</Label>
+                    <Label htmlFor="name">Tên sản phẩm</Label>
                     <Input 
                       id="name" 
                       value={name} 
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter product name"
+                      placeholder="Nhập tên sản phẩm"
                       required
                     />
                   </div>
                   
                   <div className="grid gap-2">
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">Mô tả</Label>
                     <Textarea 
                       id="description" 
                       value={description} 
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Enter product description"
+                      placeholder="Nhập mô tả sản phẩm"
                       rows={3}
                     />
                   </div>
                   
                   <div className="grid gap-2">
-                    <Label htmlFor="imageUrl">Image URL</Label>
+                    <Label htmlFor="imageUrl">URL hình ảnh</Label>
                     <Input 
                       id="imageUrl" 
                       value={imageUrl} 
@@ -438,42 +454,43 @@ export default function Page({ params }: PageProps) {
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="basePrice">Base Price</Label>
+                      <Label htmlFor="basePrice">Giá cơ bản</Label>
                       <Input
                         id="basePrice"
                         type="number"
                         inputMode="decimal"
                         step="0.01"
+                        min="0"
                         value={basePrice}
                         onChange={(e) => {
                           const v = e.target.value
-                          setBasePrice(v === "" ? "" : Number(v))
+                          setBasePrice(v)
                         }}
                         placeholder="0.00"
                       />
                     </div>
                     
                     <div className="grid gap-2">
-                      <Label htmlFor="category">Category</Label>
-                      <div className="border rounded-md p-2 max-h-64 overflow-auto">
-                        {isLoadingCategories ? (
-                          <div className="text-sm text-muted-foreground px-2 py-1">Loading categories...</div>
-                        ) : categories.length === 0 ? (
-                          <div className="text-sm text-muted-foreground px-2 py-1">No categories found.</div>
-                        ) : (
-                          <Tree
-                            onSelect={({ id }) => {
-                              setCategoryId(id)
-                            }}
-                          >
-                            {renderCategoryNodes(categories)}
-                          </Tree>
-                        )}
-                      </div>
+                      <Label htmlFor="category">Danh mục</Label>
+                      <TreeSelect
+                        style={{ width: '100%' }}
+                        value={categoryId}
+                        placeholder="Chọn danh mục"
+                        allowClear
+                        treeDefaultExpandAll
+                        onChange={(value) => setCategoryId(value)}
+                        treeData={convertCategoriesToTreeData(categories)}
+                        loading={isLoadingCategories}
+                        styles={{
+                          popup: {
+                            root: { maxHeight: 300, overflow: 'auto' }
+                          }
+                        }}
+                      />
                       {categoryId ? (
-                        <p className="text-xs text-muted-foreground">Selected: {categoryId}</p>
+                        <p className="text-xs text-muted-foreground">Đã chọn: {categoryId}</p>
                       ) : product?.category?.name ? (
-                        <p className="text-xs text-muted-foreground">Current: {product.category.name}</p>
+                        <p className="text-xs text-muted-foreground">Hiện tại: {product.category.name}</p>
                       ) : null}
                     </div>
                   </div>
@@ -484,10 +501,10 @@ export default function Page({ params }: PageProps) {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Product Options</CardTitle>
+                    <CardTitle>Tùy chọn sản phẩm</CardTitle>
                     <Button type="button" onClick={addOption} size="sm">
                       <Plus className="h-4 w-4 mr-1" />
-                      Add Option
+                      Thêm tùy chọn
                     </Button>
                   </div>
                 </CardHeader>
@@ -495,7 +512,7 @@ export default function Page({ params }: PageProps) {
                   {options.map((option, optionIndex) => (
                     <div key={option.optionId} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Option {optionIndex + 1}</h4>
+                        <h4 className="font-medium">Tùy chọn {optionIndex + 1}</h4>
                         <Button 
                           type="button" 
                           variant="outline" 
@@ -507,10 +524,10 @@ export default function Page({ params }: PageProps) {
                       </div>
                       
                       <div className="grid gap-2">
-                        <Label>Option Name</Label>
+                        <Label>Tên tùy chọn</Label>
                         <Select value={option.name} onValueChange={(value) => updateOption(optionIndex, 'name', value)}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select option type" />
+                            <SelectValue placeholder="Chọn loại tùy chọn" />
                           </SelectTrigger>
                           <SelectContent>
                             {optionNames.map((name) => (
@@ -524,7 +541,7 @@ export default function Page({ params }: PageProps) {
                       
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <Label>Option Values</Label>
+                          <Label>Giá trị tùy chọn</Label>
                           <Button 
                             type="button" 
                             variant="outline" 
@@ -532,7 +549,7 @@ export default function Page({ params }: PageProps) {
                             onClick={() => addOptionValue(optionIndex)}
                           >
                             <Plus className="h-4 w-4 mr-1" />
-                            Add Value
+                            Thêm giá trị
                           </Button>
                         </div>
                         
@@ -542,7 +559,7 @@ export default function Page({ params }: PageProps) {
                               <Input
                                 value={value.value}
                                 onChange={(e) => updateOptionValue(optionIndex, valueIndex, 'value', e.target.value)}
-                                placeholder="Value (e.g., Small, Red)"
+                                placeholder="Giá trị (ví dụ: Nhỏ, Đỏ)"
                                 className="flex-1"
                               />
                               <Button 
@@ -557,7 +574,7 @@ export default function Page({ params }: PageProps) {
                             
                             {/* Option Value Image */}
                             <div className="space-y-3">
-                              <Label className="text-sm">Image</Label>
+                              <Label className="text-sm">Hình ảnh</Label>
                               
                               {/* Image Preview */}
                               {getImagePreview(optionIndex, valueIndex) && (
@@ -620,7 +637,7 @@ export default function Page({ params }: PageProps) {
                                       disabled={uploadingImages.has(`${optionIndex}-${valueIndex}`)}
                                     >
                                       <Upload className="h-3 w-3 mr-1" />
-                                      {uploadingImages.has(`${optionIndex}-${valueIndex}`) ? "Uploading..." : "Upload File"}
+                                      {uploadingImages.has(`${optionIndex}-${valueIndex}`) ? "Đang tải..." : "Tải file"}
                                     </Button>
                                   </label>
                                 </div>
@@ -628,7 +645,7 @@ export default function Page({ params }: PageProps) {
                                 {/* URL Input */}
                                 <div className="flex gap-2">
                                   <Input
-                                    placeholder="Or enter image URL"
+                                    placeholder="Hoặc nhập URL hình ảnh"
                                     onChange={(e) => handleImageUrlChange(e.target.value, optionIndex, valueIndex)}
                                     value={value.imageUrl[0] || ""}
                                     className="flex-1"
@@ -644,7 +661,7 @@ export default function Page({ params }: PageProps) {
                   
                   {options.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      No options added yet. Click "Add Option" to create product variations.
+                      Chưa có tùy chọn nào. Nhấn "Thêm tùy chọn" để tạo biến thể sản phẩm.
                     </div>
                   )}
                 </CardContent>
@@ -654,10 +671,10 @@ export default function Page({ params }: PageProps) {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Product Variants</CardTitle>
+                    <CardTitle>Biến thể sản phẩm</CardTitle>
                     <Button type="button" onClick={addVariant} size="sm">
                       <Plus className="h-4 w-4 mr-1" />
-                      Add Variant
+                      Thêm biến thể
                     </Button>
                   </div>
                 </CardHeader>
@@ -665,7 +682,7 @@ export default function Page({ params }: PageProps) {
                   {variants.map((variant, variantIndex) => (
                     <div key={variant.id} className="border rounded-lg p-4 space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Variant {variantIndex + 1}</h4>
+                        <h4 className="font-medium">Biến thể {variantIndex + 1}</h4>
                         <Button 
                           type="button" 
                           variant="outline" 
@@ -678,37 +695,45 @@ export default function Page({ params }: PageProps) {
                       
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                          <Label>SKU</Label>
+                          <Label>Mã SKU</Label>
                           <Input
                             value={variant.sku}
                             onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
-                            placeholder="e.g., TSHIRT-SM-RED"
+                            placeholder="ví dụ: TSHIRT-SM-RED"
                           />
                         </div>
                         
                         <div className="grid gap-2">
-                          <Label>Price</Label>
+                          <Label>Giá</Label>
                           <Input
                             type="number"
                             step="0.01"
+                            min="0"
                             value={variant.price}
-                            onChange={(e) => updateVariant(variantIndex, 'price', Number(e.target.value))}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              updateVariant(variantIndex, 'price', value === "" ? 0 : Number(value))
+                            }}
                             placeholder="0.00"
                           />
                         </div>
                         
                         <div className="grid gap-2">
-                          <Label>Stock</Label>
+                          <Label>Tồn kho</Label>
                           <Input
                             type="number"
+                            min="0"
                             value={variant.stock}
-                            onChange={(e) => updateVariant(variantIndex, 'stock', Number(e.target.value))}
+                            onChange={(e) => {
+                              const value = e.target.value
+                              updateVariant(variantIndex, 'stock', value === "" ? 0 : Number(value))
+                            }}
                             placeholder="0"
                           />
                         </div>
                         
                         <div className="grid gap-2 col-span-2">
-                          <Label>Option Values</Label>
+                          <Label>Giá trị tùy chọn</Label>
                           <div className="space-y-2">
                             {Object.entries(variant.optionValues).map(([optionName, optionValue]) => (
                               <div key={optionName} className="flex gap-2 items-center">
@@ -722,7 +747,7 @@ export default function Page({ params }: PageProps) {
                                     updated[optionName] = e.target.value
                                     updateVariant(variantIndex, 'optionValues', updated)
                                   }}
-                                  placeholder="Value"
+                                  placeholder="Giá trị"
                                   className="flex-1"
                                 />
                               </div>
@@ -733,14 +758,14 @@ export default function Page({ params }: PageProps) {
                               size="sm"
                               onClick={() => {
                                 const optionNames = options.map(opt => opt.name).filter(name => name)
-                                const newOptionName = optionNames[0] || "New Option"
+                                const newOptionName = optionNames[0] || "Tùy chọn mới"
                                 const updated = { ...variant.optionValues }
                                 updated[newOptionName] = ""
                                 updateVariant(variantIndex, 'optionValues', updated)
                               }}
                             >
                               <Plus className="h-3 w-3 mr-1" />
-                              Add Option Value
+                              Thêm giá trị tùy chọn
                             </Button>
                           </div>
                         </div>
@@ -750,7 +775,7 @@ export default function Page({ params }: PageProps) {
                   
                   {variants.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      No variants added yet. Click "Add Variant" to create product variations.
+                      Chưa có biến thể nào. Nhấn "Thêm biến thể" để tạo biến thể sản phẩm.
                     </div>
                   )}
                 </CardContent>
@@ -759,10 +784,10 @@ export default function Page({ params }: PageProps) {
               {/* Form Actions */}
               <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading}>
-                  {isLoading ? "Saving..." : "Save Product"}
+                  {isLoading ? "Đang lưu..." : "Lưu sản phẩm"}
                 </Button>
                 <Button type="button" variant="outline" asChild>
-                  <Link href={`/admin/products/${id}`}>Cancel</Link>
+                  <Link href="/admin/products">Hủy</Link>
                 </Button>
               </div>
             </form>

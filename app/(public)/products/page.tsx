@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"
@@ -229,39 +229,38 @@ export default function ProductsPage() {
                       }
                     }}
                   >
-                    <div className="aspect-square relative">
-                      <img
-                        src={product.image || "/placeholder.svg"}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{product.name}</CardTitle>
-                          {product.priceRange && (
-                            <CardDescription>
-                              {formatCurrency(product.priceRange.min, 'VND', 'vi-VN')}
-                              {product.priceRange.max !== product.priceRange.min && ` - ${formatCurrency(product.priceRange.max, 'VND', 'vi-VN')}`}
-                            </CardDescription>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <Button
-                            variant="secondary"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(`/products/${product.id}`)
-                            }}
-                            aria-label={`Go to ${product.name} details`}
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
-                        </div>
+                    <CardHeader className="p-0">
+                      <div className="aspect-square relative">
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
                     </CardHeader>
+                    <CardFooter className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{product.name}</CardTitle>
+                        {product.priceRange && (
+                          <CardDescription className="mt-1">
+                            {formatCurrency(product.priceRange.min, 'VND', 'vi-VN')}
+                            {product.priceRange.max !== product.priceRange.min && ` - ${formatCurrency(product.priceRange.max, 'VND', 'vi-VN')}`}
+                          </CardDescription>
+                        )}
+                      </div>
+                      <Button
+                        variant="secondary"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          router.push(`/products/${product.id}`)
+                        }}
+                        aria-label={`Go to ${product.name} details`}
+                        className="flex-shrink-0"
+                      >
+                        <ShoppingCart className="h-4 w-4" />
+                      </Button>
+                    </CardFooter>
                   </Card>
                 ))}
               </div>
