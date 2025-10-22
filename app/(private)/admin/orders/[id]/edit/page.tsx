@@ -112,6 +112,12 @@ const PAYMENT_CODE_TO_LABEL: Record<number, string> = {
   4: 'Đã hoàn tiền',
 }
 
+// Allowed payment status transitions
+const ALLOWED_PAYMENT_TRANSITIONS: Record<number, number[]> = {
+  1: [3], // ONLINE_PAYMENT_PAID => REFUNDING
+  3: [4], // REFUNDING => REFUNDED
+}
+
 function getPaymentStatusCodeFromString(status: string): number {
   const key = normalizeStatusKey(status)
   if (key in PAYMENT_STRING_TO_CODE) return PAYMENT_STRING_TO_CODE[key]
@@ -512,11 +518,22 @@ export default function Page({ params }: PageProps) {
                       <SelectValue placeholder="Chọn trạng thái thanh toán mới" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0">Chờ thanh toán (online)</SelectItem>
-                      <SelectItem value="1">Đã thanh toán (online)</SelectItem>
-                      <SelectItem value="2">Thanh toán khi nhận hàng (COD)</SelectItem>
-                      <SelectItem value="3">Đang hoàn tiền</SelectItem>
-                      <SelectItem value="4">Đã hoàn tiền</SelectItem>
+                      {
+                        (() => {
+                          const currentPaymentCode = getPaymentStatusCodeFromString(order.paymentStatus)
+                          const allowedTransitions = ALLOWED_PAYMENT_TRANSITIONS[currentPaymentCode]
+                          if (!allowedTransitions || allowedTransitions.length === 0) {
+                            return (
+                              <div className="px-2 py-1 text-sm text-muted-foreground">Không có trạng thái thanh toán khả dụng</div>
+                            )
+                          }
+                          return allowedTransitions.map((code) => (
+                            <SelectItem key={code} value={String(code)}>
+                              {getPaymentStatusLabelFromCode(code)}
+                            </SelectItem>
+                          ))
+                        })()
+                      }
                     </SelectContent>
                   </Select>
                 </div>
@@ -527,7 +544,14 @@ export default function Page({ params }: PageProps) {
                       className="w-full" 
                       disabled={
                         saving ||
-                        (paymentStatus === null ? true : paymentStatus === getPaymentStatusCodeFromString(order.paymentStatus))
+                        (() => {
+                          const currentPaymentCode = getPaymentStatusCodeFromString(order.paymentStatus)
+                          const allowedTransitions = ALLOWED_PAYMENT_TRANSITIONS[currentPaymentCode]
+                          return !allowedTransitions || allowedTransitions.length === 0 || 
+                                 paymentStatus === null || 
+                                 paymentStatus === currentPaymentCode ||
+                                 !allowedTransitions.includes(paymentStatus)
+                        })()
                       }
                     >
                       {saving ? <Spinner className="h-4 w-4 mr-2" /> : null}

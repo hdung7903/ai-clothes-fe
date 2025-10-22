@@ -18,6 +18,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Package } from "lucide-react"
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { getVoucherById } from "@/services/voucherService"
@@ -44,10 +45,10 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
         if (response.success && response.data) {
           setVoucher(response.data)
         } else {
-          setError(response.message || 'Failed to load voucher')
+          setError('Không thể tải thông tin voucher')
         }
       } catch (err) {
-        setError('Failed to load voucher')
+        setError('Không thể tải thông tin voucher')
       } finally {
         setIsLoading(false)
       }
@@ -56,28 +57,25 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
   }, [params.id])
 
   const formatDiscountValue = (voucher: Voucher) => {
-    if (voucher.discountType === 'PERCENTAGE') {
+    if (voucher.discountType === 'PERCENT') {
       return `${voucher.discountValue || 0}%`
     }
     return formatCurrency(voucher.discountValue || 0, 'VND', 'vi-VN')
   }
 
   const formatUsage = (voucher: Voucher) => {
-    if (voucher.usageLimit) {
-      return `${voucher.usedCount}/${voucher.usageLimit}`
-    }
     return `${voucher.usedCount}`
   }
 
-  const isExpired = (validTo: string) => {
-    return new Date(validTo) < new Date()
+  const isExpired = (endDate: string) => {
+    return new Date(endDate) < new Date()
   }
 
   const isActive = (voucher: Voucher) => {
     const now = new Date()
-    const validFrom = new Date(voucher.validFrom)
-    const validTo = new Date(voucher.validTo)
-    return voucher.isActive && now >= validFrom && now <= validTo
+    const startDate = new Date(voucher.startDate)
+    const endDate = new Date(voucher.endDate)
+    return voucher.isActive && now >= startDate && now <= endDate
   }
 
   if (isLoading) {
@@ -86,7 +84,10 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
         <AdminSidebar />
         <SidebarInset>
           <div className="flex items-center justify-center h-64">
-            <div>Loading voucher...</div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Đang tải thông tin voucher...</p>
+            </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
@@ -100,7 +101,7 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
         <SidebarInset>
           <div className="flex items-center justify-center h-64">
             <Alert variant="destructive" className="max-w-md">
-              <AlertDescription>{error || 'Voucher not found'}</AlertDescription>
+              <AlertDescription>{error || 'Không tìm thấy voucher'}</AlertDescription>
             </Alert>
           </div>
         </SidebarInset>
@@ -119,11 +120,11 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/vouchers">Vouchers</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/vouchers">Voucher</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
@@ -136,15 +137,15 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold">{voucher.name}</h1>
-              <p className="text-muted-foreground font-mono">{voucher.code}</p>
+              <h1 className="text-2xl font-semibold">{voucher.code}</h1>
+              <p className="text-muted-foreground">{voucher.description}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => router.back()}>
-                Back
+                Quay lại
               </Button>
               <Button asChild>
-                <a href={`/admin/vouchers/${voucher.voucherId}/edit`}>Edit</a>
+                <a href={`/admin/vouchers/${voucher.id}/edit`}>Chỉnh sửa</a>
               </Button>
             </div>
           </div>
@@ -152,36 +153,34 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Status</CardTitle>
+                <CardTitle className="text-sm font-medium">Trạng thái</CardTitle>
               </CardHeader>
               <CardContent>
                 <Badge variant={isActive(voucher) ? "default" : "secondary"}>
-                  {isActive(voucher) ? "Active" : isExpired(voucher.validTo) ? "Expired" : "Inactive"}
+                  {isActive(voucher) ? "Đang hoạt động" : isExpired(voucher.endDate) ? "Hết hạn" : "Không hoạt động"}
                 </Badge>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Discount</CardTitle>
+                <CardTitle className="text-sm font-medium">Giảm giá</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatDiscountValue(voucher)}</div>
                 <p className="text-sm text-muted-foreground">
-                  {voucher.discountType === 'PERCENTAGE' ? 'Percentage discount' : 'Fixed amount discount'}
+                  {voucher.discountType === 'PERCENT' ? 'Giảm giá phần trăm' : 'Giảm giá số tiền cố định'}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm font-medium">Usage</CardTitle>
+                <CardTitle className="text-sm font-medium">Sử dụng</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatUsage(voucher)}</div>
-                <p className="text-sm text-muted-foreground">
-                  {voucher.usageLimit ? 'Limited usage' : 'Unlimited usage'}
-                </p>
+                <p className="text-sm text-muted-foreground">Lần sử dụng</p>
               </CardContent>
             </Card>
           </div>
@@ -189,134 +188,123 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Voucher Details</CardTitle>
-                <CardDescription>Basic information about this voucher</CardDescription>
+                <CardTitle>Thông tin voucher</CardTitle>
+                <CardDescription>Thông tin cơ bản về voucher này</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Name</label>
-                  <p className="text-sm">{voucher.name}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Code</label>
+                  <label className="text-sm font-medium text-muted-foreground">Mã voucher</label>
                   <p className="text-sm font-mono">{voucher.code}</p>
                 </div>
-                {voucher.description && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Description</label>
-                    <p className="text-sm">{voucher.description}</p>
-                  </div>
-                )}
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Discount Type</label>
+                  <label className="text-sm font-medium text-muted-foreground">Mô tả</label>
+                  <p className="text-sm">{voucher.description}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Loại giảm giá</label>
                   <p className="text-sm">
-                    {voucher.discountType === 'PERCENTAGE' ? 'Percentage' : 'Fixed Amount'}
+                    {voucher.discountType === 'PERCENT' ? 'Phần trăm' : 'Số tiền cố định'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Discount Value</label>
+                  <label className="text-sm font-medium text-muted-foreground">Giá trị giảm giá</label>
                   <p className="text-sm">{formatDiscountValue(voucher)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Trạng thái kích hoạt</label>
+                  <p className="text-sm">{voucher.isActive ? 'Có' : 'Không'}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Usage & Limits</CardTitle>
-                <CardDescription>Usage statistics and limitations</CardDescription>
+                <CardTitle>Thời gian hiệu lực</CardTitle>
+                <CardDescription>Khoảng thời gian voucher có hiệu lực</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Usage Count</label>
+                  <label className="text-sm font-medium text-muted-foreground">Ngày bắt đầu</label>
+                  <p className="text-sm">{new Date(voucher.startDate).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Ngày kết thúc</label>
+                  <p className="text-sm">{new Date(voucher.endDate).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Số lần sử dụng</label>
                   <p className="text-sm">{voucher.usedCount}</p>
                 </div>
-                {voucher.usageLimit && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Usage Limit</label>
-                    <p className="text-sm">{voucher.usageLimit}</p>
-                  </div>
-                )}
-                {voucher.minOrderAmount && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Minimum Order Amount</label>
-                    <p className="text-sm">{formatCurrency(voucher.minOrderAmount, 'VND', 'vi-VN')}</p>
-                  </div>
-                )}
-                {voucher.maxDiscountAmount && (
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Maximum Discount Amount</label>
-                    <p className="text-sm">{formatCurrency(voucher.maxDiscountAmount, 'VND', 'vi-VN')}</p>
-                  </div>
-                )}
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Active Status</label>
-                  <p className="text-sm">{voucher.isActive ? 'Yes' : 'No'}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Ngày tạo</label>
+                  <p className="text-sm">{new Date(voucher.createdAt).toLocaleDateString('vi-VN', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}</p>
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Products Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Validity Period</CardTitle>
-              <CardDescription>When this voucher is valid</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Sản phẩm áp dụng voucher
+              </CardTitle>
+              <CardDescription>
+                Danh sách sản phẩm có thể sử dụng voucher này
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Valid From</label>
-                  <p className="text-sm">{new Date(voucher.validFrom).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
+              {voucher.products && voucher.products.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {voucher.products.map((product) => (
+                    <div key={product.productId} className="flex items-center space-x-3 p-3 rounded-lg border">
+                      <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                        {product.productImageUrl ? (
+                          <img
+                            src={product.productImageUrl}
+                            alt={product.productName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{product.productName}</h4>
+                        <p className="text-xs text-muted-foreground">ID: {product.productId}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Valid To</label>
-                  <p className="text-sm">{new Date(voucher.validTo).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Voucher này áp dụng cho tất cả sản phẩm</p>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
-
-          {voucher.createdBy && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Created By</CardTitle>
-                <CardDescription>Information about who created this voucher</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Name</label>
-                    <p className="text-sm">{voucher.createdBy.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-muted-foreground">Email</label>
-                    <p className="text-sm">{voucher.createdBy.email}</p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <label className="text-sm font-medium text-muted-foreground">Created At</label>
-                  <p className="text-sm">{new Date(voucher.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       </SidebarInset>
     </SidebarProvider>

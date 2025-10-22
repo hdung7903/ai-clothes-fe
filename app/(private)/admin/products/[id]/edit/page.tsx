@@ -14,11 +14,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, X, Upload, Eye, EyeOff } from "lucide-react"
+import { Plus, Trash2, X, Upload } from "lucide-react"
 import { TreeSelect } from "antd"
 import {
   SidebarInset,
@@ -30,7 +29,7 @@ import { getProductById, createOrUpdateProduct } from "@/services/productService
 import { getAll as getAllCategories } from "@/services/cartegoryServices"
 import { uploadImage } from "@/services/storageService"
 import type { ProductDetail, ProductOptionDetail, ProductVariantDetail, ProductOptionRequest, ProductVariantRequest, ProductOptionValueRequest } from "@/types/product"
-import { formatCurrency } from "@/utils/format"
+import { formatCurrency, toSkuToken } from "@/utils/format"
 import type { Category } from "@/types/category"
 
 type PageProps = { params: any }
@@ -51,8 +50,19 @@ export default function Page({ params }: PageProps) {
   const [basePrice, setBasePrice] = React.useState<string>("")
   const [categoryId, setCategoryId] = React.useState("")
   
-  // Options state
-  const [options, setOptions] = React.useState<ProductOptionRequest[]>([])
+  // Options state - Initialize with predefined COLOR and SIZE options
+  const [options, setOptions] = React.useState<ProductOptionRequest[]>([
+    {
+      optionId: null,
+      name: "COLOR",
+      values: []
+    },
+    {
+      optionId: null, 
+      name: "SIZE",
+      values: []
+    }
+  ])
   
   // Variants state
   const [variants, setVariants] = React.useState<ProductVariantRequest[]>([])
@@ -60,10 +70,6 @@ export default function Page({ params }: PageProps) {
   // Categories tree
   const [categories, setCategories] = React.useState<Category[]>([])
   const [isLoadingCategories, setIsLoadingCategories] = React.useState(false)
-
-  // Predefined option names
-  const [optionNames] = React.useState([
-    "COLOR", "SIZE"  ])
 
   // Image upload states
   const [uploadingImages, setUploadingImages] = React.useState<Set<string>>(new Set())
@@ -123,12 +129,102 @@ export default function Page({ params }: PageProps) {
     return () => { ignore = true }
   }, [])
 
+  // Validation function to check for duplicate values
+  const validateOptionValues = (optionName: string, newValue: string, currentValues: any[], currentIndex: number) => {
+    const trimmedValue = newValue.trim().toLowerCase()
+    if (!trimmedValue) return true // Allow empty values
+    
+    const existingValues = currentValues
+      .filter((_, index) => index !== currentIndex) // Exclude current value being edited by index
+      .map(v => v.trim().toLowerCase())
+    
+    return !existingValues.includes(trimmedValue)
+  }
+
+  // Helper functions for variant management
+  const addVariant = (colorValue: string, sizeValue: string) => {
+    const basePriceNum = parseFloat(basePrice) || 0
+    const sku = `${toSkuToken(name)}_${toSkuToken(colorValue)}_${toSkuToken(sizeValue)}`
+    
+    const newVariant: ProductVariantRequest = {
+      id: null,
+      sku: sku,
+      price: basePriceNum,
+      stock: 0,
+      optionValues: {
+        COLOR: colorValue,
+        SIZE: sizeValue
+      }
+    }
+    
+    setVariants(prev => [...prev, newVariant])
+  }
+
+  const removeVariant = (colorValue: string, sizeValue: string) => {
+    setVariants(prev => prev.filter(variant => 
+      !(variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue)
+    ))
+  }
+
+  const updateVariantByCombo = (colorValue: string, sizeValue: string, field: keyof ProductVariantRequest, value: any) => {
+    setVariants(prev => prev.map(variant => {
+      if (variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue) {
+        return { ...variant, [field]: value }
+      }
+      return variant
+    }))
+  }
+
+  const getVariant = (colorValue: string, sizeValue: string) => {
+    return variants.find(variant => 
+      variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue
+    )
+  }
+
+  // Auto-generate variants only when options are added (not when values change)
+  React.useEffect(() => {
+    const colorOption = options.find(opt => opt.name === "COLOR")
+    const sizeOption = options.find(opt => opt.name === "SIZE")
+    
+    if (!colorOption || !sizeOption) {
+      setVariants([])
+      return
+    }
+
+    // Get all valid combinations
+    const validCombinations: { color: string; size: string }[] = []
+    colorOption.values.forEach((colorValue) => {
+      sizeOption.values.forEach((sizeValue) => {
+        if (colorValue.value.trim() !== "" && sizeValue.value.trim() !== "") {
+          validCombinations.push({
+            color: colorValue.value,
+            size: sizeValue.value
+          })
+        }
+      })
+    })
+
+    // Remove variants that no longer have valid combinations
+    setVariants(prev => prev.filter(variant => 
+      validCombinations.some(combo => 
+        variant.optionValues.COLOR === combo.color && variant.optionValues.SIZE === combo.size
+      )
+    ))
+
+    // Add missing variants for new combinations
+    validCombinations.forEach(combo => {
+      if (!getVariant(combo.color, combo.size)) {
+        addVariant(combo.color, combo.size)
+      }
+    })
+  }, [options])
+
   function mapOptionsToRequest(options: ProductOptionDetail[] | undefined) {
     return (options ?? []).map((opt) => ({
-      optionId: opt.optionId || `opt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      optionId: opt.optionId || null, // Sử dụng null nếu không có optionId từ server
       name: opt.name,
-      values: (opt.values ?? []).map((v) => ({
-        optionValueId: v.optionValueId || `val_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      values: (opt.values ?? []).filter(v => v.value && v.value.trim() !== "").map((v) => ({
+        optionValueId: v.optionValueId || null, // Sử dụng null nếu không có optionValueId từ server
         value: v.value,
         imageUrl: v.images ?? [],
       })),
@@ -137,8 +233,8 @@ export default function Page({ params }: PageProps) {
 
   function mapVariantsToRequest(variants: ProductVariantDetail[] | undefined) {
     return (variants ?? []).map((v) => ({
-      id: v.variantId || `var_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      sku: v.sku,
+      id: v.variantId || null, // Giữ nguyên variantId từ server
+      sku: v.sku, // Giữ nguyên SKU từ API response
       price: v.price,
       stock: v.stock,
       optionValues: v.optionValues,
@@ -146,106 +242,124 @@ export default function Page({ params }: PageProps) {
   }
 
   // Helper functions for options
-  const addOption = () => {
-    const newOption: ProductOptionRequest = {
-      optionId: `opt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name: "",
-      values: []
-    }
-    setOptions([...options, newOption])
+  const updateOption = (optionName: string, field: keyof ProductOptionRequest, value: any) => {
+    setOptions(options.map(opt => 
+      opt.name === optionName ? { ...opt, [field]: value } : opt
+    ))
   }
 
-  const updateOption = (index: number, field: keyof ProductOptionRequest, value: any) => {
-    const updated = [...options]
-    updated[index] = { ...updated[index], [field]: value }
-    setOptions(updated)
-  }
-
-  const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index))
-  }
-
-  const addOptionValue = (optionIndex: number) => {
-    const newValue: ProductOptionValueRequest = {
-      optionValueId: `val_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  const addOptionValue = (optionName: string) => {
+    const newValue = {
+      optionValueId: null,
       value: "",
       imageUrl: []
     }
-    const updated = [...options]
-    updated[optionIndex].values.push(newValue)
-    setOptions(updated)
+    setOptions(options.map(opt => 
+      opt.name === optionName 
+        ? { ...opt, values: [...opt.values, newValue] }
+        : opt
+    ))
   }
 
-
-  const updateOptionValue = (optionIndex: number, valueIndex: number, field: keyof ProductOptionValueRequest, value: any) => {
-    const updated = [...options]
-    updated[optionIndex].values[valueIndex] = { ...updated[optionIndex].values[valueIndex], [field]: value }
-    setOptions(updated)
+  const removeOptionValue = (optionName: string, valueIndex: number) => {
+    setOptions(options.map(opt => 
+      opt.name === optionName 
+        ? { ...opt, values: opt.values.filter((_, index) => index !== valueIndex) }
+        : opt
+    ))
   }
 
-  const removeOptionValue = (optionIndex: number, valueIndex: number) => {
-    const updated = [...options]
-    updated[optionIndex].values.splice(valueIndex, 1)
-    setOptions(updated)
+  const updateOptionValue = (optionName: string, valueIndex: number, field: keyof any, value: any) => {
+    // If updating the 'value' field (color/size name), update variants first
+    if (field === 'value') {
+      const currentOption = options.find(opt => opt.name === optionName)
+      if (currentOption) {
+        const oldValue = currentOption.values[valueIndex]?.value
+        const newValue = value
+        
+        // If the value actually changed, update related variants
+        if (oldValue !== newValue && oldValue) {
+          setVariants(prev => prev.map(variant => {
+            // Check if this variant uses the old value
+            const usesOldValue = variant.optionValues[optionName] === oldValue
+            
+            if (usesOldValue) {
+              // Update optionValues with new value
+              const updatedOptionValues = {
+                ...variant.optionValues,
+                [optionName]: newValue
+              }
+              
+              // Calculate new SKU based on updated optionValues
+              // Use current name from state for SKU calculation
+              const currentName = name || product?.name || ""
+              const newSku = `${toSkuToken(currentName)}_${toSkuToken(updatedOptionValues.COLOR)}_${toSkuToken(updatedOptionValues.SIZE)}`
+              
+              // Keep existing variantId when updating option values
+              return {
+                ...variant,
+                id: variant.id, // Giữ nguyên variantId hiện tại
+                optionValues: updatedOptionValues,
+                sku: newSku
+              }
+            }
+            return variant
+          }))
+        }
+        
+        // Validate for duplicate values
+        const currentValues = currentOption.values.map(v => v.value)
+        if (!validateOptionValues(optionName, value, currentValues, valueIndex)) {
+          setError(`${optionName === 'COLOR' ? 'Màu sắc' : 'Kích thước'} "${value.trim()}" đã tồn tại. Vui lòng chọn giá trị khác.`)
+        } else {
+          setError(null)
+        }
+      }
+    }
+    
+    // Always update the option value
+    setOptions(options.map(opt => 
+      opt.name === optionName 
+        ? {
+            ...opt,
+            values: opt.values.map((val, index) => 
+              index === valueIndex ? { ...val, [field]: value } : val
+            )
+          }
+        : opt
+    ))
   }
 
   // Helper functions for variants
-  const addVariant = () => {
-    const newVariant: ProductVariantRequest = {
-      id: `var_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      sku: "",
-      price: 0,
-      stock: 0,
-      optionValues: {}
-    }
-    setVariants([...variants, newVariant])
-  }
-
-  const updateVariant = (index: number, field: keyof ProductVariantRequest, value: any) => {
+  const updateVariantField = (index: number, field: keyof ProductVariantRequest, value: any) => {
     const updated = [...variants]
     updated[index] = { ...updated[index], [field]: value }
     setVariants(updated)
   }
 
-  const removeVariant = (index: number) => {
-    setVariants(variants.filter((_, i) => i !== index))
-  }
-
   // Image upload functionality
-  const handleImageUpload = async (file: File, optionIndex: number, valueIndex: number) => {
-    const imageKey = `${optionIndex}-${valueIndex}`
-    setUploadingImages(prev => new Set([...prev, imageKey]))
+  const handleImageUpload = async (optionName: string, valueIndex: number, file: File) => {
+    const uploadKey = `${optionName}_${valueIndex}`
+    setUploadingImages(prev => new Set(prev).add(uploadKey))
     
     try {
       const response = await uploadImage(file)
       if (response.success && response.data) {
-        const updated = [...options]
-        updated[optionIndex].values[valueIndex].imageUrl = [response.data]
-        setOptions(updated)
-        setImagePreviews(prev => ({ ...prev, [imageKey]: response.data! }))
+        updateOptionValue(optionName, valueIndex, 'imageUrl', [response.data!])
       }
     } catch (error) {
       console.error('Image upload failed:', error)
     } finally {
       setUploadingImages(prev => {
         const newSet = new Set(prev)
-        newSet.delete(imageKey)
+        newSet.delete(uploadKey)
         return newSet
       })
     }
   }
 
-  const handleImageUrlChange = (url: string, optionIndex: number, valueIndex: number) => {
-    const imageKey = `${optionIndex}-${valueIndex}`
-    const updated = [...options]
-    updated[optionIndex].values[valueIndex].imageUrl = [url]
-    setOptions(updated)
-    setImagePreviews(prev => ({ ...prev, [imageKey]: url }))
-  }
-
-  const getImagePreview = (optionIndex: number, valueIndex: number) => {
-    const imageKey = `${optionIndex}-${valueIndex}`
-    return imagePreviews[imageKey] || options[optionIndex]?.values[valueIndex]?.imageUrl?.[0] || ""
+  const removeImage = (optionName: string, valueIndex: number) => {
+    updateOptionValue(optionName, valueIndex, 'imageUrl', [])
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -254,6 +368,17 @@ export default function Page({ params }: PageProps) {
     setIsLoading(true)
     setError(null)
     try {
+      // Validate required fields
+      if (!name || !name.trim()) {
+        throw new Error("Tên sản phẩm là bắt buộc")
+      }
+      if (!description || !description.trim()) {
+        throw new Error("Mô tả sản phẩm là bắt buộc")
+      }
+      if (!imageUrl || !imageUrl.trim()) {
+        throw new Error("Hình ảnh sản phẩm là bắt buộc")
+      }
+      
       const finalCategoryId = categoryId || product.category?.categoryId || ""
       if (!finalCategoryId) {
         throw new Error("Danh mục là bắt buộc")
@@ -261,8 +386,8 @@ export default function Page({ params }: PageProps) {
       
       // Validate numeric inputs
       const basePriceValue = basePrice ? Number(basePrice) : 0
-      if (isNaN(basePriceValue) || basePriceValue < 0) {
-        throw new Error("Giá cơ bản phải là số hợp lệ và không âm")
+      if (isNaN(basePriceValue) || basePriceValue <= 0) {
+        throw new Error("Giá cơ bản phải lớn hơn 0")
       }
       
       // Validate variant prices and stock
@@ -275,6 +400,20 @@ export default function Page({ params }: PageProps) {
         }
       }
       
+      // Filter out options with empty values
+      const validOptions = options.map(opt => ({
+        ...opt,
+        values: opt.values.filter(v => v.value && v.value.trim() !== "")
+      })).filter(opt => opt.values.length > 0)
+
+      // Ensure variants have correct id values
+      const validVariants = variants.map(variant => ({
+        ...variant,
+        // Keep existing variantId for existing variants, null for new ones
+        // If variant has a valid id (not null/undefined), keep it; otherwise set to null for new variants
+        id: variant.id && variant.id !== null ? variant.id : null
+      }))
+
       await createOrUpdateProduct({
         productId: product.productId,
         name,
@@ -282,8 +421,8 @@ export default function Page({ params }: PageProps) {
         imageUrl,
         basePrice: basePriceValue,
         categoryId: finalCategoryId,
-        options,
-        variants,
+        options: validOptions,
+        variants: validVariants,
       })
       
       // Redirect to admin products list after successful update
@@ -411,7 +550,11 @@ export default function Page({ params }: PageProps) {
           )}
           <div className="grid gap-6">
             {isLoading && <div>Đang tải...</div>}
-            {!isLoading && error && <div className="text-destructive mb-3">{error}</div>}
+            {!isLoading && error && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg mb-3">
+                {error}
+              </div>
+            )}
             
             <form className="grid gap-6" onSubmit={onSubmit}>
               {/* Basic Product Information */}
@@ -439,17 +582,108 @@ export default function Page({ params }: PageProps) {
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Nhập mô tả sản phẩm"
                       rows={3}
+                      required
                     />
                   </div>
                   
                   <div className="grid gap-2">
-                    <Label htmlFor="imageUrl">URL hình ảnh</Label>
-                    <Input 
-                      id="imageUrl" 
-                      value={imageUrl} 
-                      onChange={(e) => setImageUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <Label htmlFor="imageUrl">Hình ảnh sản phẩm</Label>
+                    
+                    {/* Image Preview */}
+                    {imageUrl && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src={imageUrl} 
+                            alt="Product preview"
+                            className="w-32 h-32 object-cover rounded border"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">Hình ảnh hiện tại</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {imageUrl.split('/').pop()}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setImageUrl("")}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* URL Input */}
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Nhập URL hình ảnh</Label>
+                      <Input 
+                        id="imageUrl" 
+                        value={imageUrl} 
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    
+                    {/* File Upload */}
+                    <div className="space-y-2">
+                      <Label className="text-sm text-muted-foreground">Hoặc upload file</Label>
+                      <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                        <div className="text-center">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                try {
+                                  setIsLoading(true)
+                                  const response = await uploadImage(file)
+                                  if (response.success && response.data) {
+                                    setImageUrl(response.data)
+                                  }
+                                } catch (error) {
+                                  console.error('Image upload failed:', error)
+                                  setError('Không thể upload hình ảnh. Vui lòng thử lại.')
+                                } finally {
+                                  setIsLoading(false)
+                                }
+                              }
+                            }}
+                            className="hidden"
+                            id="product-image-upload"
+                            disabled={isLoading}
+                          />
+                          <label 
+                            htmlFor="product-image-upload"
+                            className="cursor-pointer"
+                          >
+                            {isLoading ? (
+                              <div className="space-y-2">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                <p className="text-sm text-muted-foreground">Đang upload...</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
+                                <p className="text-sm text-muted-foreground">
+                                  Nhấn để upload hình ảnh sản phẩm
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  JPG, PNG, GIF tối đa 10MB
+                                </p>
+                              </div>
+                            )}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
@@ -457,16 +691,14 @@ export default function Page({ params }: PageProps) {
                       <Label htmlFor="basePrice">Giá cơ bản</Label>
                       <Input
                         id="basePrice"
-                        type="number"
-                        inputMode="decimal"
-                        step="0.01"
-                        min="0"
+                        type="text"
                         value={basePrice}
                         onChange={(e) => {
-                          const v = e.target.value
-                          setBasePrice(v)
+                          const raw = e.target.value
+                          const digits = raw.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
+                          setBasePrice(digits)
                         }}
-                        placeholder="0.00"
+                        placeholder="0"
                       />
                     </div>
                     
@@ -500,282 +732,253 @@ export default function Page({ params }: PageProps) {
               {/* Product Options */}
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Tùy chọn sản phẩm</CardTitle>
-                    <Button type="button" onClick={addOption} size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Thêm tùy chọn
-                    </Button>
-                  </div>
+                  <CardTitle>Tùy chọn sản phẩm</CardTitle>
+                  <CardDescription>Thêm màu sắc và kích thước cho sản phẩm. Các biến thể sẽ được tạo tự động.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {options.map((option, optionIndex) => (
-                    <div key={option.optionId} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Tùy chọn {optionIndex + 1}</h4>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => removeOption(optionIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <Label>Tên tùy chọn</Label>
-                        <Select value={option.name} onValueChange={(value) => updateOption(optionIndex, 'name', value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Chọn loại tùy chọn" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {optionNames.map((name) => (
-                              <SelectItem key={name} value={name}>
-                                {name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label>Giá trị tùy chọn</Label>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => addOptionValue(optionIndex)}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            Thêm giá trị
-                          </Button>
-                        </div>
-                        
-                        {option.values.map((value, valueIndex) => (
-                          <div key={value.optionValueId} className="border rounded-lg p-3 space-y-3">
-                            <div className="flex gap-2 items-center">
-                              <Input
-                                value={value.value}
-                                onChange={(e) => updateOptionValue(optionIndex, valueIndex, 'value', e.target.value)}
-                                placeholder="Giá trị (ví dụ: Nhỏ, Đỏ)"
-                                className="flex-1"
-                              />
-                              <Button 
-                                type="button" 
-                                variant="outline" 
+                <CardContent className="space-y-6">
+                  {options.map((option) => (
+                    <div key={option.name} className="border rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium min-w-[100px]">
+                          {option.name === "COLOR" ? "Màu sắc" : option.name === "SIZE" ? "Kích thước" : option.name}
+                        </Label>
+                        <div className="flex-1">
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-sm text-muted-foreground">
+                                Giá trị {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
+                              </Label>
+                              <Button
+                                type="button"
+                                variant="outline"
                                 size="sm"
-                                onClick={() => removeOptionValue(optionIndex, valueIndex)}
+                                onClick={() => addOptionValue(option.name)}
                               >
-                                <X className="h-4 w-4" />
+                                <Plus className="h-4 w-4 mr-1" />
+                                Thêm {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}
                               </Button>
                             </div>
                             
-                            {/* Option Value Image */}
-                            <div className="space-y-3">
-                              <Label className="text-sm">Hình ảnh</Label>
+                            {option.values.map((value, valueIndex) => {
+                              const uploadKey = `${option.name}_${valueIndex}`
+                              const isUploading = uploadingImages.has(uploadKey)
+                              const hasImage = value.imageUrl && value.imageUrl.length > 0
                               
-                              {/* Image Preview */}
-                              {getImagePreview(optionIndex, valueIndex) && (
-                                <div className="relative">
-                                  <img
-                                    src={getImagePreview(optionIndex, valueIndex)}
-                                    alt={`${value.value} preview`}
-                                    className="w-24 h-24 object-cover rounded-lg border"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none'
-                                    }}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="absolute -top-2 -right-2"
-                                    onClick={() => {
-                                      const imageKey = `${optionIndex}-${valueIndex}`
-                                      const updated = [...options]
-                                      updated[optionIndex].values[valueIndex].imageUrl = []
-                                      setOptions(updated)
-                                      setImagePreviews(prev => {
-                                        const newPrev = { ...prev }
-                                        delete newPrev[imageKey]
-                                        return newPrev
-                                      })
-                                    }}
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                              
-                              {/* Upload Options */}
-                              <div className="space-y-2">
-                                {/* File Upload */}
-                                <div className="flex gap-2">
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0]
-                                      if (file) {
-                                        handleImageUpload(file, optionIndex, valueIndex)
-                                      }
-                                    }}
-                                    className="hidden"
-                                    id={`file-upload-${optionIndex}-${valueIndex}`}
-                                  />
-                                  <label
-                                    htmlFor={`file-upload-${optionIndex}-${valueIndex}`}
-                                    className="flex-1"
-                                  >
+                              return (
+                                <div key={valueIndex} className="border rounded-lg p-3 space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      type="text"
+                                      autoComplete="off"
+                                      placeholder={`Nhập ${option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name} (VD: ${option.name === 'COLOR' ? 'Đỏ, Xanh, Vàng' : 'S, M, L, XL'})`}
+                                      value={value.value}
+                                      onChange={(e) => updateOptionValue(option.name, valueIndex, 'value', e.target.value)}
+                                      onKeyDown={(e) => {
+                                        // Ngăn các listener global chặn phím (bao gồm Space)
+                                        e.stopPropagation()
+                                      }}
+                                      className="flex-1"
+                                    />
                                     <Button
                                       type="button"
                                       variant="outline"
                                       size="sm"
-                                      className="w-full"
-                                      disabled={uploadingImages.has(`${optionIndex}-${valueIndex}`)}
+                                      onClick={() => removeOptionValue(option.name, valueIndex)}
                                     >
-                                      <Upload className="h-3 w-3 mr-1" />
-                                      {uploadingImages.has(`${optionIndex}-${valueIndex}`) ? "Đang tải..." : "Tải file"}
+                                      <X className="h-4 w-4" />
                                     </Button>
-                                  </label>
+                                  </div>
+                                  
+                                 {/* Image Upload Section (only for color) */}
+                                 {option.name === 'COLOR' && (
+                                   <div className="space-y-2">
+                                     <Label className="text-xs text-muted-foreground">
+                                       Hình ảnh màu sắc
+                                     </Label>
+                                     
+                                     {/* Image Preview */}
+                                     {hasImage && (
+                                       <div className="space-y-2">
+                                         <div className="flex items-center gap-2">
+                                           <img 
+                                             src={value.imageUrl[0]} 
+                                             alt={value.value}
+                                             className="w-16 h-16 object-cover rounded border"
+                                             onError={(e) => {
+                                               const target = e.target as HTMLImageElement;
+                                               target.style.display = 'none';
+                                             }}
+                                           />
+                                           <div className="flex-1">
+                                             <p className="text-sm text-muted-foreground">Hình ảnh hiện tại</p>
+                                             <p className="text-xs text-muted-foreground truncate">
+                                               {value.imageUrl[0].split('/').pop()}
+                                             </p>
+                                           </div>
+                                           <Button
+                                             type="button"
+                                             variant="outline"
+                                             size="sm"
+                                             onClick={() => removeImage(option.name, valueIndex)}
+                                           >
+                                             <X className="h-4 w-4" />
+                                           </Button>
+                                         </div>
+                                       </div>
+                                     )}
+                                     
+                                     {/* URL Input */}
+                                     <div className="space-y-2">
+                                       <Label className="text-xs text-muted-foreground">Nhập URL hình ảnh</Label>
+                                       <Input 
+                                         type="url"
+                                         placeholder="https://example.com/color-image.jpg"
+                                         value={hasImage ? value.imageUrl[0] : ""}
+                                         onChange={(e) => {
+                                           const url = e.target.value
+                                           updateOptionValue(option.name, valueIndex, 'imageUrl', url ? [url] : [])
+                                         }}
+                                         className="text-sm"
+                                       />
+                                     </div>
+                                     
+                                     {/* File Upload */}
+                                     <div className="space-y-2">
+                                       <Label className="text-xs text-muted-foreground">Hoặc upload file</Label>
+                                       <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                                         <div className="text-center">
+                                           <input
+                                             type="file"
+                                             accept="image/*"
+                                             onChange={(e) => {
+                                               const file = e.target.files?.[0]
+                                               if (file) {
+                                                 handleImageUpload(option.name, valueIndex, file)
+                                               }
+                                             }}
+                                             className="hidden"
+                                             id={`image-${option.name}-${valueIndex}`}
+                                             disabled={isUploading}
+                                           />
+                                           <label 
+                                             htmlFor={`image-${option.name}-${valueIndex}`}
+                                             className="cursor-pointer"
+                                           >
+                                             {isUploading ? (
+                                               <div className="space-y-2">
+                                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                                                 <p className="text-sm text-muted-foreground">Đang upload...</p>
+                                               </div>
+                                             ) : (
+                                               <div className="space-y-2">
+                                                 <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
+                                                 <p className="text-sm text-muted-foreground">
+                                                   Nhấn để upload ảnh màu sắc
+                                                 </p>
+                                                 <p className="text-xs text-muted-foreground">
+                                                   JPG, PNG, GIF tối đa 10MB
+                                                 </p>
+                                               </div>
+                                             )}
+                                           </label>
+                                         </div>
+                                       </div>
+                                     </div>
+                                   </div>
+                                 )}
                                 </div>
-                                
-                                {/* URL Input */}
-                                <div className="flex gap-2">
+                              )
+                            })}
+                            
+                            {option.values.length === 0 && (
+                              <div className="text-center py-4 text-muted-foreground text-sm">
+                                Chưa có {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name} nào. Nhấn "Thêm {option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name}" để bắt đầu.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Product Variants - Preview Only */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Biến thể sản phẩm (Xem trước)</CardTitle>
+                  <CardDescription>
+                    Các biến thể sẽ được tạo tự động bởi backend dựa trên màu sắc và kích thước đã chọn. 
+                    {variants.length > 0 && ` Hiện có ${variants.length} biến thể dự kiến.`}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {variants.length > 0 ? (
+                    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                      {variants.map((variant, variantIndex) => {
+                        const colorOption = options.find(opt => opt.name === "COLOR")
+                        const sizeOption = options.find(opt => opt.name === "SIZE")
+                        
+                        const colorValue = colorOption?.values.find(val => val.value === variant.optionValues[colorOption.name])
+                        const sizeValue = sizeOption?.values.find(val => val.value === variant.optionValues[sizeOption.name])
+                        
+                        return (
+                          <div key={`${variant.sku}-${variant.optionValues[colorOption?.name || 'COLOR']}-${variant.optionValues[sizeOption?.name || 'SIZE']}`} className="border rounded-lg p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">{colorValue?.value}</Badge>
+                                <Badge variant="secondary">{sizeValue?.value}</Badge>
+                              </div>
+                            </div>
+                            
+                            <div className="grid gap-2">
+                              <div>
+                                <Label className="text-xs text-muted-foreground">SKU (Dự kiến)</Label>
                                   <Input
-                                    placeholder="Hoặc nhập URL hình ảnh"
-                                    onChange={(e) => handleImageUrlChange(e.target.value, optionIndex, valueIndex)}
-                                    value={value.imageUrl[0] || ""}
-                                    className="flex-1"
+                                  placeholder="Mã SKU"
+                                  value={variant.sku}
+                                    onChange={(e) => updateVariantField(variantIndex, 'sku', e.target.value)}
+                                  className="text-sm"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Giá (VNĐ)</Label>
+                                  <Input
+                                    type="text"
+                                    step="1000"
+                                    placeholder="0"
+                                    value={variant.price}
+                                    onChange={(e) => {
+                                      const digits = e.target.value.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
+                                      updateVariantField(variantIndex, 'price', digits ? Number(digits) : 0)
+                                    }}
+                                    className="text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs text-muted-foreground">Tồn kho</Label>
+                                  <Input
+                                    type="text"
+                                    placeholder="0"
+                                    value={variant.stock}
+                                    onChange={(e) => {
+                                      const digits = e.target.value.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
+                                      updateVariantField(variantIndex, 'stock', digits ? Number(digits) : 0)
+                                    }}
+                                    className="text-sm"
                                   />
                                 </div>
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
+                        )
+                      })}
                     </div>
-                  ))}
-                  
-                  {options.length === 0 && (
+                  ) : (
                     <div className="text-center py-8 text-muted-foreground">
-                      Chưa có tùy chọn nào. Nhấn "Thêm tùy chọn" để tạo biến thể sản phẩm.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Product Variants */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Biến thể sản phẩm</CardTitle>
-                    <Button type="button" onClick={addVariant} size="sm">
-                      <Plus className="h-4 w-4 mr-1" />
-                      Thêm biến thể
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {variants.map((variant, variantIndex) => (
-                    <div key={variant.id} className="border rounded-lg p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Biến thể {variantIndex + 1}</h4>
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => removeVariant(variantIndex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label>Mã SKU</Label>
-                          <Input
-                            value={variant.sku}
-                            onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
-                            placeholder="ví dụ: TSHIRT-SM-RED"
-                          />
-                        </div>
-                        
-                        <div className="grid gap-2">
-                          <Label>Giá</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={variant.price}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              updateVariant(variantIndex, 'price', value === "" ? 0 : Number(value))
-                            }}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        
-                        <div className="grid gap-2">
-                          <Label>Tồn kho</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={variant.stock}
-                            onChange={(e) => {
-                              const value = e.target.value
-                              updateVariant(variantIndex, 'stock', value === "" ? 0 : Number(value))
-                            }}
-                            placeholder="0"
-                          />
-                        </div>
-                        
-                        <div className="grid gap-2 col-span-2">
-                          <Label>Giá trị tùy chọn</Label>
-                          <div className="space-y-2">
-                            {Object.entries(variant.optionValues).map(([optionName, optionValue]) => (
-                              <div key={optionName} className="flex gap-2 items-center">
-                                <Badge variant="secondary" className="min-w-fit">
-                                  {optionName}
-                                </Badge>
-                                <Input
-                                  value={optionValue}
-                                  onChange={(e) => {
-                                    const updated = { ...variant.optionValues }
-                                    updated[optionName] = e.target.value
-                                    updateVariant(variantIndex, 'optionValues', updated)
-                                  }}
-                                  placeholder="Giá trị"
-                                  className="flex-1"
-                                />
-                              </div>
-                            ))}
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => {
-                                const optionNames = options.map(opt => opt.name).filter(name => name)
-                                const newOptionName = optionNames[0] || "Tùy chọn mới"
-                                const updated = { ...variant.optionValues }
-                                updated[newOptionName] = ""
-                                updateVariant(variantIndex, 'optionValues', updated)
-                              }}
-                            >
-                              <Plus className="h-3 w-3 mr-1" />
-                              Thêm giá trị tùy chọn
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {variants.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Chưa có biến thể nào. Nhấn "Thêm biến thể" để tạo biến thể sản phẩm.
+                      <p>Chưa có biến thể nào.</p>
+                      <p className="text-sm mt-1">Thêm màu sắc và kích thước để xem trước biến thể.</p>
                     </div>
                   )}
                 </CardContent>

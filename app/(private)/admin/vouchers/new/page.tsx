@@ -28,15 +28,15 @@ export default function NewVoucherPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/vouchers">Vouchers</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/vouchers">Voucher</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>New Voucher</BreadcrumbPage>
+                  <BreadcrumbPage>Tạo voucher mới</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

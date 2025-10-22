@@ -1,4 +1,4 @@
-import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse } from '@/types/cart';
+import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse, GetCartItemsResponse } from '@/types/cart';
 
 const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
@@ -14,11 +14,13 @@ function getBaseUrl(): string {
 
 function getAccessToken(): string | null {
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null;
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('auth.tokens');
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { accessToken?: string };
     return parsed?.accessToken ?? null;
-  } catch {
+  } catch (error) {
+    console.warn('Failed to get access token:', error);
     return null;
   }
 }
@@ -26,27 +28,86 @@ function getAccessToken(): string | null {
 function withAuth(headers: HeadersInit): HeadersInit {
   const h = new Headers(headers as HeadersInit);
   const token = getAccessToken();
-  if (token) h.set('Authorization', `Bearer ${token}`);
+  if (token) {
+    h.set('Authorization', `Bearer ${token}`);
+  }
   return h;
 }
 
-async function requestJson<TReq, TRes>(path: string, options: { method: 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
-  const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + path, {
-    method: options.method,
-    headers: withAuth(defaultHeaders),
-    credentials: 'include',
-    body: options.payload ? JSON.stringify(options.payload) : undefined,
-  });
-  return res.json() as Promise<TRes>;
+/**
+ * Check if user is authenticated by verifying access token
+ * @returns {boolean} True if user has valid access token
+ */
+export function isAuthenticated(): boolean {
+  return getAccessToken() !== null;
 }
 
+async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
+  const baseUrl = getBaseUrl();
+  const token = getAccessToken();
+  
+  // Check if user is authenticated for cart operations
+  if (!token) {
+    throw new Error('Authentication required for cart operations. Please login first.');
+  }
+  
+  try {
+    const res = await fetch(baseUrl + path, {
+      method: options.method,
+      headers: withAuth(defaultHeaders),
+      credentials: 'include',
+      body: options.payload ? JSON.stringify(options.payload) : undefined,
+    });
+    
+    // Handle HTTP errors
+    if (!res.ok) {
+      let errorMessage = `HTTP ${res.status}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.message || errorData.errors || errorMessage;
+      } catch {
+        // If response is not JSON, use status text
+        errorMessage = res.statusText || errorMessage;
+      }
+      throw new Error(errorMessage);
+    }
+    
+    return res.json() as Promise<TRes>;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Network error occurred while making cart request');
+  }
+}
+
+/**
+ * Add item to cart with authentication
+ * @param {AddCartItemRequest} payload - Cart item data
+ * @returns {Promise<AddCartItemResponse>} API response
+ * @throws {Error} If authentication fails or request fails
+ */
 export async function addItem(payload: AddCartItemRequest): Promise<AddCartItemResponse> {
   return requestJson<AddCartItemRequest, AddCartItemResponse>('/api/Cart/item', { method: 'POST', payload });
 }
 
+/**
+ * Delete items from cart with authentication
+ * @param {DeleteCartItemsRequest} payload - Cart item IDs to delete
+ * @returns {Promise<DeleteCartItemsResponse>} API response
+ * @throws {Error} If authentication fails or request fails
+ */
 export async function deleteItems(payload: DeleteCartItemsRequest): Promise<DeleteCartItemsResponse> {
   return requestJson<DeleteCartItemsRequest, DeleteCartItemsResponse>('/api/Cart/item', { method: 'DELETE', payload });
+}
+
+/**
+ * Get cart items with authentication
+ * @returns {Promise<GetCartItemsResponse>} API response with cart items
+ * @throws {Error} If authentication fails or request fails
+ */
+export async function getCartItems(): Promise<GetCartItemsResponse> {
+  return requestJson<never, GetCartItemsResponse>('/api/Cart/item', { method: 'GET' });
 }
 
 

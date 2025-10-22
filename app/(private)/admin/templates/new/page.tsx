@@ -16,7 +16,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { TemplateForm } from "@/components/admin/template-form"
+import { TemplateEditForm } from "@/components/admin/template-edit-form"
 
 export default function Page() {
   const searchParams = useSearchParams()
@@ -47,7 +47,7 @@ export default function Page() {
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <TemplateForm mode="create" productId={productId || undefined} />
+          <TemplateEditForm mode="create" productId={productId || undefined} />
         </div>
       </SidebarInset>
     </SidebarProvider>

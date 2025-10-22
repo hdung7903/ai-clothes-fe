@@ -22,7 +22,8 @@ import {
 import * as React from "react"
 import * as CategoryService from "@/services/cartegoryServices"
 import type { Category } from "@/types/category"
-import { Tree, TreeItem } from "@/components/ui/tree"
+import { TreeSelect } from "antd"
+import type { TreeSelectProps } from "antd"
 
 type PageProps = { params: Promise<{ id: string }> }
 
@@ -50,14 +51,14 @@ export default function Page({ params }: PageProps) {
         ])
         if (ignore) return
         if (!detail.success || !detail.data) {
-          setError("Failed to load category")
+          setError("Không thể tải thông tin danh mục")
         } else {
           setName(detail.data.name)
           setParentId(detail.data.parentCategoryId ?? null)
         }
         setCategories(all.data || [])
       } catch {
-        if (!ignore) setError("Network error")
+        if (!ignore) setError("Lỗi kết nối mạng")
       } finally {
         if (!ignore) setIsLoading(false)
       }
@@ -71,7 +72,7 @@ export default function Page({ params }: PageProps) {
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!name.trim()) {
-      setError("Name is required")
+      setError("Tên danh mục là bắt buộc")
       return
     }
     setSaving(true)
@@ -85,10 +86,10 @@ export default function Page({ params }: PageProps) {
       if (res.success) {
         router.push(`/admin/categories/${id}`)
       } else {
-        setError(Object.values(res.errors || {}).flat().join(", ") || "Failed to save")
+        setError(Object.values(res.errors || {}).flat().join(", ") || "Không thể lưu danh mục")
       }
     } catch {
-      setError("Network error")
+      setError("Lỗi kết nối mạng")
     } finally {
       setSaving(false)
     }
@@ -105,15 +106,15 @@ export default function Page({ params }: PageProps) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/categories">Categories</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/categories">Danh mục</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Edit {id}</BreadcrumbPage>
+                  <BreadcrumbPage>Chỉnh sửa {id}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -121,54 +122,64 @@ export default function Page({ params }: PageProps) {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Edit Category</h1>
+            <h1 className="text-xl font-semibold">Chỉnh sửa danh mục</h1>
             <Button variant="outline" asChild>
-              <Link href={`/admin/categories/${id}`}>Cancel</Link>
+              <Link href={`/admin/categories/${id}`}>Hủy</Link>
             </Button>
           </div>
           {isLoading ? (
-            <div className="rounded-xl border bg-background p-4 text-sm text-muted-foreground max-w-xl">Loading...</div>
+            <div className="rounded-xl border bg-background p-4 text-sm text-muted-foreground max-w-xl">Đang tải...</div>
           ) : (
             <form className="rounded-xl border bg-background p-4 grid gap-4 max-w-xl" onSubmit={onSubmit}>
               <div className="grid gap-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Tên danh mục</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div className="grid gap-2">
-                <Label>Parent Category</Label>
-                <div className="rounded border">
-                  <div className="p-2 text-xs text-muted-foreground">Select a parent (optional)</div>
-                  <div className="max-h-64 overflow-auto p-1">
-                    <Tree onSelect={(item) => {
-                      if (item.id === id) return
-                      setParentId(item.id)
-                    }}>
-                      {roots.map(function render(node) {
-                        return (
-                          <TreeItem key={node.id} id={node.id} label={node.name}>
-                            {node.subCategories && node.subCategories.length > 0 && node.subCategories.map((child) => (
-                              <TreeItem key={child.id} id={child.id} label={child.name}>
-                                {child.subCategories && child.subCategories.length > 0 && child.subCategories.map((gchild) => (
-                                  <TreeItem key={gchild.id} id={gchild.id} label={gchild.name} />
-                                ))}
-                              </TreeItem>
-                            ))}
-                          </TreeItem>
-                        )
-                      })}
-                    </Tree>
-                  </div>
-                  <div className="flex items-center justify-between p-2">
-                    <span className="text-sm">Selected: {parentId || 'None'}</span>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setParentId(null)}>Clear</Button>
-                  </div>
-                </div>
+                <Label>Danh mục cha</Label>
+                <TreeSelect
+                  style={{ width: '100%' }}
+                  value={parentId}
+                  placeholder="Chọn danh mục cha (tùy chọn)"
+                  allowClear
+                  treeDefaultExpandAll
+                  showSearch
+                  treeNodeFilterProp="title"
+                  styles={{
+                    popup: {
+                      root: {
+                        maxHeight: '200px',
+                        overflow: 'auto'
+                      }
+                    }
+                  }}
+                  treeData={roots.map(category => ({
+                    title: category.name,
+                    value: category.id,
+                    key: category.id,
+                    children: category.subCategories?.map(subCategory => ({
+                      title: subCategory.name,
+                      value: subCategory.id,
+                      key: subCategory.id,
+                      children: subCategory.subCategories?.map(grandChild => ({
+                        title: grandChild.name,
+                        value: grandChild.id,
+                        key: grandChild.id,
+                      }))
+                    }))
+                  }))}
+                  onChange={(value) => {
+                    if (value === id) return // Prevent selecting self as parent
+                    setParentId(value)
+                  }}
+                  className="w-full"
+                />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <div className="flex gap-2">
-                <Button type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</Button>
+                <Button type="submit" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu'}</Button>
                 <Button type="button" variant="outline" asChild>
-                  <Link href={`/admin/categories/${id}`}>Back</Link>
+                  <Link href={`/admin/categories/${id}`}>Quay lại</Link>
                 </Button>
               </div>
             </form>

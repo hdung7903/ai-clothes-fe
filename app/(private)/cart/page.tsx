@@ -4,27 +4,37 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { RootState } from "@/redux"
-import { updateQuantity as updateCartQty, removeItem as removeCartItem } from "@/redux/cartSlice"
+import { fetchCartItems, deleteItemsAsync, clearError } from "@/redux/cartSlice"
 import { formatCurrency } from "../../../utils/format"
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover"
 
 export default function CartPage() {
   const dispatch = useAppDispatch()
-  const cartItems = useAppSelector((s: RootState) => s.cart.items)
+  const { items: cartItems, loading, error } = useAppSelector((s: RootState) => s.cart)
 
-  const updateQuantity = (id: string, size: string | undefined, color: string | undefined, newQuantity: number) => {
-    dispatch(updateCartQty({ id, size, color, quantity: newQuantity }))
+  // Fetch cart items on component mount
+  useEffect(() => {
+    dispatch(fetchCartItems())
+  }, [dispatch])
+
+  // Clear error when component unmounts
+  useEffect(() => {
+    return () => {
+      dispatch(clearError())
+    }
+  }, [dispatch])
+
+  const handleRemoveItem = (cartItemId: string) => {
+    dispatch(deleteItemsAsync([cartItemId]))
   }
 
   const subtotal = useMemo(() => cartItems.reduce((sum: number, item) => sum + item.price * item.quantity, 0), [cartItems])
-  const shipping = 9.99
-  const tax = subtotal * 0.08
-  const total = subtotal + shipping + tax
+  const total = subtotal 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -35,7 +45,25 @@ export default function CartPage() {
             <p className="text-muted-foreground">{cartItems.length} sản phẩm trong giỏ hàng của bạn</p>
           </div>
 
-          {cartItems.length === 0 ? (
+          {loading ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Loader2 className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
+                <h2 className="text-xl font-semibold mb-2">Đang tải giỏ hàng...</h2>
+              </CardContent>
+            </Card>
+          ) : error ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Lỗi tải giỏ hàng</h2>
+                <p className="text-muted-foreground mb-4">{error}</p>
+                <Button onClick={() => dispatch(fetchCartItems())}>
+                  Thử lại
+                </Button>
+              </CardContent>
+            </Card>
+          ) : cartItems.length === 0 ? (
             <Card className="text-center py-12">
               <CardContent>
                 <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
@@ -66,27 +94,18 @@ export default function CartPage() {
                           </p>
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity - 1)}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <span className="w-12 text-center">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateQuantity(item.id, item.size, item.color, item.quantity + 1)}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
+                              <span className="text-sm text-muted-foreground">Số lượng: {item.quantity}</span>
                             </div>
                             <div className="flex items-center gap-4">
                               <span className="text-xl font-bold text-primary">
                                 {formatCurrency(item.price * item.quantity, 'VND', 'vi-VN')}
                               </span>
-                              <Button variant="ghost" size="icon" onClick={() => dispatch(removeCartItem({ id: item.id, size: item.size, color: item.color }))}>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleRemoveItem(item.id)}
+                                disabled={loading}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -109,25 +128,14 @@ export default function CartPage() {
                       <span>Tạm tính</span>
                       <span>{formatCurrency(subtotal, 'VND', 'vi-VN')}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Phí vận chuyển</span>
-                      <span>{formatCurrency(shipping, 'VND', 'vi-VN')}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Thuế</span>
-                      <span>{formatCurrency(tax, 'VND', 'vi-VN')}</span>
-                    </div>
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Tổng cộng</span>
                       <span className="text-primary">{formatCurrency(total, 'VND', 'vi-VN')}</span>
                     </div>
-                    <div className="space-y-2">
-                      <Input placeholder="Mã giảm giá" />
-                      <Button variant="outline" className="w-full bg-transparent">
-                        Áp dụng mã
-                      </Button>
-                    </div>
+                    <p className="text-xs text-muted-foreground text-center">
+                      * Giá trên chưa bao gồm chi phí vận chuyển.
+                    </p>
                     <LoginRequiredPopover action="tiến hành thanh toán">
                       <Link href="/checkout">
                         <Button className="w-full">Tiến hành thanh toán</Button>

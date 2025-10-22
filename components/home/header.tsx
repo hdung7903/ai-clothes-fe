@@ -5,7 +5,8 @@ import { ShoppingCart, User, Menu, LogOut, Settings, X } from "lucide-react"
 import Link from "next/link"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
 import { logoutUser } from "@/redux/authSlice"
-import { useState } from "react"
+import { fetchCartItems } from "@/redux/cartSlice"
+import { useState, useEffect } from "react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,13 @@ export function Header() {
   const cartCount = useAppSelector((s) => s.cart.items.reduce((sum, it) => sum + it.quantity, 0))
   const dispatch = useAppDispatch()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Fetch cart items when user logs in
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchCartItems())
+    }
+  }, [isAuthenticated, dispatch])
 
   const handleLogout = async () => {
     try {

@@ -38,7 +38,7 @@ export default function Page() {
   const [pageSize, setPageSize] = React.useState(10)
   const [page, setPage] = React.useState(1)
   const [statusFilter, setStatusFilter] = React.useState<number | undefined>(undefined)
-  const [paymentStatusFilter, setPaymentStatusFilter] = React.useState<number | undefined>(undefined)
+  const [paymentStatusFilter, setPaymentStatusFilter] = React.useState<string | undefined>(undefined)
   
   const [orders, setOrders] = React.useState<AdminOrderResponseItem[]>([])
   const [loading, setLoading] = React.useState(true)
@@ -172,7 +172,7 @@ export default function Page() {
       const timeoutId = setTimeout(() => {
         controller.abort()
         console.log('⏰ Request timeout after 30 seconds')
-      }, 30000)
+      }, 300)
       
       const response = await adminGetAllOrders({
         pageNumber: page,
@@ -303,9 +303,9 @@ export default function Page() {
                   </SelectContent>
                 </Select>
                 <Select
-                  value={paymentStatusFilter === undefined ? "all" : String(paymentStatusFilter)}
+                  value={paymentStatusFilter === undefined ? "all" : paymentStatusFilter}
                   onValueChange={(v) => {
-                    setPaymentStatusFilter(v === "all" ? undefined : Number(v))
+                    setPaymentStatusFilter(v === "all" ? undefined : v)
                     setPage(1)
                   }}
                 >
@@ -314,11 +314,11 @@ export default function Page() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả thanh toán</SelectItem>
-                    <SelectItem value="0">Chờ thanh toán</SelectItem>
-                    <SelectItem value="1">Đã thanh toán</SelectItem>
-                    <SelectItem value="2">Thanh toán thất bại</SelectItem>
-                    <SelectItem value="3">Đã hoàn tiền</SelectItem>
-                    <SelectItem value="4">Đã hủy</SelectItem>
+                    <SelectItem value="ONLINE_PAYMENT_AWAITING">Chờ thanh toán (online)</SelectItem>
+                    <SelectItem value="ONLINE_PAYMENT_PAID">Đã thanh toán (online)</SelectItem>
+                    <SelectItem value="COD">Thanh toán khi nhận hàng (COD)</SelectItem>
+                    <SelectItem value="REFUNDING">Đang hoàn tiền</SelectItem>
+                    <SelectItem value="REFUNDED">Đã hoàn tiền</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

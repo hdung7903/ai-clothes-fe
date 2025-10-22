@@ -1,132 +1,184 @@
 import { createSlice, PayloadAction, createAsyncThunk } from '@reduxjs/toolkit';
-import { addItem as addServerCartItem } from '@/services/cartServices';
+import { addItem as addServerCartItem, deleteItems as deleteServerCartItems, getCartItems as getServerCartItems } from '@/services/cartServices';
 import type { RootState } from './index';
+import type { CartItemResponse } from '@/types/cart';
 
 export interface CartItem {
-  id: string; // productId or variant id
+  id: string; // cartId for internal cart management
+  productVariantId: string; // productVariantId for order creation
   name: string;
   price: number; // unit price
   quantity: number;
   size?: string;
   color?: string;
   image?: string;
+  // Voucher discount info
+  discountAmount?: number; // Individual item discount amount
+  totalAmount?: number; // Final amount after discount
+  voucherCode?: string; // Applied voucher code
+  voucherDiscountPercent?: number; // Discount percentage
 }
 
 export interface CartState {
   items: CartItem[];
+  loading: boolean;
+  error: string | null;
 }
 
-const STORAGE_KEY = 'cart.items.v1';
-
-function isAuthenticatedByTokens(): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    const raw = localStorage.getItem('auth.tokens');
-    return !!raw;
-  } catch {
-    return false;
-  }
-}
-
-function getGuestStorage(): Storage | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return sessionStorage;
-  } catch {
-    return null;
-  }
-}
-
-function loadInitialState(): CartState {
-  if (typeof window === 'undefined') return { items: [] };
-  try {
-    const authed = isAuthenticatedByTokens();
-    const storage = authed ? localStorage : getGuestStorage();
-    const raw = storage ? storage.getItem(STORAGE_KEY) : null;
-    if (!raw) return { items: [] };
-    const parsed = JSON.parse(raw) as CartState;
-    if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
-    return { items: parsed.items };
-  } catch {
-    return { items: [] };
-  }
-}
-
-const initialState: CartState = loadInitialState();
+const initialState: CartState = {
+  items: [],
+  loading: false,
+  error: null,
+};
 
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
   reducers: {
-    hydrateFromStorage(state) {
-      const next = loadInitialState();
-      state.items = next.items;
+    clearError(state) {
+      state.error = null;
     },
-    addItem(state, action: PayloadAction<CartItem>) {
-      const incoming = action.payload;
-      const keyMatch = (it: CartItem) => it.id === incoming.id && it.size === incoming.size && it.color === incoming.color;
-      const existing = state.items.find(keyMatch);
-      if (existing) {
-        existing.quantity += incoming.quantity;
-      } else {
-        state.items.push(incoming);
-      }
-      persist(state);
+    setItems(state, action: PayloadAction<CartItem[]>) {
+      state.items = action.payload;
     },
-    removeItem(state, action: PayloadAction<{ id: string; size?: string; color?: string }>) {
-      const { id, size, color } = action.payload;
-      state.items = state.items.filter((it) => !(it.id === id && it.size === size && it.color === color));
-      persist(state);
+    updateItemDiscounts(state, action: PayloadAction<{ productVariantId: string; discountAmount: number; totalAmount: number; voucherCode: string; voucherDiscountPercent: number }[]>) {
+      action.payload.forEach(discount => {
+        const item = state.items.find(item => item.productVariantId === discount.productVariantId);
+        if (item) {
+          item.discountAmount = discount.discountAmount;
+          item.totalAmount = discount.totalAmount;
+          item.voucherCode = discount.voucherCode;
+          item.voucherDiscountPercent = discount.voucherDiscountPercent;
+        }
+      });
     },
-    updateQuantity(state, action: PayloadAction<{ id: string; size?: string; color?: string; quantity: number }>) {
-      const { id, size, color, quantity } = action.payload;
-      const item = state.items.find((it) => it.id === id && it.size === size && it.color === color);
-      if (!item) return;
-      if (quantity <= 0) {
-        state.items = state.items.filter((it) => !(it.id === id && it.size === size && it.color === color));
-      } else {
-        item.quantity = quantity;
-      }
-      persist(state);
+    clearDiscounts(state) {
+      state.items.forEach(item => {
+        item.discountAmount = undefined;
+        item.totalAmount = undefined;
+        item.voucherCode = undefined;
+        item.voucherDiscountPercent = undefined;
+      });
     },
-    clearCart(state) {
-      state.items = [];
-      persist(state);
-    },
+  },
+  extraReducers: (builder) => {
+    builder
+      // Fetch cart items
+      .addCase(fetchCartItems.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCartItems.fulfilled, (state, action) => {
+        state.loading = false;
+        state.items = action.payload;
+        state.error = null;
+      })
+      .addCase(fetchCartItems.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to fetch cart items';
+      })
+      // Add item
+      .addCase(addItemAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(addItemAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        // Refresh cart items after adding
+      })
+      .addCase(addItemAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to add item to cart';
+      })
+      // Delete items
+      .addCase(deleteItemsAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteItemsAsync.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        // Remove deleted items from state
+        state.items = state.items.filter(item => !action.payload.includes(item.id));
+      })
+      .addCase(deleteItemsAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to delete items from cart';
+      });
   },
 });
 
-function persist(state: CartState) {
-  try {
-    const authed = isAuthenticatedByTokens();
-    const storage = authed ? localStorage : getGuestStorage();
-    storage?.setItem(STORAGE_KEY, JSON.stringify({ items: state.items }));
-  } catch {}
+// Helper function to convert CartItemResponse to CartItem
+function convertCartItemResponse(response: CartItemResponse): CartItem {
+  // Extract size and color from variant options
+  const size = response.variantOptions.find(opt => opt.optionName.toLowerCase() === 'size')?.optionValue;
+  const color = response.variantOptions.find(opt => opt.optionName.toLowerCase() === 'color')?.optionValue;
+  
+  return {
+    id: response.cartId, // Use cartId as the unique identifier for cart management
+    productVariantId: response.productVariantId, // Store productVariantId for order creation
+    name: response.productName,
+    price: response.unitPrice,
+    quantity: response.quantity,
+    size: size,
+    color: color,
+    image: response.productImageUrl,
+  };
 }
 
-export const addItemSmart = createAsyncThunk<
+// Async thunks
+export const fetchCartItems = createAsyncThunk<
+  CartItem[],
   void,
-  CartItem,
   { state: RootState }
 >(
-  'cart/addItemSmart',
-  async (item, { getState, dispatch }) => {
-    const state = getState();
-    const isAuthed = state.auth?.isAuthenticated;
-    if (isAuthed) {
-      try {
-        await addServerCartItem({
-          productVariantId: item.id,
-          productDesignId: '',
-          quantity: item.quantity,
-        });
-      } catch {
-        // ignore server errors, still update local for UX
+  'cart/fetchCartItems',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await getServerCartItems();
+      if (response.success && response.data) {
+        return response.data.map(convertCartItemResponse);
       }
+      throw new Error(response.message || 'Failed to fetch cart items');
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch cart items');
     }
-    dispatch(cartSlice.actions.addItem(item));
   }
 );
 
-export const { addItem, removeItem, updateQuantity, clearCart, hydrateFromStorage } = cartSlice.actions;
+export const addItemAsync = createAsyncThunk<
+  void,
+  { productVariantId: string; productDesignId: string | null; quantity: number },
+  { state: RootState }
+>(
+  'cart/addItemAsync',
+  async (payload, { dispatch, rejectWithValue }) => {
+    try {
+      await addServerCartItem(payload);
+      // Refresh cart items after adding
+      dispatch(fetchCartItems());
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to add item to cart');
+    }
+  }
+);
+
+export const deleteItemsAsync = createAsyncThunk<
+  string[],
+  string[],
+  { state: RootState }
+>(
+  'cart/deleteItemsAsync',
+  async (cartItemIds, { rejectWithValue }) => {
+    try {
+      await deleteServerCartItems({ cartItemIds });
+      return cartItemIds;
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to delete items from cart');
+    }
+  }
+);
+
+export const { clearError, setItems, updateItemDiscounts, clearDiscounts } = cartSlice.actions;
 export default cartSlice.reducer;

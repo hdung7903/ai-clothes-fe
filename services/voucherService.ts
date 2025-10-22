@@ -1,9 +1,15 @@
 import type {
   CreateOrUpdateVoucherRequest,
   CreateOrUpdateVoucherResponse,
+  SearchVouchersQuery,
   SearchVouchersResponse,
   GetVoucherByIdResponse,
   DeleteVoucherByIdResponse,
+  AddToProductRequest,
+  AddToProductResponse,
+  RemoveFromProductRequest,
+  RemoveFromProductResponse,
+  GetVouchersByProductResponse,
 } from '@/types/voucher';
 
 const defaultJsonHeaders: HeadersInit = {
@@ -47,15 +53,6 @@ export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherReques
   return res.json() as Promise<CreateOrUpdateVoucherResponse>;
 }
 
-export interface SearchVouchersQuery {
-  SearchTerm?: string;
-  IsActive?: boolean;
-  DiscountType?: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  SortBy: 'CODE' | 'NAME' | 'CREATED_ON' | 'VALID_FROM' | 'VALID_TO';
-  SortDescending: boolean;
-  PageNumber: number;
-  PageSize: number;
-}
 
 export async function searchVouchers(query: SearchVouchersQuery): Promise<SearchVouchersResponse> {
   const baseUrl = getBaseUrl();
@@ -89,4 +86,40 @@ export async function deleteVoucherById(voucherId: string): Promise<DeleteVouche
     credentials: 'include',
   });
   return res.json() as Promise<DeleteVoucherByIdResponse>;
+}
+
+export async function addToProduct(payload: AddToProductRequest): Promise<AddToProductResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + '/api/Voucher/AddToProduct', {
+    method: 'POST',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<AddToProductResponse>;
+}
+
+export async function removeFromProduct(payload: RemoveFromProductRequest): Promise<RemoveFromProductResponse> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + '/api/Voucher/RemoveFromProduct', {
+    method: 'POST',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  return res.json() as Promise<RemoveFromProductResponse>;
+}
+
+export async function getVouchersByProduct(productId: string, isActive?: boolean): Promise<GetVouchersByProductResponse> {
+  const baseUrl = getBaseUrl();
+  const url = new URL(`/api/Voucher/Product/${encodeURIComponent(productId)}`, baseUrl);
+  if (isActive !== undefined) {
+    url.searchParams.set('isActive', String(isActive));
+  }
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth({ 'Accept': 'application/json' }),
+    credentials: 'include',
+  });
+  return res.json() as Promise<GetVouchersByProductResponse>;
 }

@@ -1,4 +1,3 @@
-"use client"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import {
   Breadcrumb,
@@ -16,13 +15,8 @@ import {
 } from "@/components/ui/sidebar"
 import { VoucherForm } from "@/components/admin/voucher-form"
 
-interface EditVoucherPageProps {
-  params: {
-    id: string;
-  };
-}
-
-export default function EditVoucherPage({ params }: EditVoucherPageProps) {
+export default async function EditVoucherPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
   return (
     <SidebarProvider>
       <AdminSidebar />
@@ -34,22 +28,22 @@ export default function EditVoucherPage({ params }: EditVoucherPageProps) {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/dashboard">Admin</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/dashboard">Quản trị</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/vouchers">Vouchers</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/vouchers">Voucher</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Edit Voucher</BreadcrumbPage>
+                  <BreadcrumbPage>Chỉnh sửa voucher</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <VoucherForm mode="edit" voucherId={params.id} />
+          <VoucherForm mode="edit" voucherId={id} />
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -5,7 +5,7 @@ import { store } from '@/redux';
 import { useEffect } from 'react';
 import { fetchUserProfile, setTokens } from '@/redux/authSlice';
 import { refreshTokenUsingCookies } from '@/services/authServices';
-import { hydrateFromStorage as hydrateCart } from '@/redux/cartSlice';
+import { fetchCartItems } from '@/redux/cartSlice';
 import type { TokenPair } from '@/types/auth';
 
 interface ReduxProviderProps {
@@ -62,8 +62,8 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
           stored = null;
         }
 
-        // Hydrate cart from storage on startup
-        store.dispatch(hydrateCart());
+        // Fetch cart items from server on startup
+        store.dispatch(fetchCartItems());
 
         if (stored) {
           console.log('🔄 Found stored tokens, attempting refresh...');

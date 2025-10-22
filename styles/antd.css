@@ -1,0 +1,110 @@
+/* Ant Design TreeSelect Custom Styles */
+.ant-tree-select {
+  @apply border border-input bg-background text-foreground;
+}
+
+.ant-tree-select:hover {
+  @apply border-border;
+}
+
+.ant-tree-select:focus,
+.ant-tree-select-focused {
+  @apply border-primary ring-2 ring-primary/20;
+}
+
+.ant-tree-select .ant-select-selector {
+  @apply bg-transparent border-none shadow-none;
+}
+
+.ant-tree-select .ant-select-selection-placeholder {
+  @apply text-muted-foreground;
+}
+
+.ant-tree-select .ant-select-selection-item {
+  @apply text-foreground;
+}
+
+.ant-tree-select-dropdown {
+  @apply bg-popover border border-border shadow-lg;
+}
+
+.ant-tree-select-dropdown .ant-select-tree {
+  @apply bg-transparent;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-node-content-wrapper {
+  @apply text-foreground hover:bg-accent;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-node-selected .ant-select-tree-node-content-wrapper {
+  @apply bg-primary text-primary-foreground;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-treenode {
+  @apply text-foreground;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-switcher {
+  @apply text-muted-foreground;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-switcher:hover {
+  @apply text-foreground;
+}
+
+/* Ant Design Card Styles */
+.ant-card {
+  @apply bg-card text-card-foreground border border-border;
+}
+
+.ant-card .ant-card-head {
+  @apply border-b border-border;
+}
+
+.ant-card .ant-card-head-title {
+  @apply text-card-foreground;
+}
+
+.ant-card .ant-card-body {
+  @apply text-card-foreground;
+}
+
+/* Ant Design Tag Styles */
+.ant-tag {
+  @apply bg-secondary text-secondary-foreground border border-border;
+}
+
+.ant-tag-blue {
+  @apply bg-blue-100 text-blue-800 border-blue-200;
+}
+
+.ant-tag-green {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+/* Ant Design Badge Styles */
+.ant-badge {
+  @apply text-foreground;
+}
+
+.ant-badge .ant-badge-count {
+  @apply bg-primary text-primary-foreground;
+}
+
+/* Ant Design Space Styles */
+.ant-space {
+  @apply flex items-center gap-2;
+}
+
+/* Ant Design Tooltip Styles */
+.ant-tooltip {
+  @apply bg-popover text-popover-foreground border border-border;
+}
+
+.ant-tooltip .ant-tooltip-inner {
+  @apply bg-popover text-popover-foreground;
+}
+
+.ant-tooltip .ant-tooltip-arrow::before {
+  @apply bg-popover;
+}

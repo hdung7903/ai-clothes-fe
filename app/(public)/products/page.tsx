@@ -15,7 +15,7 @@ import { getAll as getAllCategories } from "@/services/cartegoryServices"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { formatCurrency } from "../../../utils/format"
 import { useAppDispatch } from "@/redux/hooks"
-import { addItem as addCartItem } from "@/redux/cartSlice"
+import { addItemAsync } from "@/redux/cartSlice"
 
 export default function ProductsPage() {
   const dispatch = useAppDispatch()

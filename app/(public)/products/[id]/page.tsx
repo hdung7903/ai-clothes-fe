@@ -15,7 +15,7 @@ import { getTemplatesByProduct } from "@/services/templateServices"
 import type { TemplateSummaryItem } from "@/types/template"
 import { formatCurrency } from "../../../../utils/format"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
-import { addItemSmart } from "@/redux/cartSlice"
+import { addItemAsync } from "@/redux/cartSlice"
 import { toast } from "sonner"
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover"
 
@@ -218,18 +218,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         toast.error(`Chỉ còn lại ${matchedVariant.stock} sản phẩm cho lựa chọn này`)
         return
       }
-      const cartItem = {
-        id: matchedVariant.variantId,
-        name: product.name,
-        price: matchedVariant.price,
-        quantity: quantity,
-        size: selectedSize,
-        color: selectedColor,
-        image: product.images[0],
-      }
 
-      // Add to cart (handles both local and server sync automatically)
-      dispatch(addItemSmart(cartItem))
+      // Add to cart using API
+      dispatch(addItemAsync({
+        productVariantId: matchedVariant.variantId,
+        productDesignId: null as string | null, // No design ID for regular products
+        quantity: quantity,
+      }))
 
       toast.success("Đã thêm sản phẩm vào giỏ hàng!")
     } catch (error) {
@@ -257,18 +252,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         toast.error(`Chỉ còn lại ${matchedVariant.stock} sản phẩm cho lựa chọn này`)
         return
       }
-      const cartItem = {
-        id: matchedVariant.variantId,
-        name: product.name,
-        price: matchedVariant.price,
-        quantity: quantity,
-        size: selectedSize,
-        color: selectedColor,
-        image: product.images[0],
-      }
 
-      // Add to cart (handles both local and server sync automatically)
-      dispatch(addItemSmart(cartItem))
+      // Add to cart using API
+      dispatch(addItemAsync({
+        productVariantId: matchedVariant.variantId,
+        productDesignId: null as string | null, // No design ID for regular products
+        quantity: quantity,
+      }))
 
       router.push('/checkout')
     } catch (error) {

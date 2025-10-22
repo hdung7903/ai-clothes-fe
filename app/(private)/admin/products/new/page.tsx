@@ -23,13 +23,13 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { TreeSelect } from 'antd'
 import 'antd/dist/reset.css'
 import { Trash2, Plus, X } from "lucide-react"
 import * as React from "react"
 import { createOrUpdateProduct } from "@/services/productService"
+import { toSkuToken } from "@/utils/format"
 import { getAll } from "@/services/cartegoryServices"
 import { uploadImage } from "@/services/storageService"
 import type { CreateOrUpdateProductRequest, ProductOptionRequest, ProductVariantRequest } from "@/types/product"
@@ -126,37 +126,83 @@ export default function Page() {
     loadCategories()
   }, [])
 
-  // Auto-generate variants when options change
+  // Helper functions for variant management
+  const addVariant = (colorValue: string, sizeValue: string) => {
+    const basePriceNum = parseInt((basePriceText || '0').replace(/,/g, ''), 10) || 0
+    const sku = `${toSkuToken(formData.name)}_${toSkuToken(colorValue)}_${toSkuToken(sizeValue)}`
+    
+    const newVariant: ProductVariantRequest = {
+      id: null,
+      sku: sku,
+      price: basePriceNum,
+      stock: 0,
+      optionValues: {
+        COLOR: colorValue,
+        SIZE: sizeValue
+      }
+    }
+    
+    setVariants(prev => [...prev, newVariant])
+  }
+
+  const removeVariant = (colorValue: string, sizeValue: string) => {
+    setVariants(prev => prev.filter(variant => 
+      !(variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue)
+    ))
+  }
+
+  const updateVariant = (colorValue: string, sizeValue: string, field: keyof ProductVariantRequest, value: any) => {
+    setVariants(prev => prev.map(variant => {
+      if (variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue) {
+        return { ...variant, [field]: value }
+      }
+      return variant
+    }))
+  }
+
+  const getVariant = (colorValue: string, sizeValue: string) => {
+    return variants.find(variant => 
+      variant.optionValues.COLOR === colorValue && variant.optionValues.SIZE === sizeValue
+    )
+  }
+
+  // Auto-generate variants only when options are added (not when values change)
   React.useEffect(() => {
     const colorOption = options.find(opt => opt.name === "COLOR")
     const sizeOption = options.find(opt => opt.name === "SIZE")
-    const basePriceNum = parseInt((basePriceText || '0').replace(/,/g, ''), 10) || 0
     
-    if (colorOption && sizeOption && colorOption.values.length > 0 && sizeOption.values.length > 0) {
-      const newVariants: ProductVariantRequest[] = []
-      
-      colorOption.values.forEach((colorValue, colorIndex) => {
-        sizeOption.values.forEach((sizeValue, sizeIndex) => {
-          const sku = `${formData.name.replace(/\s+/g, '').toUpperCase()}_${colorValue.value.toUpperCase()}_${sizeValue.value.toUpperCase()}`
-          
-          newVariants.push({
-            id: null, // Sử dụng null cho tạo mới
-            sku: sku,
-            price: basePriceNum,
-            stock: 0,
-            optionValues: {
-              [colorOption.name]: colorValue.value,
-              [sizeOption.name]: sizeValue.value
-            }
-          })
-        })
-      })
-      
-      setVariants(newVariants)
-    } else {
+    if (!colorOption || !sizeOption) {
       setVariants([])
+      return
     }
-  }, [options, formData.name, basePriceText])
+
+    // Get all valid combinations
+    const validCombinations: { color: string; size: string }[] = []
+    colorOption.values.forEach((colorValue) => {
+      sizeOption.values.forEach((sizeValue) => {
+        if (colorValue.value.trim() !== "" && sizeValue.value.trim() !== "") {
+          validCombinations.push({
+            color: colorValue.value,
+            size: sizeValue.value
+          })
+        }
+      })
+    })
+
+    // Remove variants that no longer have valid combinations
+    setVariants(prev => prev.filter(variant => 
+      validCombinations.some(combo => 
+        variant.optionValues.COLOR === combo.color && variant.optionValues.SIZE === combo.size
+      )
+    ))
+
+    // Add missing variants for new combinations
+    validCombinations.forEach(combo => {
+      if (!getVariant(combo.color, combo.size)) {
+        addVariant(combo.color, combo.size)
+      }
+    })
+  }, [options])
 
   const updateOption = (optionName: string, field: keyof ProductOptionRequest, value: any) => {
     setOptions(options.map(opt => 
@@ -185,7 +231,20 @@ export default function Page() {
     ))
   }
 
+  // Validation function to check for duplicate values
+  const validateOptionValues = (optionName: string, newValue: string, currentValues: any[], currentIndex: number) => {
+    const trimmedValue = newValue.trim().toLowerCase()
+    if (!trimmedValue) return true // Allow empty values
+    
+    const existingValues = currentValues
+      .filter((_, index) => index !== currentIndex) // Exclude current value being edited by index
+      .map(v => v.trim().toLowerCase())
+    
+    return !existingValues.includes(trimmedValue)
+  }
+
   const updateOptionValue = (optionName: string, valueIndex: number, field: keyof any, value: any) => {
+    // Always update the value first, then validate
     setOptions(options.map(opt => 
       opt.name === optionName 
         ? {
@@ -196,6 +255,19 @@ export default function Page() {
           }
         : opt
     ))
+    
+    // Validate for duplicate values when updating the 'value' field
+    if (field === 'value') {
+      const currentOption = options.find(opt => opt.name === optionName)
+      if (currentOption) {
+        const currentValues = currentOption.values.map(v => v.value)
+        if (!validateOptionValues(optionName, value, currentValues, valueIndex)) {
+          setError(`${optionName === 'COLOR' ? 'Màu sắc' : 'Kích thước'} "${value.trim()}" đã tồn tại. Vui lòng chọn giá trị khác.`)
+        } else {
+          setError(null)
+        }
+      }
+    }
   }
 
   const handleImageUpload = async (optionName: string, valueIndex: number, file: File) => {
@@ -226,9 +298,9 @@ export default function Page() {
   }
 
 
-  const updateVariant = (variantIndex: number, field: keyof ProductVariantRequest, value: any) => {
-    setVariants(variants.map((v, index) => 
-      index === variantIndex ? { ...v, [field]: value } : v
+  const updateVariantField = (variantIndex: number, field: keyof ProductVariantRequest, value: any) => {
+    setVariants(prev => prev.map((variant, index) => 
+      index === variantIndex ? { ...variant, [field]: value } : variant
     ))
   }
 
@@ -239,15 +311,22 @@ export default function Page() {
 
     try {
       // Validate required fields
-      if (!formData.name.trim()) {
+      if (!formData.name || !formData.name.trim()) {
         throw new Error("Tên sản phẩm là bắt buộc")
+      }
+      if (!formData.description || !formData.description.trim()) {
+        throw new Error("Mô tả sản phẩm là bắt buộc")
+      }
+      if (!formData.imageUrl || !formData.imageUrl.trim()) {
+        throw new Error("Hình ảnh sản phẩm là bắt buộc")
+      }
+      if (!formData.basePrice || formData.basePrice <= 0) {
+        throw new Error("Giá cơ bản phải lớn hơn 0")
       }
       if (selectedCategories.size === 0) {
         throw new Error("Danh mục là bắt buộc")
       }
-      // Không cần validate variants khi tạo mới vì backend sẽ tự tạo
-
-      // Tạo variants array với id: null
+      
       const variantsPayload = variants.map(variant => ({
         id: null,
         sku: variant.sku,
@@ -256,6 +335,11 @@ export default function Page() {
         optionValues: variant.optionValues
       }))
 
+      const validOptions = options.map(opt => ({
+        ...opt,
+        values: opt.values.filter(v => v.value && v.value.trim() !== "")
+      })).filter(opt => opt.values.length > 0)
+
       const payload: CreateOrUpdateProductRequest = {
         productId: null, // Gửi null khi tạo mới, backend sẽ tự tạo ID
         name: formData.name,
@@ -263,7 +347,7 @@ export default function Page() {
         imageUrl: formData.imageUrl,
         basePrice: parseInt((basePriceText || String(formData.basePrice)).replace(/,/g, ''), 10) || 0,
         categoryId: Array.from(selectedCategories)[0], // Sử dụng danh mục đầu tiên được chọn
-        options: options.filter(opt => opt.name.trim() !== ""),
+        options: validOptions,
         variants: variantsPayload // Gửi array với id: null
       }
 
@@ -316,9 +400,9 @@ export default function Page() {
           </div>
 
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg">
+              {error}
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -340,12 +424,13 @@ export default function Page() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="description">Mô tả</Label>
+                    <Label htmlFor="description">Mô tả *</Label>
                     <Textarea 
                       id="description" 
                       placeholder="Mô tả ngắn về sản phẩm"
                       value={formData.description}
                       onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      required
                     />
                   </div>
                   <div className="grid gap-2">
@@ -363,6 +448,7 @@ export default function Page() {
                             placeholder="https://example.com/image.jpg"
                             value={formData.imageUrl}
                             onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                            required
                           />
                           <div className="flex items-center gap-2">
                             <Button type="button" variant="outline" onClick={removeMainImage}>Xóa ảnh</Button>
@@ -373,9 +459,10 @@ export default function Page() {
                       <div className="grid gap-3">
                         <Input 
                           id="imageUrl" 
-                          placeholder="Dán URL hình ảnh (tùy chọn)"
+                          placeholder="Dán URL hình ảnh (bắt buộc)"
                           value={formData.imageUrl}
                           onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
+                          required
                         />
                         <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
                           <div className="text-center">
@@ -417,8 +504,8 @@ export default function Page() {
                       value={basePriceText}
                       onChange={(e) => {
                         const raw = e.target.value
-                        // allow only digits
-                        const digits = raw.replace(/\D+/g, '')
+                        // allow only digits and strip leading zeros (keep single zero)
+                        const digits = raw.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
                         setBasePriceText(digits)
                       }}
                       onBlur={() => {
@@ -445,7 +532,7 @@ export default function Page() {
                       onChange={handleCategorySelectionChange}
                       treeData={convertToTreeData(categories)}
                       treeCheckable={true}
-                      showCheckedStrategy={TreeSelect.SHOW_CHILD}
+                      showCheckedStrategy={TreeSelect.SHOW_PARENT}
                       placeholder="Chọn danh mục"
                       maxTagCount="responsive"
                       treeDefaultExpandAll={false}
@@ -458,19 +545,6 @@ export default function Page() {
                         }
                       }}
                     />
-                    {selectedCategories.size > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {Array.from(selectedCategories).map(categoryId => {
-                          const category = categories.find(c => c.id === categoryId) || 
-                                         categories.flatMap(c => c.subCategories || []).find(sc => sc.id === categoryId)
-                          return category ? (
-                            <Badge key={categoryId} variant="secondary" className="text-xs">
-                              {category.name}
-                            </Badge>
-                          ) : null
-                        })}
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -514,7 +588,9 @@ export default function Page() {
                              return (
                                <div key={valueIndex} className="border rounded-lg p-3 space-y-3">
                                  <div className="flex items-center gap-2">
-                                   <Input
+                                  <Input
+                                    type="text"
+                                    autoComplete="off"
                                      placeholder={`Nhập ${option.name === "COLOR" ? "màu sắc" : option.name === "SIZE" ? "kích thước" : option.name} (VD: ${option.name === 'COLOR' ? 'Đỏ, Xanh, Vàng' : 'S, M, L, XL'})`}
                                      value={value.value}
                                      onChange={(e) => updateOptionValue(option.name, valueIndex, 'value', e.target.value)}
@@ -654,29 +730,35 @@ export default function Page() {
                                <Input
                                  placeholder="Mã SKU"
                                  value={variant.sku}
-                                 onChange={(e) => updateVariant(variantIndex, 'sku', e.target.value)}
+                                 onChange={(e) => updateVariantField(variantIndex, 'sku', e.target.value)}
                                  className="text-sm"
                                />
                              </div>
                              <div className="grid grid-cols-2 gap-2">
                                <div>
                                  <Label className="text-xs text-muted-foreground">Giá (VNĐ)</Label>
-                                 <Input
-                                   type="number"
+                                  <Input
+                                    type="text"
                                    step="1000"
                                    placeholder="0"
-                                   value={variant.price}
-                                   onChange={(e) => updateVariant(variantIndex, 'price', Number(e.target.value))}
+                                    value={variant.price}
+                                    onChange={(e) => {
+                                      const digits = e.target.value.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
+                                      updateVariantField(variantIndex, 'price', digits ? Number(digits) : 0)
+                                    }}
                                    className="text-sm"
                                  />
                                </div>
                                <div>
                                  <Label className="text-xs text-muted-foreground">Tồn kho</Label>
-                                 <Input
-                                   type="number"
+                                  <Input
+                                    type="text"
                                    placeholder="0"
-                                   value={variant.stock}
-                                   onChange={(e) => updateVariant(variantIndex, 'stock', Number(e.target.value))}
+                                    value={variant.stock}
+                                    onChange={(e) => {
+                                      const digits = e.target.value.replace(/\D+/g, '').replace(/^0+(?=\d)/, '')
+                                      updateVariantField(variantIndex, 'stock', digits ? Number(digits) : 0)
+                                    }}
                                    className="text-sm"
                                  />
                                </div>

@@ -1,93 +1,147 @@
 export interface Voucher {
-  voucherId: string;
+  id: string;
   code: string;
-  name: string;
-  description?: string;
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number | null;
-  minOrderAmount?: number;
-  maxDiscountAmount?: number;
-  usageLimit?: number;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  startDate: string;
+  endDate: string;
   usedCount: number;
   isActive: boolean;
-  validFrom: string;
-  validTo: string;
   createdAt: string;
-  updatedAt: string;
-  createdBy?: {
-    userId: string;
-    name: string;
-    email: string;
-  };
+  lastModifiedAt: string;
+  products: VoucherProduct[];
+}
+
+export interface VoucherProduct {
+  productId: string;
+  productName: string;
+  productImageUrl: string;
+}
+
+export interface ProductDetail {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  basePrice: number;
 }
 
 export interface VoucherSummaryItem {
-  voucherId: string;
+  id: string;
   code: string;
-  name: string;
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number | null;
-  isActive: boolean;
-  validFrom: string;
-  validTo: string;
-  usageLimit?: number;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  startDate: string;
+  endDate: string;
   usedCount: number;
-  createdBy?: {
-    userId: string;
-    name: string;
-  };
+  isActive: boolean;
+  createdAt: string;
+  lastModifiedAt: string;
+  products: VoucherProduct[];
 }
+
+export type DiscountType = 'PERCENT' | 'FIXED_AMOUNT';
 
 export interface CreateOrUpdateVoucherRequest {
   voucherId: string | null;
   code: string;
-  name: string;
-  description?: string;
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  discountValue: number | null;
-  minOrderAmount?: number;
-  maxDiscountAmount?: number;
-  usageLimit?: number;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  startDate: string;
+  endDate: string;
   isActive: boolean;
-  validFrom: string;
-  validTo: string;
+  productIds: string[];
 }
 
 export interface CreateOrUpdateVoucherResponse {
   success: boolean;
-  message?: string;
-  data?: Voucher;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: string;
 }
 
 export interface SearchVouchersQuery {
-  SearchTerm?: string;
-  IsActive?: boolean;
-  DiscountType?: 'PERCENTAGE' | 'FIXED_AMOUNT';
-  SortBy: 'CODE' | 'NAME' | 'CREATED_ON' | 'VALID_FROM' | 'VALID_TO';
-  SortDescending: boolean;
   PageNumber: number;
   PageSize: number;
+  SearchTerm?: string;
+  DiscountType?: string;
+  IsActive?: boolean;
+  ProductId?: string;
 }
 
 export interface SearchVouchersResponse {
   success: boolean;
-  message?: string;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
   data?: {
     items: VoucherSummaryItem[];
+    pageNumber: number;
     totalPages: number;
     totalCount: number;
-    pageNumber: number;
     pageSize: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
   };
 }
 
 export interface GetVoucherByIdResponse {
   success: boolean;
-  message?: string;
-  data?: Voucher;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: {
+    id: string;
+    code: string;
+    description: string;
+    discountType: DiscountType;
+    discountValue: number;
+    startDate: string;
+    endDate: string;
+    usedCount: number;
+    isActive: boolean;
+    createdAt: string;
+    lastModifiedAt: string;
+    products: VoucherProduct[];
+    productDetails: ProductDetail[];
+  };
 }
 
 export interface DeleteVoucherByIdResponse {
   success: boolean;
-  message?: string;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: boolean;
+}
+
+export interface AddToProductRequest {
+  voucherId: string;
+  productIds: string[];
+}
+
+export interface AddToProductResponse {
+  success: boolean;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: boolean;
+}
+
+export interface RemoveFromProductRequest {
+  voucherId: string;
+  productIds: string[];
+}
+
+export interface RemoveFromProductResponse {
+  success: boolean;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: boolean;
+}
+
+export interface GetVouchersByProductResponse {
+  success: boolean;
+  errors?: Record<string, string[]>;
+  validationErrors?: Record<string, string[]>;
+  data?: VoucherSummaryItem[];
 }

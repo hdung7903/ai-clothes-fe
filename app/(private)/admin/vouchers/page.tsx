@@ -23,8 +23,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import * as React from "react"
-import { searchVouchers, type SearchVouchersQuery, deleteVoucherById } from "@/services/voucherService"
-import type { VoucherSummaryItem } from "@/types/voucher"
+import { searchVouchers, deleteVoucherById } from "@/services/voucherService"
+import type { SearchVouchersQuery, VoucherSummaryItem } from "@/types/voucher"
 import { formatCurrency } from "../../../../utils/format"
 
 export default function Page() {
@@ -45,13 +45,11 @@ export default function Page() {
       setIsLoading(true)
       try {
         const payload: SearchVouchersQuery = {
-          SearchTerm: query || undefined,
-          IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
-          DiscountType: discountTypeFilter === "all" ? undefined : discountTypeFilter as 'PERCENTAGE' | 'FIXED_AMOUNT',
-          SortBy: 'CREATED_ON',
-          SortDescending: true,
           PageNumber: currentPage,
           PageSize: pageSize,
+          SearchTerm: query || undefined,
+          IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
+          DiscountType: discountTypeFilter === "all" ? undefined : discountTypeFilter,
         }
         const res = await searchVouchers(payload)
         if (!ignore) {
@@ -69,28 +67,25 @@ export default function Page() {
   }, [query, isActiveFilter, discountTypeFilter, currentPage, pageSize])
 
   const formatDiscountValue = (voucher: VoucherSummaryItem) => {
-    if (voucher.discountType === 'PERCENTAGE') {
-      return `${voucher.discountValue || 0}%`
+    if (voucher.discountType === 'PERCENT') {
+      return `${voucher.discountValue}%`
     }
-    return formatCurrency(voucher.discountValue || 0, 'VND', 'vi-VN')
+    return formatCurrency(voucher.discountValue, 'VND', 'vi-VN')
   }
 
   const formatUsage = (voucher: VoucherSummaryItem) => {
-    if (voucher.usageLimit) {
-      return `${voucher.usedCount}/${voucher.usageLimit}`
-    }
     return `${voucher.usedCount}`
   }
 
-  const isExpired = (validTo: string) => {
-    return new Date(validTo) < new Date()
+  const isExpired = (endDate: string) => {
+    return new Date(endDate) < new Date()
   }
 
   const isActive = (voucher: VoucherSummaryItem) => {
     const now = new Date()
-    const validFrom = new Date(voucher.validFrom)
-    const validTo = new Date(voucher.validTo)
-    return voucher.isActive && now >= validFrom && now <= validTo
+    const startDate = new Date(voucher.startDate)
+    const endDate = new Date(voucher.endDate)
+    return voucher.isActive && now >= startDate && now <= endDate
   }
 
   return (
@@ -161,7 +156,7 @@ export default function Page() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả loại</SelectItem>
-                    <SelectItem value="PERCENTAGE">Phần trăm</SelectItem>
+                    <SelectItem value="PERCENT">Phần trăm</SelectItem>
                     <SelectItem value="FIXED_AMOUNT">Số tiền cố định</SelectItem>
                   </SelectContent>
                 </Select>
@@ -190,7 +185,7 @@ export default function Page() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã</TableHead>
-                  <TableHead>Tên</TableHead>
+                  <TableHead>Mô tả</TableHead>
                   <TableHead>Giảm giá</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Sử dụng</TableHead>
@@ -210,30 +205,30 @@ export default function Page() {
                   </TableRow>
                 )}
                 {!isLoading && items.map((v) => (
-                  <TableRow key={v.voucherId}>
+                  <TableRow key={v.id}>
                     <TableCell className="font-mono">{v.code}</TableCell>
-                    <TableCell>{v.name}</TableCell>
+                    <TableCell>{v.description}</TableCell>
                     <TableCell>{formatDiscountValue(v)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-1">
                         <Badge variant={isActive(v) ? "default" : "secondary"}>
-                          {isActive(v) ? "Đang hoạt động" : isExpired(v.validTo) ? "Hết hạn" : "Không hoạt động"}
+                          {isActive(v) ? "Đang hoạt động" : isExpired(v.endDate) ? "Hết hạn" : "Không hoạt động"}
                         </Badge>
                       </div>
                     </TableCell>
                     <TableCell>{formatUsage(v)}</TableCell>
                     <TableCell>
                       <div className="text-sm">
-                        <div>{new Date(v.validFrom).toLocaleDateString()}</div>
-                        <div className="text-muted-foreground">đến {new Date(v.validTo).toLocaleDateString()}</div>
+                        <div>{new Date(v.startDate).toLocaleDateString()}</div>
+                        <div className="text-muted-foreground">đến {new Date(v.endDate).toLocaleDateString()}</div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="sm" asChild>
-                        <Link href={`/admin/vouchers/${v.voucherId}`}>Xem</Link>
+                        <Link href={`/admin/vouchers/${v.id}`}>Xem</Link>
                       </Button>
                       <Button variant="secondary" size="sm" asChild>
-                        <Link href={`/admin/vouchers/${v.voucherId}/edit`}>Sửa</Link>
+                        <Link href={`/admin/vouchers/${v.id}/edit`}>Sửa</Link>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -243,7 +238,7 @@ export default function Page() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Xóa voucher?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              Hành động này không thể hoàn tác. Thao tác này sẽ xóa vĩnh viễn voucher "{v.code}" - {v.name}.
+                              Hành động này không thể hoàn tác. Thao tác này sẽ xóa vĩnh viễn voucher "{v.code}" - {v.description}.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -252,10 +247,10 @@ export default function Page() {
                               onClick={async () => {
                                 try {
                                   setIsLoading(true)
-                                  const res = await deleteVoucherById(v.voucherId)
+                                  const res = await deleteVoucherById(v.id)
                                   // optimistic refresh: remove from local list if success
                                   if (res.success) {
-                                    setItems((prev) => prev.filter((it) => it.voucherId !== v.voucherId))
+                                    setItems((prev) => prev.filter((it) => it.id !== v.id))
                                   }
                                 } finally {
                                   setIsLoading(false)

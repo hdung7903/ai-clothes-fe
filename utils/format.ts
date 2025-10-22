@@ -133,3 +133,23 @@ export function formatEnumString(
 
   return capitalizeAll ? capitalizeEachWord(formatted) : capitalizeFirst(formatted);
 }
+
+/**
+ * Converts arbitrary text to a safe SKU token:
+ * - Trim, remove Vietnamese diacritics
+ * - Replace any sequence of non-alphanumeric characters (including spaces) with a single underscore
+ * - Collapse multiple underscores and trim leading/trailing underscores
+ * - Uppercase the result
+ */
+export function toSkuToken(text: string): string {
+  if (!text) return "";
+  const withoutDiacritics = text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return withoutDiacritics
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+}

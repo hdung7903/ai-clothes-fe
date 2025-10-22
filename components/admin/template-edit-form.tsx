@@ -7,14 +7,17 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { createOrUpdateTemplate, getTemplateById, getTemplatesByProduct } from "@/services/templateServices"
+import { createOrUpdateTemplate, getTemplateById, getTemplatesByProduct, deleteTemplateById } from "@/services/templateServices"
 import type { CreateOrUpdateTemplateRequest, TemplateSummaryItem } from "@/types/template"
 import { searchProducts, type SearchProductsQuery, getProductById } from "@/services/productService"
 import type { ProductSummaryItem, ProductDetail } from "@/types/product"
 import { uploadImage } from "@/services/storageService"
+import { toast } from "sonner"
 
 interface TemplateEditFormProps {
-  templateId: string;
+  templateId?: string;
+  mode?: 'create' | 'edit';
+  productId?: string;
 }
 
 const editPrintAreaGroups = [
@@ -22,7 +25,7 @@ const editPrintAreaGroups = [
   { title: 'Tay áo', items: ['Tay trái', 'Tay phải'] },
 ]
 
-export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
+export function TemplateEditForm({ templateId, mode = 'edit', productId }: TemplateEditFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -33,7 +36,7 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
 
   const [formData, setFormData] = React.useState<CreateOrUpdateTemplateRequest>({
     templateId: "",
-    productId: "",
+    productId: productId || "",
     productOptionValueId: "",
     printAreaName: "",
     imageUrl: "",
@@ -49,6 +52,12 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
   const [areaImageFiles, setAreaImageFiles] = React.useState<Record<string, File>>({})
   const [productInfo, setProductInfo] = React.useState<{ name: string; imageUrl: string; optionName: string; optionValue: string } | null>(null)
   const [templatesForOption, setTemplatesForOption] = React.useState<TemplateSummaryItem[]>([])
+  
+  // For create mode - store added areas
+  const [addedAreas, setAddedAreas] = React.useState<{ printAreaName: string; url?: string; file?: File | null; previewUrl?: string | null }[]>([])
+  
+  // Ref for file input to reset it
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     let ignore = false
@@ -75,41 +84,68 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     return () => { ignore = true }
   }, [])
 
+  // Load product detail when productId is provided from props (create mode)
   React.useEffect(() => {
-    let ignore = false
-    const run = async () => {
-      try {
-        setIsLoading(true)
-        const res = await getTemplateById(templateId)
-        if (!ignore && res.success && res.data) {
-          setFormData({
-            templateId: res.data.id,
-            productId: res.data.productId,
-            productOptionValueId: res.data.productOptionValueId,
-            printAreaName: res.data.printAreaName,
-            imageUrl: res.data.imageUrl,
-          })
-          setSelectedArea(res.data.printAreaName)
-          setOriginalArea(res.data.printAreaName)
-          setOriginalImageUrl(res.data.imageUrl)
-          setProductInfo({
-            name: res.data.product?.name || res.data.productName,
-            imageUrl: res.data.product?.imageUrl || "",
-            optionName: res.data.productOptionName,
-            optionValue: res.data.productOptionValue,
-          })
-          const detail = await getProductById(res.data.productId)
-          if (detail.success) setProductDetail(detail.data ?? null)
-        }
-      } catch {
-        if (!ignore) setError('Không tải được dữ liệu template')
-      } finally {
-        if (!ignore) setIsLoading(false)
+    if (productId && mode === 'create') {
+      let ignore = false
+      const run = async () => {
+        try {
+          const res = await getProductById(productId)
+          if (!ignore && res.success) {
+            setProductDetail(res.data ?? null)
+            if (res.data) {
+              setProductInfo({
+                name: res.data.name,
+                imageUrl: res.data.imageUrl || "",
+                optionName: "",
+                optionValue: "",
+              })
+            }
+          }
+        } catch { /* noop */ }
       }
+      run()
+      return () => { ignore = true }
     }
-    run()
-    return () => { ignore = true }
-  }, [templateId])
+  }, [productId, mode])
+
+  React.useEffect(() => {
+    if (mode === 'edit' && templateId) {
+      let ignore = false
+      const run = async () => {
+        try {
+          setIsLoading(true)
+          const res = await getTemplateById(templateId)
+          if (!ignore && res.success && res.data) {
+            setFormData({
+              templateId: res.data.id,
+              productId: res.data.productId,
+              productOptionValueId: res.data.productOptionValueId,
+              printAreaName: res.data.printAreaName,
+              imageUrl: res.data.imageUrl,
+            })
+            setSelectedArea(res.data.printAreaName)
+            setOriginalArea(res.data.printAreaName)
+            setOriginalImageUrl(res.data.imageUrl)
+            setProductInfo({
+              name: res.data.product?.name || res.data.productName,
+              imageUrl: res.data.product?.imageUrl || "",
+              optionName: res.data.productOptionName,
+              optionValue: res.data.productOptionValue,
+            })
+            const detail = await getProductById(res.data.productId)
+            if (detail.success) setProductDetail(detail.data ?? null)
+          }
+        } catch {
+          if (!ignore) setError('Không tải được dữ liệu template')
+        } finally {
+          if (!ignore) setIsLoading(false)
+        }
+      }
+      run()
+      return () => { ignore = true }
+    }
+  }, [templateId, mode])
 
   // Cleanup URL objects on unmount
   React.useEffect(() => {
@@ -207,16 +243,31 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
   }, [templatesForOption, selectedArea, areaImagePreviews])
 
   const handleAreaSelect = (areaName: string) => {
-    setSelectedArea(areaName)
-    setFormData(prev => ({ ...prev, printAreaName: areaName }))
-    
-    // Update current image preview based on what's stored for this area
-    if (areaImagePreviews[areaName]) {
-      setNewImagePreview(areaImagePreviews[areaName])
-      setNewImageFile(areaImageFiles[areaName])
-    } else {
-      setNewImagePreview(null)
+    // In edit mode, allow changing the print area
+    if (mode === 'edit') {
+      setSelectedArea(areaName)
+      setFormData(prev => ({
+        ...prev,
+        printAreaName: areaName,
+        // Clear url when switching to a different area to avoid showing old area's image
+        imageUrl: areaName === originalArea ? prev.imageUrl : "",
+      }))
+      // Clear edit previews when switching area
       setNewImageFile(null)
+      setNewImagePreview(null)
+      return
+    }
+    // In create mode, check if already added
+    const isAlreadyAdded = addedAreas.some(a => a.printAreaName.toLowerCase() === areaName.toLowerCase())
+    if (isAlreadyAdded) return
+    setSelectedArea(areaName)
+    setFormData(prev => ({ ...prev, printAreaName: areaName, imageUrl: "" }))
+    // Clear file input and previews when switching area in create mode
+    setNewImageFile(null)
+    setNewImagePreview(null)
+    // Reset file input element
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
     }
   }
 
@@ -252,7 +303,35 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     }
   }
 
-  const handleDeleteCurrentImage = () => {
+  const handleDeleteCurrentImage = async () => {
+    if (mode === 'edit' && selectedArea) {
+      // Find existing template for this area
+      const existingTemplate = templatesForOption.find(t => t.printAreaName === selectedArea)
+      
+      if (existingTemplate && existingTemplate.id) {
+        try {
+          setIsLoading(true)
+          const res = await deleteTemplateById(existingTemplate.id)
+          if (res.success) {
+            toast.success("Xóa template thành công")
+            // Refresh templates list
+            const refreshRes = await getTemplatesByProduct(formData.productId, formData.productOptionValueId)
+            if (refreshRes.success) {
+              setTemplatesForOption(refreshRes.data || [])
+            }
+          } else {
+            toast.error("Xóa template thất bại")
+            return
+          }
+        } catch (error) {
+          toast.error("Xóa template thất bại")
+          return
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
+    
     setFormData(prev => ({ ...prev, imageUrl: "" }))
     setNewImageFile(null)
     setNewImagePreview(null)
@@ -271,29 +350,110 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     }
   }
 
+  const handleCompleteArea = () => {
+    if (!selectedArea || (!formData.imageUrl && !newImageFile)) return
+    
+    const newItem = newImageFile
+      ? { printAreaName: selectedArea, file: newImageFile, previewUrl: newImagePreview ?? null }
+      : { printAreaName: selectedArea, url: formData.imageUrl }
+    
+    setAddedAreas(prev => [...prev, newItem])
+    setSelectedArea("")
+    setNewImageFile(null)
+    setNewImagePreview(null)
+    setFormData(prev => ({ ...prev, printAreaName: '', imageUrl: '' }))
+    // Reset file input element
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setIsLoading(true)
     try {
-      let finalImageUrl = formData.imageUrl
-      // Use the stored file for current area if available
-      const currentAreaFile = areaImageFiles[selectedArea]
-      if (currentAreaFile) {
-        const up = await uploadImage(currentAreaFile)
-        if (!up.success || !up.data) throw new Error('Upload ảnh thất bại')
-        finalImageUrl = up.data
-      } else if (selectedArea !== originalArea && !finalImageUrl) {
-        throw new Error('Vui lòng chọn ảnh mới cho khu vực đã đổi')
+      if (mode === 'create') {
+        if (addedAreas.length === 0) {
+          setError('Vui lòng thêm ít nhất một khu vực in')
+          setIsLoading(false)
+          return
+        }
+        // Resolve image URLs: use direct URL if provided, otherwise upload file
+        const resolved = await Promise.all(addedAreas.map(async (a) => {
+          let finalUrl = a.url || ''
+          if (!finalUrl) {
+            if (!a.file) throw new Error('Thiếu ảnh cho khu vực ' + a.printAreaName)
+            const uploadRes = await uploadImage(a.file)
+            if (!uploadRes.success || !uploadRes.data) throw new Error('Upload ảnh thất bại cho ' + a.printAreaName)
+            finalUrl = uploadRes.data
+          }
+          return {
+            templateId: null, // Always null for create mode
+            productId: formData.productId,
+            productOptionValueId: formData.productOptionValueId,
+            printAreaName: a.printAreaName,
+            imageUrl: finalUrl,
+          }
+        }))
+        const results = await Promise.all(resolved.map(payload => createOrUpdateTemplate(payload)))
+        const anyFail = results.some(r => !r.success)
+        if (anyFail) {
+          setError('Một số khu vực không lưu được. Vui lòng kiểm tra lại.')
+          toast.error('Một số khu vực không lưu được. Vui lòng kiểm tra lại.')
+        } else {
+          // Success - no navigation, just show success message or reset form
+          setAddedAreas([])
+          setSelectedArea("")
+          setFormData(prev => ({ ...prev, printAreaName: '', imageUrl: '' }))
+          toast.success(`Tạo thành công ${resolved.length} template(s)`)
+        }
+      } else {
+        // Edit mode: if a new file selected, upload first
+        let finalImageUrl = formData.imageUrl
+        const currentAreaFile = areaImageFiles[selectedArea]
+        if (currentAreaFile) {
+          const up = await uploadImage(currentAreaFile)
+          if (!up.success || !up.data) throw new Error('Upload ảnh thất bại')
+          finalImageUrl = up.data
+        } else if (selectedArea !== originalArea && !finalImageUrl) {
+          throw new Error('Vui lòng chọn ảnh mới cho khu vực đã đổi')
+        }
+        
+        // For edit mode, check if this area has existing template with image from API
+        const existingTemplate = templatesForOption.find(t => t.printAreaName === selectedArea)
+        
+        // Determine templateId based on whether area has existing template with image
+        let templateIdToUse: string | null = null
+        
+        if (existingTemplate && existingTemplate.imageUrl) {
+          // Area has existing template with image - use its ID to update
+          templateIdToUse = existingTemplate.id
+        } else {
+          // Area doesn't have existing template with image - create new (null ID)
+          templateIdToUse = null
+        }
+        
+        const payload: CreateOrUpdateTemplateRequest = {
+          ...formData,
+          templateId: templateIdToUse,
+          imageUrl: finalImageUrl,
+        }
+        const res = await createOrUpdateTemplate(payload)
+        if (res.success) {
+          // Success - no navigation, just show success message
+          setError(null)
+          toast.success(templateIdToUse ? 'Cập nhật template thành công' : 'Tạo template mới thành công')
+          // Refresh templates list
+          const refreshRes = await getTemplatesByProduct(formData.productId, formData.productOptionValueId)
+          if (refreshRes.success) {
+            setTemplatesForOption(refreshRes.data || [])
+          }
+        } else {
+          setError('Lưu template thất bại')
+          toast.error('Lưu template thất bại')
+        }
       }
-      const payload: CreateOrUpdateTemplateRequest = {
-        ...formData,
-        templateId: formData.templateId || templateId,
-        imageUrl: finalImageUrl,
-      }
-      const res = await createOrUpdateTemplate(payload)
-      if (res.success) router.push('/admin/templates')
-      else setError('Lưu template thất bại')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Lưu template thất bại')
     } finally {
@@ -304,8 +464,8 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
   return (
     <Card className="mx-auto w-full max-w-4xl">
       <CardHeader>
-        <CardTitle>Chỉnh sửa Template</CardTitle>
-        <CardDescription>Cập nhật thông tin template</CardDescription>
+        <CardTitle>{mode === 'create' ? 'Tạo Template mới' : 'Chỉnh sửa Template'}</CardTitle>
+        <CardDescription>{mode === 'create' ? 'Thiết kế và tạo template cho sản phẩm' : 'Cập nhật thông tin template'}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -361,6 +521,7 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
                         <div className="grid grid-cols-2 gap-2">
                           {group.items.map((v) => {
                             const isSelected = selectedArea === v
+                            const isAlreadyAdded = mode === 'create' && addedAreas.some(a => a.printAreaName.toLowerCase() === v.toLowerCase())
                             const existsForOption = templatesForOption.some(t => t.printAreaName === v)
                             return (
                               <button
@@ -369,14 +530,26 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
                                 onClick={() => handleAreaSelect(v)}
                                 className={
                                   (isSelected
-                                    ? "ring-2 ring-ring bg-accent text-accent-foreground"
-                                    : "hover:bg-muted") +
-                                  " rounded-md border px-2 py-2 text-sm text-left"
+                                    ? "ring-2 ring-primary bg-primary/10 text-primary border-primary"
+                                    : isAlreadyAdded
+                                    ? "opacity-50 cursor-not-allowed bg-muted border-muted"
+                                    : existsForOption
+                                    ? "border-green-500 bg-green-50 hover:bg-green-100"
+                                    : "hover:bg-muted border-border hover:border-primary/50") +
+                                  " rounded-md border px-2 py-2 text-sm text-left transition-all duration-200"
                                 }
-                                disabled={isLoading}
+                                disabled={isLoading || (mode === 'create' && isAlreadyAdded)}
+                                title={
+                                  isAlreadyAdded 
+                                    ? "Khu vực này đã được thêm" 
+                                    : existsForOption 
+                                    ? "Khu vực này đã có template" 
+                                    : ""
+                                }
                               >
-                                {v}
-                                {existsForOption ? <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-green-500 align-middle" /> : null}
+                                <div className="flex items-center justify-between">
+                                  <span>{v}</span>
+                                </div>
                               </button>
                             )
                           })}
@@ -397,6 +570,7 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
                     disabled={isLoading}
                   />
                   <Input
+                    ref={fileInputRef}
                     type="file"
                     accept="image/*"
                     onChange={(e) => handleNewImageSelect((e.target as HTMLInputElement).files?.[0] || null)}
@@ -410,7 +584,25 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
                       onClick={handleDeleteCurrentImage}
                       disabled={isLoading}
                     >
-                      Xóa ảnh hiện tại
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current mr-1"></div>
+                          Đang xóa...
+                        </>
+                      ) : (
+                        'Xóa ảnh hiện tại'
+                      )}
+                    </Button>
+                  )}
+
+                  {mode === 'create' && selectedArea && (
+                    <Button
+                      type="button"
+                      onClick={handleCompleteArea}
+                      disabled={!selectedArea || (!formData.imageUrl && !newImageFile)}
+                      className="w-full"
+                    >
+                      Hoàn thành chọn {selectedArea}
                     </Button>
                   )}
                 </div>
@@ -418,18 +610,80 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
 
               <div className="flex justify-start gap-2 pt-2 md:justify-end">
                 <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>Hủy</Button>
-                <Button type="submit" disabled={isLoading}>{isLoading ? 'Đang lưu...' : 'Cập nhật'}</Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Đang lưu...
+                    </>
+                  ) : (
+                    mode === 'create' ? 'Lưu tất cả' : 'Cập nhật'
+                  )}
+                </Button>
               </div>
             </div>
 
             <div className="flex items-start justify-center">
               <div className="w-full rounded-lg border p-3">
-                <div className="mb-2 text-sm font-medium text-muted-foreground">Xem trước hình ảnh</div>
-                {(newImagePreview || formData.imageUrl) ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={newImagePreview || formData.imageUrl} alt={selectedArea || 'Preview'} className="aspect-square w-full rounded-md object-cover ring-1 ring-border" />
+                <div className="mb-2 text-sm font-medium text-muted-foreground">
+                  {mode === 'create' ? 'Khu vực đã thêm' : 'Xem trước hình ảnh'}
+                </div>
+                {mode === 'create' ? (
+                  <div className="space-y-3">
+                    {addedAreas.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <div className="text-sm">Chưa có khu vực nào</div>
+                        <div className="text-xs">Thêm ở khung bên trái</div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {addedAreas.map((a, idx) => (
+                          <div key={a.printAreaName + idx} className="rounded-lg border p-3">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="text-sm font-medium truncate" title={a.printAreaName}>
+                                {a.printAreaName}
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setAddedAreas(prev => prev.filter((_, i) => i !== idx))}
+                                className="h-6 w-6 p-0"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                            <div className="space-y-2">
+                              {(a.previewUrl || a.url) ? (
+                                <div className="relative">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img 
+                                    src={a.previewUrl || a.url!} 
+                                    alt={a.printAreaName} 
+                                    className="aspect-square w-full rounded-md object-cover ring-1 ring-border" 
+                                  />
+                                  <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1 py-0.5 rounded">
+                                    {idx + 1}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted bg-muted/40 flex items-center justify-center">
+                                  <div className="text-muted-foreground">No image</div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div className="aspect-square w-full rounded-md border bg-muted/40" />
+                  (newImagePreview || formData.imageUrl) ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={newImagePreview || formData.imageUrl} alt={selectedArea || 'Preview'} className="aspect-square w-full rounded-md object-cover ring-1 ring-border" />
+                  ) : (
+                    <div className="aspect-square w-full rounded-md border bg-muted/40" />
+                  )
                 )}
               </div>
             </div>

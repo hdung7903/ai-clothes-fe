@@ -18,12 +18,38 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { getProfile } from "@/services/userServices"
+import type { UserProfile } from "@/types/user"
+import * as React from "react"
 
 type PageProps = { params: { id: string } }
 
 export default function Page({ params }: PageProps) {
   const { id } = params
   if (!id) notFound()
+  const [profile, setProfile] = React.useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = React.useState<boolean>(true)
+  const [error, setError] = React.useState<string>("")
+
+  React.useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setIsLoading(true)
+      setError("")
+      try {
+        const res = await getProfile()
+        if (!cancelled) setProfile(res?.data ?? null)
+      } catch (e) {
+        if (!cancelled) setError("Không thể tải thông tin người dùng")
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   return (
     <SidebarProvider>
@@ -40,11 +66,11 @@ export default function Page({ params }: PageProps) {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/admin/users">Users</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/users">Người dùng</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Edit {id}</BreadcrumbPage>
+                  <BreadcrumbPage>Chỉnh sửa</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -52,26 +78,32 @@ export default function Page({ params }: PageProps) {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Edit User</h1>
+            <h1 className="text-xl font-semibold">Chỉnh sửa người dùng</h1>
             <Button variant="outline" asChild>
-              <Link href={`/admin/users/${id}`}>Cancel</Link>
+              <Link href={`/admin/users/${id}`}>Hủy</Link>
             </Button>
           </div>
           <form className="rounded-xl border bg-background p-4 grid gap-4 max-w-xl">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input id="name" defaultValue="Alice Johnson" />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="alice@example.com" />
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit">Save</Button>
-              <Button type="button" variant="outline" asChild>
-                <Link href={`/admin/users/${id}`}>Back</Link>
-              </Button>
-            </div>
+            {isLoading && <div className="text-sm text-muted-foreground">Đang tải...</div>}
+            {error && !isLoading && <div className="text-sm text-destructive">{error}</div>}
+            {!isLoading && !error && (
+              <>
+                <div className="grid gap-2">
+                  <Label htmlFor="name">Họ và tên</Label>
+                  <Input id="name" defaultValue={profile?.fullName ?? ""} />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" defaultValue={profile?.email ?? ""} />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit">Lưu</Button>
+                  <Button type="button" variant="outline" asChild>
+                    <Link href={`/admin/users/${id}`}>Quay lại</Link>
+                  </Button>
+                </div>
+              </>
+            )}
           </form>
         </div>
       </SidebarInset>

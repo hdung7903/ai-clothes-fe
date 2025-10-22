@@ -119,7 +119,7 @@ export default function Page() {
                         setIsDeleting(true)
                         const res = await deleteTemplateById(data.id)
                         if (res.success) {
-                          window.location.href = '/admin/templates'
+                          window.location.href = `/admin/products/${data.productId}`
                         }
                       } finally {
                         setIsDeleting(false)

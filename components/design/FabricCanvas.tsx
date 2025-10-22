@@ -94,15 +94,15 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     {
       imageUrl,
       designType: initialDesignType = "tshirt",
-      productId,
-      productOptionValueId,
-      designName,
+  productId,
+  productOptionValueId,
+  designName,
       onImageChange,
       onLoadingChange,
     },
     ref
   ) => {
-    const searchParams = useSearchParams();
+  const searchParams = useSearchParams();
     const router = useRouter();
     const templateIdFromUrl = searchParams?.get("templateId") || undefined;
     const productIdFromUrl = searchParams?.get("productId") || undefined;
@@ -116,7 +116,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         productOptionValueIdFromUrl || productOptionValueId
       );
     const [shirtImage, setShirtImage] = useState<string>("");
-    const [designType, setDesignType] = useState(initialDesignType);
+  const [designType, setDesignType] = useState(initialDesignType);
     const [currentSide, setCurrentSide] = useState<Side>("front");
     const [shirtImageBySide, setShirtImageBySide] = useState<
       Record<Side, string>
@@ -131,48 +131,56 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       string | undefined
     >(templateIdFromUrl);
     const isSwitchingSideRef = useRef(false);
-
-    const [decorations, setDecorations] = useState<Decoration[]>([]);
+  
+  const [decorations, setDecorations] = useState<Decoration[]>([]);
     const [sideDecorations, setSideDecorations] = useState<
       Record<Side, Decoration[]>
     >({
-      front: [],
-      back: [],
-      leftSleeve: [],
-      rightSleeve: [],
-    });
-    const [selectedId, setSelectedId] = useState<number | null>(null);
-    const [dragging, setDragging] = useState(false);
-    const [resizing, setResizing] = useState<ResizeState | null>(null);
-    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [uploadingImage, setUploadingImage] = useState(false);
-    const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
-    const [savingDesign, setSavingDesign] = useState(false);
+    front: [],
+    back: [],
+    leftSleeve: [],
+    rightSleeve: [],
+  });
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState<ResizeState | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
+  const [savingDesign, setSavingDesign] = useState(false);
     const [lastClickPosition, setLastClickPosition] = useState<{
       x: number;
       y: number;
     } | null>(null);
-    const [clickCount, setClickCount] = useState(0);
+  const [clickCount, setClickCount] = useState(0);
     const [imageLoading, setImageLoading] = useState(false);
-    // Track which sides actually have template images returned from API
+  // Track which sides actually have template images returned from API
     const [sideHasTemplate, setSideHasTemplate] = useState<
       Record<Side, boolean>
     >({
-      front: false,
-      back: false,
-      leftSleeve: false,
-      rightSleeve: false,
-    });
-
+    front: false,
+    back: false,
+    leftSleeve: false,
+    rightSleeve: false,
+  });
+  
     // Track the order of sides based on API response
     const [sideOrder, setSideOrder] = useState<Side[]>([]);
-
+    
+    // Store template IDs for each side from API response
+    const [sideTemplateIds, setSideTemplateIds] = useState<Record<Side, string | null>>({
+      front: null,
+      back: null,
+      leftSleeve: null,
+      rightSleeve: null,
+    });
+  
     // Dialog state for missing product params
     const [showMissingParamsDialog, setShowMissingParamsDialog] =
       useState(false);
-
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const printAreaRef = useRef<PrintArea>({
       x: 150,
       y: 200,
@@ -182,8 +190,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
     const selectedDecoration = decorations.find((d) => d.id === selectedId);
 
-    // Get design type label
-    const getDesignTypeLabel = () => {
+  // Get design type label
+  const getDesignTypeLabel = () => {
       switch (designType) {
         case "tshirt":
           return "Áo Thun";
@@ -277,7 +285,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     };
 
     // Effect to handle initial imageUrl prop
-    useEffect(() => {
+  useEffect(() => {
       if (imageUrl) {
         setShirtImage(imageUrl);
         setShirtImageBySide((prev) => ({
@@ -331,33 +339,33 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       setImageLoading(true);
       onLoadingChange?.(true);
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        setImageLoaded(true);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      setImageLoaded(true);
         setImageLoading(false);
         onLoadingChange?.(false);
-      };
-      img.onerror = () => {
+    };
+    img.onerror = () => {
         console.error("Không thể tải hình ảnh:", shirtImage);
         img.src = "https://i.imgur.com/5QKxXXp.png";
-      };
-      img.src = shirtImage;
-    }, [shirtImage]);
+    };
+    img.src = shirtImage;
+  }, [shirtImage]);
 
-    // Switch base image when side changes
-    useEffect(() => {
+  // Switch base image when side changes
+  useEffect(() => {
       const sideImage = shirtImageBySide[currentSide];
       // Always switch to the side image, even if it's empty
       if (sideImage !== shirtImage) {
         setShirtImage(sideImage);
       }
-    }, [currentSide, shirtImageBySide]);
+  }, [currentSide, shirtImageBySide]);
 
-    // Persist decorations per side when switching
-    useEffect(() => {
-      const prevSide = prevSideRef.current;
-      if (prevSide !== currentSide) {
+  // Persist decorations per side when switching
+  useEffect(() => {
+    const prevSide = prevSideRef.current;
+    if (prevSide !== currentSide) {
         console.log('Switching from side:', prevSide, 'to side:', currentSide);
         console.log('Current decorations before switch:', decorations);
         
@@ -372,7 +380,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         const newSideDecorations = sideDecorations[currentSide] || [];
         console.log('Loading decorations for new side:', currentSide, newSideDecorations);
         setDecorations(newSideDecorations);
-        setSelectedId(null);
+      setSelectedId(null);
         
         // CRITICAL FIX: Always update base image when switching sides
         const sideImage = shirtImageBySide[currentSide];
@@ -380,39 +388,39 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         // Set immediately without condition to ensure proper update
         setShirtImage(sideImage);
         
-        prevSideRef.current = currentSide;
-      }
-    }, [currentSide]);
-    // If templateId is provided, fetch template detail to resolve product context and base image
-    useEffect(() => {
-      const resolveFromTemplate = async () => {
-        const tid = resolvedTemplateId;
-        if (!tid) return;
-        try {
-          const res = await getTemplateById(tid);
-          const data: any = (res as any)?.data ?? (res as any);
-          if (data) {
-            const pid = data.productId || data.product?.id;
+      prevSideRef.current = currentSide;
+    }
+  }, [currentSide]);
+  // If templateId is provided, fetch template detail to resolve product context and base image
+  useEffect(() => {
+    const resolveFromTemplate = async () => {
+      const tid = resolvedTemplateId;
+      if (!tid) return;
+      try {
+        const res = await getTemplateById(tid);
+        const data: any = (res as any)?.data ?? (res as any);
+        if (data) {
+          const pid = data.productId || data.product?.id;
             const pov =
               data.productOptionValueId || data.productOptionValueDetail?.id;
-            const img = data.imageUrl;
-            if (pid) setResolvedProductId(pid);
-            if (pov) setResolvedProductOptionValueId(pov);
-            if (img) {
+          const img = data.imageUrl;
+          if (pid) setResolvedProductId(pid);
+          if (pov) setResolvedProductOptionValueId(pov);
+          if (img) {
               setShirtImageBySide((prev) => ({ ...prev, [currentSide]: img }));
-              setShirtImage(img);
+            setShirtImage(img);
               onImageChange?.(img);
-            }
           }
-        } catch (e) {
-          console.error("Failed to load template by id", e);
         }
-      };
-      resolveFromTemplate();
+      } catch (e) {
+          console.error("Failed to load template by id", e);
+      }
+    };
+    resolveFromTemplate();
     }, [resolvedTemplateId, currentSide, onImageChange]);
 
     // Load templates from API and set base images for all sides
-    useEffect(() => {
+  useEffect(() => {
       const loadTemplates = async () => {
         // Only load from API if we have product params and no imageUrl prop
         if (!resolvedProductId || !resolvedProductOptionValueId || imageUrl) {
@@ -424,8 +432,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             resolvedProductId,
             resolvedProductOptionValueId
           );
-
-          const items = (response as any)?.data ?? [];
+        
+        const items = (response as any)?.data ?? [];
 
           // Initialize with empty strings for all sides
           const newShirtImageBySide = {
@@ -440,12 +448,18 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             leftSleeve: false,
             rightSleeve: false,
           };
-
-          if (!Array.isArray(items) || items.length === 0) {
+          const newSideTemplateIds = {
+            front: null,
+            back: null,
+            leftSleeve: null,
+            rightSleeve: null,
+          };
+        
+        if (!Array.isArray(items) || items.length === 0) {
             setShirtImageBySide(newShirtImageBySide);
             setSideHasTemplate(newSideHasTemplate);
-            return;
-          }
+          return;
+        }
 
           // Process all template items and map them to appropriate sides
           // Create a mapping array to track the order of sides based on API response
@@ -461,10 +475,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
               item.printAreaName || "",
               index
             );
-
-            // Set the template image for the target side
+          
+          // Set the template image for the target side
             newShirtImageBySide[targetSide] = item.imageUrl;
             newSideHasTemplate[targetSide] = true;
+            newSideTemplateIds[targetSide] = item.id || item.templateId || null;
 
             // Track the order of sides based on API response order
             // This ensures tabs appear in the same order as API response
@@ -482,8 +497,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           // Update state with all template mappings
           setShirtImageBySide(newShirtImageBySide);
           setSideHasTemplate(newSideHasTemplate);
+          setSideTemplateIds(newSideTemplateIds);
           setSideOrder(sideOrder);
-        } catch (error) {
+      } catch (error) {
           console.error("Error loading templates:", error);
           // Keep empty state on API error
           setShirtImageBySide({
@@ -509,102 +525,99 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       onImageChange,
     ]);
 
-    const drawCanvas = () => {
-      const canvas = canvasRef.current;
-      if (!canvas || !imageLoaded) return;
-
-      // Use the current shirtImage instead of imageRef.current
-      if (!shirtImage) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Create a new image element for the current shirtImage
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        // Draw the current image
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        // Draw decorations
-        console.log(
-          "🎨 DRAW CANVAS DEBUG - Drawing decorations:",
-          decorations.length,
-          "decorations"
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imageLoaded) return;
+    
+    // Use the current shirtImage instead of imageRef.current
+    if (!shirtImage) return;
+    
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Don't clear canvas immediately to prevent white flicker
+    // Instead, we'll draw the background first, then decorations
+    
+    // Create a new image element for the current shirtImage
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      // Clear canvas only when we're ready to draw
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+      // Draw the background image first
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    
+      // Draw decorations on top
+      decorations.forEach((dec, index) => {
+      if (!dec.visible) return;
+      
+      ctx.save();
+      ctx.translate(dec.x, dec.y);
+        ctx.rotate((dec.rotation * Math.PI) / 180);
+      ctx.globalAlpha = dec.opacity || 1;
+      
+        if (dec.type === "image" && dec.imageElement) {
+        if (dec.shadow) {
+            ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+          ctx.shadowBlur = 8;
+          ctx.shadowOffsetX = 3;
+          ctx.shadowOffsetY = 3;
+        }
+        
+        ctx.drawImage(
+          dec.imageElement,
+          -dec.width / 2,
+          -dec.height / 2,
+          dec.width,
+          dec.height
         );
-        decorations.forEach((dec, index) => {
-          console.log(`🎨 Drawing decoration ${index}:`, dec);
-          if (!dec.visible) {
-            console.log(`🎨 Skipping decoration ${index} - not visible`);
-            return;
-          }
+      }
+      
+      if (dec.id === selectedId) {
+          ctx.shadowColor = "transparent";
+        ctx.shadowBlur = 0;
+          ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 4]);
+        const bounds = getDecorationBounds(dec);
+          ctx.strokeRect(
+            -bounds.width / 2,
+            -bounds.height / 2,
+            bounds.width,
+            bounds.height
+          );
+        drawResizeHandles(ctx, bounds);
+      }
+      
+      ctx.restore();
+    });
+  };
 
-          ctx.save();
-          ctx.translate(dec.x, dec.y);
-          ctx.rotate((dec.rotation * Math.PI) / 180);
-          ctx.globalAlpha = dec.opacity || 1;
-
-          if (dec.type === "image" && dec.imageElement) {
-            if (dec.shadow) {
-              ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-              ctx.shadowBlur = 8;
-              ctx.shadowOffsetX = 3;
-              ctx.shadowOffsetY = 3;
-            }
-
-            ctx.drawImage(
-              dec.imageElement,
-              -dec.width / 2,
-              -dec.height / 2,
-              dec.width,
-              dec.height
-            );
-          }
-
-          if (dec.id === selectedId) {
-            ctx.shadowColor = "transparent";
-            ctx.shadowBlur = 0;
-            ctx.strokeStyle = "#3b82f6";
-            ctx.lineWidth = 3;
-            ctx.setLineDash([8, 4]);
-            const bounds = getDecorationBounds(dec);
-            ctx.strokeRect(
-              -bounds.width / 2,
-              -bounds.height / 2,
-              bounds.width,
-              bounds.height
-            );
-            drawResizeHandles(ctx, bounds);
-          }
-
-          ctx.restore();
-        });
-      };
-      img.onerror = () => {
-        console.error("Không thể tải hình ảnh cho canvas:", shirtImage);
-      };
-      img.src = shirtImage;
+    img.onerror = () => {
+      console.error("Không thể tải hình ảnh cho canvas:", shirtImage);
     };
+    
+    img.src = shirtImage;
+  };
 
     const drawResizeHandles = (
       ctx: CanvasRenderingContext2D,
       bounds: Bounds
     ) => {
-      const handleSize = 10;
-      const handles = [
-        { x: -bounds.width / 2, y: -bounds.height / 2 },
-        { x: bounds.width / 2, y: -bounds.height / 2 },
-        { x: bounds.width / 2, y: bounds.height / 2 },
-        { x: -bounds.width / 2, y: bounds.height / 2 },
-      ];
-
-      ctx.setLineDash([]);
+    const handleSize = 10;
+    const handles = [
+      { x: -bounds.width / 2, y: -bounds.height / 2 },
+      { x: bounds.width / 2, y: -bounds.height / 2 },
+      { x: bounds.width / 2, y: bounds.height / 2 },
+      { x: -bounds.width / 2, y: bounds.height / 2 },
+    ];
+    
+    ctx.setLineDash([]);
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = "#3b82f6";
-      ctx.lineWidth = 2;
-
+    ctx.lineWidth = 2;
+    
       handles.forEach((h) => {
         ctx.fillRect(
           h.x - handleSize / 2,
@@ -618,206 +631,206 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           handleSize,
           handleSize
         );
-      });
-    };
+    });
+  };
 
-    const getDecorationBounds = (dec: Decoration): Bounds => {
+  const getDecorationBounds = (dec: Decoration): Bounds => {
       if (dec.type === "image") {
-        return { width: dec.width, height: dec.height };
-      }
-      return { width: 50, height: 50 };
-    };
-
-    // Debug function để kiểm tra collision
+      return { width: dec.width, height: dec.height };
+    }
+    return { width: 50, height: 50 };
+  };
+  
+  // Debug function để kiểm tra collision
     const isPointInDecoration = (
       x: number,
       y: number,
       dec: Decoration
     ): boolean => {
-      const bounds = getDecorationBounds(dec);
-      const dx = x - dec.x;
-      const dy = y - dec.y;
+    const bounds = getDecorationBounds(dec);
+    const dx = x - dec.x;
+    const dy = y - dec.y;
       const isInside =
         Math.abs(dx) <= bounds.width / 2 && Math.abs(dy) <= bounds.height / 2;
+    
+    return isInside;
+  };
 
-      return isInside;
-    };
+  useEffect(() => {
+    if (imageLoaded && shirtImage) {
+      // Use requestAnimationFrame to ensure smooth rendering
+      requestAnimationFrame(() => {
+      drawCanvas();
+      });
+    }
+  }, [decorations, selectedId, imageLoaded, shirtImage]);
 
-    useEffect(() => {
-      console.log("🔄 CANVAS REDRAW TRIGGER");
-      console.log("imageLoaded:", imageLoaded);
-      console.log("shirtImage:", shirtImage);
-      console.log("decorations:", decorations.length, "decorations");
-      console.log("selectedId:", selectedId);
-
-      if (imageLoaded && shirtImage) {
-        console.log("✅ Drawing canvas...");
-        drawCanvas();
-      } else {
-        console.log("❌ Skipping canvas draw - missing requirements");
-      }
-    }, [decorations, selectedId, imageLoaded, shirtImage]);
-
-    const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      // Kiểm tra xem có phải click ở cùng vị trí không (để cycle qua decorations)
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Kiểm tra xem có phải click ở cùng vị trí không (để cycle qua decorations)
       const isSamePosition =
         lastClickPosition &&
-        Math.abs(x - lastClickPosition.x) < 5 &&
-        Math.abs(y - lastClickPosition.y) < 5;
-
-      if (isSamePosition) {
+      Math.abs(x - lastClickPosition.x) < 5 && 
+      Math.abs(y - lastClickPosition.y) < 5;
+    
+    if (isSamePosition) {
         setClickCount((prev) => prev + 1);
+    } else {
+      setClickCount(1);
+      setLastClickPosition({ x, y });
+    }
+    
+    // Tìm tất cả decorations có thể click được tại vị trí này
+    const clickableDecorations = decorations
+      .map((dec, index) => ({ dec, index }))
+      .filter(({ dec }) => !dec.locked && dec.visible)
+      .filter(({ dec }) => isPointInDecoration(x, y, dec));
+    
+    if (clickableDecorations.length > 0) {
+      // Nếu có nhiều decorations và click nhiều lần, cycle qua chúng
+      let selectedIndex;
+      if (clickableDecorations.length > 1 && isSamePosition) {
+        selectedIndex = (clickCount - 1) % clickableDecorations.length;
       } else {
-        setClickCount(1);
-        setLastClickPosition({ x, y });
+        // Chọn decoration có z-index cao nhất (index cao nhất trong mảng)
+        selectedIndex = clickableDecorations.length - 1;
       }
-
-      // Tìm tất cả decorations có thể click được tại vị trí này
-      const clickableDecorations = decorations
-        .map((dec, index) => ({ dec, index }))
-        .filter(({ dec }) => !dec.locked && dec.visible)
-        .filter(({ dec }) => isPointInDecoration(x, y, dec));
-
-      if (clickableDecorations.length > 0) {
-        // Nếu có nhiều decorations và click nhiều lần, cycle qua chúng
-        let selectedIndex;
-        if (clickableDecorations.length > 1 && isSamePosition) {
-          selectedIndex = (clickCount - 1) % clickableDecorations.length;
-        } else {
-          // Chọn decoration có z-index cao nhất (index cao nhất trong mảng)
-          selectedIndex = clickableDecorations.length - 1;
-        }
-
-        const { dec, index } = clickableDecorations[selectedIndex];
-        setSelectedId(dec.id);
-
-        // Kiểm tra resize handles trước
-        const bounds = getDecorationBounds(dec);
-        const handleSize = 10;
-        const handles = [
-          { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2 },
-          { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2 },
-          { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2 },
-          { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2 },
-        ];
-
-        let isResizeHandle = false;
-        for (const handle of handles) {
+      
+      const { dec, index } = clickableDecorations[selectedIndex];
+      setSelectedId(dec.id);
+      
+      // Kiểm tra resize handles trước
+      const bounds = getDecorationBounds(dec);
+      const handleSize = 10;
+      const handles = [
+        { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2 },
+        { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2 },
+        { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2 },
+        { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2 },
+      ];
+      
+      let isResizeHandle = false;
+      for (const handle of handles) {
           if (
             Math.abs(x - handle.x) <= handleSize &&
             Math.abs(y - handle.y) <= handleSize
           ) {
             const startSize = dec.width;
-            setResizing({ startX: x, startY: y, startSize });
-            isResizeHandle = true;
-            break;
+          setResizing({ startX: x, startY: y, startSize });
+          isResizeHandle = true;
+          break;
+        }
+      }
+      
+      if (!isResizeHandle) {
+        // Nếu không phải resize handle thì bắt đầu drag
+        const dx = x - dec.x;
+        const dy = y - dec.y;
+        setDragging(true);
+        setDragOffset({ x: dx, y: dy });
+      }
+    } else {
+      // Nếu không click vào decoration nào thì bỏ chọn
+      setSelectedId(null);
+      setClickCount(0);
+      setLastClickPosition(null);
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    if (resizing && selectedId !== null) {
+      const dx = x - resizing.startX;
+      const dy = y - resizing.startY;
+      const delta = Math.max(dx, dy);
+      const newSize = Math.max(20, resizing.startSize + delta);
+      
+      setDecorations((prevDecorations) =>
+        prevDecorations.map((d) => {
+        if (d.id === selectedId) {
+            if (d.type === "image") {
+            const aspectRatio = d.width / d.height;
+            return { 
+              ...d, 
+              width: newSize, 
+                height: newSize / aspectRatio,
+            };
           }
         }
+        return d;
+        })
+      );
+    } else if (dragging && selectedId !== null) {
+      const newX = x - dragOffset.x;
+      const newY = y - dragOffset.y;
 
-        if (!isResizeHandle) {
-          // Nếu không phải resize handle thì bắt đầu drag
-          const dx = x - dec.x;
-          const dy = y - dec.y;
-          setDragging(true);
-          setDragOffset({ x: dx, y: dy });
-        }
-      } else {
-        // Nếu không click vào decoration nào thì bỏ chọn
-        setSelectedId(null);
-        setClickCount(0);
-        setLastClickPosition(null);
-      }
-    };
-
-    const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      if (resizing && selectedId !== null) {
-        const dx = x - resizing.startX;
-        const dy = y - resizing.startY;
-        const delta = Math.max(dx, dy);
-        const newSize = Math.max(20, resizing.startSize + delta);
-
-        setDecorations((prevDecorations) =>
-          prevDecorations.map((d) => {
-            if (d.id === selectedId) {
-              if (d.type === "image") {
-                const aspectRatio = d.width / d.height;
-                return {
-                  ...d,
-                  width: newSize,
-                  height: newSize / aspectRatio,
-                };
-              }
-            }
-            return d;
-          })
-        );
-      } else if (dragging && selectedId !== null) {
-        const newX = x - dragOffset.x;
-        const newY = y - dragOffset.y;
-
+      // Use requestAnimationFrame to prevent white flicker during drag
+      requestAnimationFrame(() => {
         setDecorations((prevDecorations) =>
           prevDecorations.map((d) =>
             d.id === selectedId ? { ...d, x: newX, y: newY } : d
           )
         );
-      }
-    };
+      });
+    }
+  };
 
-    // Thêm global mouse move listener để đảm bảo drag hoạt động
-    useEffect(() => {
-      const handleGlobalMouseMove = (e: MouseEvent) => {
-        if (dragging && selectedId !== null) {
-          const canvas = canvasRef.current;
-          if (!canvas) return;
-          const rect = canvas.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
+  // Thêm global mouse move listener để đảm bảo drag hoạt động
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (dragging && selectedId !== null) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        const newX = x - dragOffset.x;
+        const newY = y - dragOffset.y;
 
-          const newX = x - dragOffset.x;
-          const newY = y - dragOffset.y;
-
+        // Use requestAnimationFrame to prevent white flicker during drag
+        requestAnimationFrame(() => {
           setDecorations((prevDecorations) =>
             prevDecorations.map((d) =>
               d.id === selectedId ? { ...d, x: newX, y: newY } : d
             )
           );
-        }
-      };
+        });
+      }
+    };
 
-      const handleGlobalMouseUp = () => {
-        if (dragging) {
-          setDragging(false);
-          setResizing(null);
-        }
-      };
-
+    const handleGlobalMouseUp = () => {
       if (dragging) {
+        setDragging(false);
+        setResizing(null);
+      }
+    };
+
+    if (dragging) {
         document.addEventListener("mousemove", handleGlobalMouseMove);
         document.addEventListener("mouseup", handleGlobalMouseUp);
-      }
+    }
 
-      return () => {
+    return () => {
         document.removeEventListener("mousemove", handleGlobalMouseMove);
         document.removeEventListener("mouseup", handleGlobalMouseUp);
-      };
-    }, [dragging, selectedId, dragOffset]);
-
-    const handleMouseUp = () => {
-      setDragging(false);
-      setResizing(null);
     };
+  }, [dragging, selectedId, dragOffset]);
+
+  const handleMouseUp = () => {
+    setDragging(false);
+    setResizing(null);
+  };
 
     // Trong hàm addImageDecoration, thay đổi như sau:
 
@@ -837,35 +850,35 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         shirtImageBySide[currentSide]
       );
 
-      const pa = printAreaRef.current;
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-
-      img.onload = () => {
-        const maxSize = 200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxSize || height > maxSize) {
-          const ratio = Math.min(maxSize / width, maxSize / height);
-          width = width * ratio;
-          height = height * ratio;
-        }
-
-        const newImageDecoration: ImageDecoration = {
+    const pa = printAreaRef.current;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      const maxSize = 200;
+      let width = img.width;
+      let height = img.height;
+      
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width = width * ratio;
+        height = height * ratio;
+      }
+      
+      const newImageDecoration: ImageDecoration = {
           id: Date.now() + Math.random(),
           type: "image",
-          imageUrl: imageUrl,
-          imageElement: img,
-          x: pa.x + pa.width / 2,
-          y: pa.y + pa.height / 2,
-          width: width,
-          height: height,
-          rotation: 0,
-          visible: true,
-          locked: false,
-          shadow: true,
-          opacity: 1,
+        imageUrl: imageUrl,
+        imageElement: img,
+        x: pa.x + pa.width / 2,
+        y: pa.y + pa.height / 2,
+        width: width,
+        height: height,
+        rotation: 0,
+        visible: true,
+        locked: false,
+        shadow: true,
+        opacity: 1,
           name: imageName,
         };
 
@@ -903,8 +916,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           return updated;
         });
 
-        setSelectedId(newImageDecoration.id);
-        setUploadingImage(false);
+      setSelectedId(newImageDecoration.id);
+      setUploadingImage(false);
 
         // CRITICAL FIX: Đảm bảo background image được restore ngay lập tức
         if (currentSideBackground && currentSideBackground !== shirtImage) {
@@ -920,19 +933,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
         console.log("✅ Image decoration added successfully");
         console.log("🖼️ END ADD IMAGE DECORATION DEBUG");
-      };
-
-      img.onerror = () => {
-        console.error("Không thể tải hình ảnh");
-        setUploadingImage(false);
-        alert("Không thể tải hình ảnh. Vui lòng thử hình ảnh khác.");
-      };
-
-      img.src = imageUrl;
     };
+    
+    img.onerror = () => {
+        console.error("Không thể tải hình ảnh");
+      setUploadingImage(false);
+        alert("Không thể tải hình ảnh. Vui lòng thử hình ảnh khác.");
+    };
+    
+    img.src = imageUrl;
+  };
 
-    // Expose methods via ref
-    useImperativeHandle(ref, () => ({
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
       addImageDecoration,
     }));
 
@@ -946,14 +959,14 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       console.log("Target:", e.target);
       console.log("Files:", e.target.files);
 
-       const file = e.target.files?.[0];
-       if (file) {
+    const file = e.target.files?.[0];
+    if (file) {
          console.log("📄 File selected:", file.name, "Size:", file.size);
          console.log("📄 File type:", file.type);
-         setUploadingImage(true);
-         const reader = new FileReader();
-         reader.onload = (event) => {
-           if (event.target?.result) {
+      setUploadingImage(true);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
              console.log(
                "📖 File read successfully, calling addImageDecoration"
              );
@@ -961,16 +974,16 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                "📖 Result length:",
                (event.target.result as string).length
              );
-             addImageDecoration(event.target.result as string, file.name);
+          addImageDecoration(event.target.result as string, file.name);
            } else {
              console.error("❌ File read failed - no result");
-           }
-         };
+        }
+      };
          reader.onerror = (error) => {
            console.error("❌ FileReader error:", error);
            setUploadingImage(false);
-         };
-         reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(file);
        } else {
          console.log("❌ No file selected");
        }
@@ -980,50 +993,50 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
        console.log("🔄 File input value reset");
        
        console.log("📁 END IMAGE UPLOAD DEBUG");
-    };
+  };
 
-    const toggleVisibility = (id: number) => {
+  const toggleVisibility = (id: number) => {
       setDecorations(
         decorations.map((d) =>
-          d.id === id ? { ...d, visible: !d.visible } : d
+      d.id === id ? { ...d, visible: !d.visible } : d
         )
       );
-    };
+  };
 
-    const toggleLock = (id: number) => {
+  const toggleLock = (id: number) => {
       setDecorations(
         decorations.map((d) => (d.id === id ? { ...d, locked: !d.locked } : d))
       );
-    };
+  };
 
-    const deleteDecoration = (id: number) => {
+  const deleteDecoration = (id: number) => {
       setDecorations(decorations.filter((d) => d.id !== id));
-      if (selectedId === id) setSelectedId(null);
-    };
+    if (selectedId === id) setSelectedId(null);
+  };
 
     const moveLayer = (id: number, direction: "up" | "down") => {
       const index = decorations.findIndex((d) => d.id === id);
       if (direction === "up" && index < decorations.length - 1) {
-        const newDecorations = [...decorations];
+      const newDecorations = [...decorations];
         [newDecorations[index], newDecorations[index + 1]] = [
           newDecorations[index + 1],
           newDecorations[index],
         ];
-        setDecorations(newDecorations);
+      setDecorations(newDecorations);
       } else if (direction === "down" && index > 0) {
-        const newDecorations = [...decorations];
+      const newDecorations = [...decorations];
         [newDecorations[index], newDecorations[index - 1]] = [
           newDecorations[index - 1],
           newDecorations[index],
         ];
-        setDecorations(newDecorations);
-      }
-    };
+      setDecorations(newDecorations);
+    }
+  };
 
     const updateProperty = <K extends keyof ImageDecoration>(
-      property: K,
-      value: any
-    ) => {
+    property: K, 
+    value: any
+  ) => {
       setDecorations(
         decorations.map((d) =>
           d.id === selectedId ? ({ ...d, [property]: value } as Decoration) : d
@@ -1032,7 +1045,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     };
 
     // Function to capture canvas as image and convert to File
-    const captureCanvasAsFile = async (): Promise<File | null> => {
+    const captureCanvasAsFile = async (side?: Side): Promise<File | null> => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
@@ -1040,9 +1053,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         canvas.toBlob(
           (blob) => {
             if (blob) {
+              const sideName = side || currentSide;
               const file = new File(
                 [blob],
-                `design-${currentSide}-${Date.now()}.png`,
+                `design-${sideName}-${Date.now()}.png`,
                 {
                   type: "image/png",
                 }
@@ -1056,6 +1070,94 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           0.9
         );
       });
+    };
+
+    // Function to upload decoration image to storage
+    const uploadDecorationImage = async (imageUrl: string, imageName: string): Promise<string | null> => {
+      try {
+        console.log(`☁️ Uploading decoration image: ${imageName}`);
+        
+        // Convert base64 to blob
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        
+        // Create file from blob
+        const file = new File([blob], imageName, { type: blob.type });
+        
+        // Upload to storage
+        const uploadResponse = await uploadImage(file);
+        
+        if (uploadResponse.success && uploadResponse.data) {
+          console.log(`✅ Decoration image uploaded: ${uploadResponse.data}`);
+          return uploadResponse.data;
+        } else {
+          console.error(`❌ Failed to upload decoration image:`, uploadResponse);
+          return null;
+        }
+      } catch (error) {
+        console.error(`❌ Error uploading decoration image:`, error);
+        return null;
+      }
+    };
+
+    // Function to capture canvas for a specific side with all decorations
+    const captureSideCanvas = async (side: Side): Promise<string | null> => {
+      console.log(`🎨 CAPTURING CANVAS FOR SIDE: ${side}`);
+      
+      // Store original state
+      const originalSide = currentSide;
+      const originalDecorations = decorations;
+      const originalShirtImage = shirtImage;
+      
+      try {
+        // Switch to target side
+        console.log(`🔄 Switching to side: ${side}`);
+        setCurrentSide(side);
+        
+        // Load decorations for this side
+        const sideDecorationsList = sideDecorations[side] || [];
+        console.log(`📂 Loading decorations for ${side}:`, sideDecorationsList.length, 'decorations');
+        setDecorations(sideDecorationsList);
+        
+        // Load background image for this side
+        const sideImage = shirtImageBySide[side];
+        console.log(`🖼️ Loading background image for ${side}:`, sideImage);
+        setShirtImage(sideImage);
+        
+        // Wait for state updates and canvas redraw
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        // Capture canvas
+        const file = await captureCanvasAsFile(side);
+        if (!file) {
+          console.error(`❌ Failed to capture canvas for side: ${side}`);
+          return null;
+        }
+        
+        console.log(`📸 Canvas captured for ${side}, file size:`, file.size);
+        
+        // Upload to storage
+        console.log(`☁️ Uploading canvas for ${side} to storage...`);
+        const response = await uploadImage(file);
+        
+        if (response.success && response.data) {
+          console.log(`✅ Canvas uploaded successfully for ${side}:`, response.data);
+          return response.data;
+        } else {
+          console.error(`❌ Upload failed for side ${side}:`, response);
+          return null;
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error capturing canvas for side ${side}:`, error);
+        return null;
+      } finally {
+        // Restore original state
+        console.log(`🔄 Restoring original state...`);
+        setCurrentSide(originalSide);
+        setDecorations(originalDecorations);
+        setShirtImage(originalShirtImage);
+      }
     };
 
     // Function to upload canvas image to server
@@ -1079,101 +1181,122 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         console.error("Error uploading canvas image:", error);
         return null;
       }
-    };
+  };
 
-    const saveDesign = async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      if (!resolvedProductId || !resolvedProductOptionValueId) {
+  const saveDesign = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (!resolvedProductId || !resolvedProductOptionValueId) {
         toast.error("Thiếu thông tin sản phẩm từ template để lưu thiết kế.");
-        return;
-      }
+      return;
+    }
 
-      try {
-        setSavingDesign(true);
+    try {
+      setSavingDesign(true);
+      console.log("💾 STARTING SAVE DESIGN PROCESS");
 
-        // Get image decorations for icons
-        const imageDecorations = decorations.filter(
-          (d) => d.type === "image"
-        ) as ImageDecoration[];
-        const icons = imageDecorations.map((d) => ({ imageUrl: d.imageUrl }));
-
-        // Capture canvas for all sides (with or without decorations)
-        let designTemplates: any[] = [];
-
-        // Check all sides - capture all sides that have templates available
-        const allSides: Side[] = ["front", "back", "leftSleeve", "rightSleeve"];
-
-        for (const side of allSides) {
-          // Only capture sides that have template images available
-          if (sideHasTemplate[side]) {
-            const sideDecorationsList = sideDecorations[side] || [];
-
-            // Temporarily switch to this side to capture canvas
-            const originalSide = currentSide;
-            const originalDecorations = decorations;
-
-            setCurrentSide(side);
-            setDecorations(sideDecorationsList);
-
-            // Wait for state update and canvas redraw
-            await new Promise((resolve) => setTimeout(resolve, 100));
-
-            const canvasImageUrl = await uploadCanvasImage();
-
-            if (canvasImageUrl) {
-              // Create template object for this side with templateId as null
-              const template = {
-                templateId: null,
-                designImageUrl: canvasImageUrl,
-              };
-              designTemplates.push(template);
-            } else {
-              console.warn("Failed to upload canvas image for side:", side);
-            }
-
-            // Restore original state
-            setCurrentSide(originalSide);
-            setDecorations(originalDecorations);
-          }
+      // Collect all image decorations from all sides for icons
+      const allImageDecorations: ImageDecoration[] = [];
+      const allSides: Side[] = ["front", "back", "leftSleeve", "rightSleeve"];
+      
+      console.log("📋 Collecting all image decorations from all sides...");
+      allSides.forEach(side => {
+        const sideDecorationsList = sideDecorations[side] || [];
+        const imageDecorations = sideDecorationsList.filter(d => d.type === "image") as ImageDecoration[];
+        console.log(`📂 ${side}: ${imageDecorations.length} image decorations`);
+        allImageDecorations.push(...imageDecorations);
+      });
+      
+      console.log(`📊 Total image decorations collected: ${allImageDecorations.length}`);
+      
+      // Upload all decoration images to storage and create icons
+      console.log("☁️ Uploading all decoration images to storage...");
+      const icons = [];
+      
+      for (const decoration of allImageDecorations) {
+        // Find which side this decoration belongs to
+        const decorationSide = Object.keys(sideDecorations).find(side => 
+          sideDecorations[side as Side]?.some(dec => dec.id === decoration.id)
+        ) as Side || "front";
+        
+        // Upload decoration image to storage
+        const uploadedUrl = await uploadDecorationImage(decoration.imageUrl, decoration.name);
+        
+        if (uploadedUrl) {
+          icons.push({
+            imageUrl: uploadedUrl, // Use storage URL instead of base64
+            name: decoration.name,
+            side: getSideLabel(decorationSide)
+          });
+          console.log(`✅ Icon uploaded for ${decoration.name}: ${uploadedUrl}`);
+        } else {
+          console.warn(`⚠️ Failed to upload decoration: ${decoration.name}`);
         }
+      }
+      
+      console.log("🎨 Icons created with storage URLs:", icons);
 
-        // If no sides have templates but current side has decorations, capture current side
-        if (designTemplates.length === 0 && decorations.length > 0) {
-          const canvasImageUrl = await uploadCanvasImage();
-
+      // Capture canvas for all sides that have templates and upload them
+      const designTemplates: any[] = [];
+      
+      console.log("📸 Capturing canvas for all sides with templates...");
+      for (const side of allSides) {
+        // Only capture sides that have template images available
+        if (sideHasTemplate[side]) {
+          console.log(`🎯 Processing side: ${side}`);
+          
+          // Get the original template ID for this side from API data
+          // We need to find the templateId from the original API response
+          const sideTemplateId = getTemplateIdForSide(side);
+          console.log(`🔍 Template ID for ${side}:`, sideTemplateId);
+          
+          const canvasImageUrl = await captureSideCanvas(side);
+          
           if (canvasImageUrl) {
+            // Create template object for this side with correct templateId
             const template = {
-              templateId: null,
+              templateId: sideTemplateId, // Use actual templateId instead of null
               designImageUrl: canvasImageUrl,
             };
             designTemplates.push(template);
+            console.log(`✅ Template created for ${side}:`, template);
+          } else {
+            console.warn(`⚠️ Failed to capture canvas for side: ${side}`);
           }
-        }
-
-        const payload: CreateOrUpdateProductDesignRequest = {
-          productDesignId: null,
-          productId: resolvedProductId,
-          productOptionValueId: resolvedProductOptionValueId,
-          name: designName || `Thiết kế ${getDesignTypeLabel()}`,
-          icons,
-          templates: designTemplates,
-        };
-
-        const res = await createOrUpdateProductDesign(payload);
-        if (res.success) {
-          toast.success("Lưu thiết kế thành công!");
         } else {
-          toast.error("Lưu thiết kế thất bại.");
-          console.error("Save design failed:", res);
+          console.log(`⏭️ Skipping ${side} - no template available`);
         }
-      } catch (e) {
-        console.error("Error saving design:", e);
-        toast.error("Có lỗi xảy ra khi lưu thiết kế.");
-      } finally {
-        setSavingDesign(false);
       }
-    };
+
+      console.log(`📊 Total templates created: ${designTemplates.length}`);
+
+      const payload: CreateOrUpdateProductDesignRequest = {
+        productDesignId: null,
+        productId: resolvedProductId,
+        productOptionValueId: resolvedProductOptionValueId,
+        name: designName || `Thiết kế ${getDesignTypeLabel()}`,
+        icons,
+        templates: designTemplates,
+      };
+
+      console.log("📤 Sending payload to API:", payload);
+
+      const res = await createOrUpdateProductDesign(payload);
+      if (res.success) {
+          toast.success("Lưu thiết kế thành công!");
+          console.log("✅ Design saved successfully!");
+      } else {
+          toast.error("Lưu thiết kế thất bại.");
+          console.error("❌ Save design failed:", res);
+      }
+    } catch (e) {
+        console.error("❌ Error saving design:", e);
+        toast.error("Có lỗi xảy ra khi lưu thiết kế.");
+    } finally {
+      setSavingDesign(false);
+      console.log("💾 SAVE DESIGN PROCESS COMPLETED");
+    }
+  };
 
     // Helper function to get side label
     const getSideLabel = (side: Side): string => {
@@ -1189,6 +1312,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         default:
           return "Mặt Trước";
       }
+    };
+
+    // Helper function to get template ID for a side
+    const getTemplateIdForSide = (side: Side): string | null => {
+      return sideTemplateIds[side];
     };
 
     // Function to navigate to products page
@@ -1281,17 +1409,17 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       <div className="w-full h-full bg-gray-50 flex overflow-hidden">
         <div className="w-64 bg-white border-r overflow-y-auto flex-shrink-0">
           <div className="p-4">
-            <div className="mb-4">
-              <h3 className="font-semibold mb-2 text-sm">Thêm Hình Ảnh</h3>
-              <div className="space-y-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleDecorationImageUpload}
-                  className="hidden"
-                  id="decoration-image-upload"
-                />
-                <button
+          <div className="mb-4">
+            <h3 className="font-semibold mb-2 text-sm">Thêm Hình Ảnh</h3>
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleDecorationImageUpload}
+                className="hidden"
+                id="decoration-image-upload"
+              />
+              <button
                   onClick={() => {
                     console.log("🔘 UPLOAD BUTTON CLICKED");
                     console.log("Current side:", currentSide);
@@ -1310,22 +1438,22 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       console.error("❌ File input not found!");
                     }
                   }}
-                  disabled={uploadingImage}
-                  className="w-full bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center justify-center gap-2 font-medium text-sm disabled:opacity-50"
-                >
+                disabled={uploadingImage}
+                className="w-full bg-blue-500 text-white px-3 py-2 rounded hover:bg-blue-600 flex items-center justify-center gap-2 font-medium text-sm disabled:opacity-50"
+              >
                   <Upload size={16} />{" "}
                   {uploadingImage ? "Đang Tải..." : "Tải Hình Ảnh"}
-                </button>
-              </div>
+              </button>
             </div>
           </div>
         </div>
-
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="bg-white border-b p-3 flex items-center justify-between gap-4 flex-shrink-0">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold">Thiết Kế Áo</h1>
-              <div className="flex items-center gap-2">
+      </div>
+      
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="bg-white border-b p-3 flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">Thiết Kế Áo</h1>
+            <div className="flex items-center gap-2">
                 {/* Dropdown selector for sides */}
                 <div className="relative">
                   <select
@@ -1370,10 +1498,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
                       return (
                         <option key={key} value={key}>
-                          {label}
+                    {label}
                         </option>
-                      );
-                    })}
+                );
+              })}
                   </select>
                   {/* Custom dropdown arrow */}
                   <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -1409,17 +1537,17 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   <span className="text-gray-400">•</span>
                   <span>{sideOrder.length} khu vực</span>
                 </div>
-              </div>
             </div>
-            <button
-              onClick={saveDesign}
-              disabled={savingDesign}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-medium text-sm disabled:opacity-60"
-            >
-              💾 {savingDesign ? "Đang lưu..." : "Lưu Thiết Kế"}
-            </button>
           </div>
-
+          <button
+            onClick={saveDesign}
+            disabled={savingDesign}
+            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 font-medium text-sm disabled:opacity-60"
+          >
+              💾 {savingDesign ? "Đang lưu..." : "Lưu Thiết Kế"}
+          </button>
+        </div>
+        
           <div className="flex-1 p-4 overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 min-h-0 relative">
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
@@ -1431,33 +1559,33 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                 </div>
               </div>
             )}
-            <canvas
-              ref={canvasRef}
-              width={600}
-              height={750}
-              className="bg-white shadow-2xl cursor-crosshair rounded max-w-full max-h-full object-contain"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+          <canvas
+            ref={canvasRef}
+            width={600}
+            height={750}
+            className="bg-white shadow-2xl cursor-crosshair rounded max-w-full max-h-full object-contain"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
               style={{ touchAction: "none" }}
-            />
-          </div>
+          />
         </div>
-
-        <div className="w-64 bg-white border-l overflow-y-auto flex-shrink-0">
-          <div className="p-4">
-            <h2 className="text-lg font-bold mb-4">📚 Lớp</h2>
-
+      </div>
+      
+      <div className="w-64 bg-white border-l overflow-y-auto flex-shrink-0">
+        <div className="p-4">
+          <h2 className="text-lg font-bold mb-4">📚 Lớp</h2>
+          
             {/* Current Side Info */}
-            <div className="mb-3 p-3 bg-blue-50 border-2 border-blue-200 rounded">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">👔</span>
+          <div className="mb-3 p-3 bg-blue-50 border-2 border-blue-200 rounded">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">👔</span>
                 <span className="font-semibold text-sm">
                   Nền {getDesignTypeLabel()}
                 </span>
-                <Lock size={14} className="ml-auto text-gray-500" />
-              </div>
+              <Lock size={14} className="ml-auto text-gray-500" />
+            </div>
               <div className="text-xs text-gray-600 mt-1">
                 Khu vực: {getSideLabel(currentSide)} ({decorations.length}{" "}
                 layer)
@@ -1467,49 +1595,49 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
               </div>
               <div className="text-xs text-gray-500 mt-1">
                 Ảnh khu vực: {shirtImageBySide[currentSide] ? "Có" : "Không"}
-              </div>
             </div>
-
-            <div className="space-y-2 mb-4">
-              {[...decorations].reverse().map((dec, reversedIndex) => {
-                const actualIndex = decorations.length - 1 - reversedIndex;
-                return (
-                  <div
-                    key={dec.id}
-                    className={`p-2 border-2 rounded flex items-center gap-2 cursor-pointer transition ${
+          </div>
+          
+          <div className="space-y-2 mb-4">
+            {[...decorations].reverse().map((dec, reversedIndex) => {
+              const actualIndex = decorations.length - 1 - reversedIndex;
+              return (
+                <div
+                  key={dec.id}
+                  className={`p-2 border-2 rounded flex items-center gap-2 cursor-pointer transition ${
                       selectedId === dec.id
                         ? "bg-blue-100 border-blue-500 shadow"
                         : "bg-gray-50 hover:bg-gray-100"
-                    }`}
-                    onClick={() => setSelectedId(dec.id)}
-                  >
+                  }`}
+                  onClick={() => setSelectedId(dec.id)}
+                >
                     <span className="text-lg">🖼️</span>
                     <span className="flex-1 text-sm font-medium truncate">
                       {dec.name}
-                    </span>
+                  </span>
 
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         moveLayer(dec.id, "up");
                       }}
-                      disabled={actualIndex === decorations.length - 1}
+                          disabled={actualIndex === decorations.length - 1}
                       className="p-1 hover:bg-gray-300 rounded disabled:opacity-30 transition"
                     >
-                      <MoveUp size={14} />
-                    </button>
-
+                    <MoveUp size={14} />
+                  </button>
+                  
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         moveLayer(dec.id, "down");
                       }}
-                      disabled={actualIndex === 0}
+                          disabled={actualIndex === 0}
                       className="p-1 hover:bg-gray-300 rounded disabled:opacity-30 transition"
                     >
-                      <MoveDown size={14} />
-                    </button>
-
+                    <MoveDown size={14} />
+                  </button>
+                  
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1517,9 +1645,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       }}
                       className="p-1 hover:bg-gray-300 rounded transition"
                     >
-                      {dec.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                    </button>
-
+                    {dec.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                  </button>
+                  
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1527,9 +1655,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       }}
                       className="p-1 hover:bg-gray-300 rounded transition"
                     >
-                      {dec.locked ? <Lock size={14} /> : <Unlock size={14} />}
-                    </button>
-
+                    {dec.locked ? <Lock size={14} /> : <Unlock size={14} />}
+                  </button>
+                  
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1537,19 +1665,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       }}
                       className="p-1 hover:bg-red-200 rounded text-red-600 transition"
                     >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                );
-              })}
-
-              {decorations.length === 0 && (
-                <div className="text-center py-8 text-gray-400 text-sm">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
+            
+            {decorations.length === 0 && (
+              <div className="text-center py-8 text-gray-400 text-sm">
                   Chưa có trang trí nào.
                   <br />
                   Thêm từ bảng điều khiển bên trái!
-                </div>
-              )}
+              </div>
+            )}
 
               {/* Debug: Show all sides layer count and background images */}
               <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
@@ -1586,138 +1714,138 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   ))}
                 </div>
               </div>
-            </div>
-
-            {selectedDecoration && (
-              <div className="border-t-2 pt-4">
-                <h3 className="font-bold mb-3 text-lg">⚙️ Thuộc Tính</h3>
-
-                <div className="space-y-3">
+          </div>
+          
+          {selectedDecoration && (
+            <div className="border-t-2 pt-4">
+              <h3 className="font-bold mb-3 text-lg">⚙️ Thuộc Tính</h3>
+              
+              <div className="space-y-3">
                   <div>
                     <label className="text-sm font-semibold block mb-1">
                       Chiều Rộng: {Math.round(selectedDecoration.width)}px
                     </label>
-                    <input
-                      type="range"
-                      min="50"
-                      max="500"
-                      value={selectedDecoration.width}
-                      onChange={(e) => {
-                        const newWidth = parseInt(e.target.value);
-                        if (maintainAspectRatio) {
+                      <input
+                        type="range"
+                        min="50"
+                        max="500"
+                        value={selectedDecoration.width}
+                        onChange={(e) => {
+                          const newWidth = parseInt(e.target.value);
+                          if (maintainAspectRatio) {
                           const aspectRatio =
                             selectedDecoration.width /
                             selectedDecoration.height;
                           updateProperty("width", newWidth);
                           updateProperty("height", newWidth / aspectRatio);
-                        } else {
+                          } else {
                           updateProperty("width", newWidth);
-                        }
-                      }}
-                      className="w-full"
-                      disabled={selectedDecoration.locked}
-                    />
-                  </div>
-
-                  <div>
+                          }
+                        }}
+                        className="w-full"
+                        disabled={selectedDecoration.locked}
+                      />
+                    </div>
+                    
+                    <div>
                     <label className="text-sm font-semibold block mb-1">
                       Chiều Cao: {Math.round(selectedDecoration.height)}px
                     </label>
-                    <input
-                      type="range"
-                      min="50"
-                      max="500"
-                      value={selectedDecoration.height}
-                      onChange={(e) => {
-                        const newHeight = parseInt(e.target.value);
-                        if (maintainAspectRatio) {
+                      <input
+                        type="range"
+                        min="50"
+                        max="500"
+                        value={selectedDecoration.height}
+                        onChange={(e) => {
+                          const newHeight = parseInt(e.target.value);
+                          if (maintainAspectRatio) {
                           const aspectRatio =
                             selectedDecoration.width /
                             selectedDecoration.height;
                           updateProperty("height", newHeight);
                           updateProperty("width", newHeight * aspectRatio);
-                        } else {
+                          } else {
                           updateProperty("height", newHeight);
-                        }
-                      }}
-                      className="w-full"
-                      disabled={selectedDecoration.locked}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="maintain-aspect-ratio"
-                      checked={maintainAspectRatio}
-                      onChange={(e) => setMaintainAspectRatio(e.target.checked)}
-                      className="rounded"
-                    />
+                          }
+                        }}
+                        className="w-full"
+                        disabled={selectedDecoration.locked}
+                      />
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="maintain-aspect-ratio"
+                        checked={maintainAspectRatio}
+                        onChange={(e) => setMaintainAspectRatio(e.target.checked)}
+                        className="rounded"
+                      />
                     <label
                       htmlFor="maintain-aspect-ratio"
                       className="text-sm font-medium"
                     >
-                      Giữ Tỷ Lệ Khung Hình
-                    </label>
-                  </div>
-
-                  <div>
+                        Giữ Tỷ Lệ Khung Hình
+                      </label>
+                    </div>
+                
+                <div>
                     <label className="text-sm font-semibold block mb-1">
                       Xoay: {selectedDecoration.rotation}°
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      value={selectedDecoration.rotation}
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    value={selectedDecoration.rotation}
                       onChange={(e) =>
                         updateProperty("rotation", parseInt(e.target.value))
                       }
-                      className="w-full"
-                      disabled={selectedDecoration.locked}
-                    />
-                  </div>
-
-                  <div>
+                    className="w-full"
+                    disabled={selectedDecoration.locked}
+                  />
+                </div>
+                
+                <div>
                     <label className="text-sm font-semibold block mb-1">
                       Độ Trong Suốt:{" "}
                       {Math.round(selectedDecoration.opacity * 100)}%
                     </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={selectedDecoration.opacity * 100}
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={selectedDecoration.opacity * 100}
                       onChange={(e) =>
                         updateProperty(
                           "opacity",
                           parseInt(e.target.value) / 100
                         )
                       }
-                      className="w-full"
-                      disabled={selectedDecoration.locked}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedDecoration.shadow}
+                    className="w-full"
+                    disabled={selectedDecoration.locked}
+                  />
+                </div>
+                
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedDecoration.shadow}
                         onChange={(e) =>
                           updateProperty("shadow", e.target.checked)
                         }
-                        disabled={selectedDecoration.locked}
-                      />
-                      <span className="text-sm font-semibold">Bóng Đổ</span>
-                    </label>
-                  </div>
+                      disabled={selectedDecoration.locked}
+                    />
+                    <span className="text-sm font-semibold">Bóng Đổ</span>
+                  </label>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-
+      </div>
+      
         {/* Missing Product Params Dialog */}
         {showMissingParamsDialog && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1737,7 +1865,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
                     />
                   </svg>
-                </div>
+                        </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
                   Thiếu Thông Tin Sản Phẩm
                 </h3>
@@ -1746,25 +1874,25 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   <br />
                   Vui lòng chọn sản phẩm từ danh sách để tiếp tục.
                 </p>
-              </div>
-
-              <div className="space-y-3">
-                <button
+                  </div>
+                  
+                  <div className="space-y-3">
+                        <button
                   onClick={handleNavigateToProducts}
                   className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                >
+                        >
                   🛍️ Chọn Sản Phẩm
-                </button>
+                        </button>
 
                 <p className="text-sm text-gray-500">
                   Bạn sẽ được chuyển đến trang danh sách sản phẩm
                 </p>
-              </div>
-            </div>
+                  </div>
           </div>
-        )}
-      </div>
-    );
+        </div>
+      )}
+    </div>
+  );
   }
 );
 
