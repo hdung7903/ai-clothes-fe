@@ -18,7 +18,6 @@ import { loginUser, clearError, fetchUserProfile } from "@/redux/authSlice"
 const loginSchema = z.object({
   email: z.string().email("Vui lòng nhập địa chỉ email hợp lệ"),
   password: z.string().min(5, "Mật khẩu phải có ít nhất 5 ký tự"),
-  rememberMe: z.boolean().default(false),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -27,7 +26,7 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const { isLoading, error, isAuthenticated, tokens, user } = useAppSelector((state) => state.auth)
+  const { isLoading, error, isAuthenticated, tokens, user, lastErrorPayload } = useAppSelector((state) => state.auth)
 
   const {
     register,
@@ -39,7 +38,6 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
-  const rememberMe = watch("rememberMe")
 
   // Điều hướng sau khi đăng nhập dựa trên vai trò người dùng
   useEffect(() => {
@@ -66,9 +64,42 @@ export function LoginForm() {
   }, [dispatch])
 
   const onSubmit = async (data: LoginFormData) => {
-    const { rememberMe, ...credentials } = data
-    dispatch(loginUser(credentials))
+    const result = await dispatch(loginUser(data))
+    
+    // Kiểm tra nếu có lỗi ACCOUNT_EMAIL_NOT_VERIFIED
+    if (loginUser.rejected.match(result)) {
+      const errorPayload = result.payload as any
+      console.log('Login error payload:', errorPayload)
+      
+      // Kiểm tra cấu trúc lỗi từ API
+      if (errorPayload?.ACCOUNT_EMAIL_NOT_VERIFIED || 
+          (errorPayload?.errors && errorPayload.errors.ACCOUNT_EMAIL_NOT_VERIFIED)) {
+        // Clear error trước khi chuyển hướng
+        dispatch(clearError())
+        router.push(`/auth/verify?email=${encodeURIComponent(data.email)}`)
+        return
+      }
+    }
   }
+
+  // Kiểm tra lỗi từ state sau khi login failed
+  useEffect(() => {
+    if (lastErrorPayload && !isLoading) {
+      console.log('Checking lastErrorPayload:', lastErrorPayload)
+      
+      // Kiểm tra cấu trúc lỗi từ API
+      if (lastErrorPayload?.ACCOUNT_EMAIL_NOT_VERIFIED || 
+          (lastErrorPayload?.errors && lastErrorPayload.errors.ACCOUNT_EMAIL_NOT_VERIFIED)) {
+        // Lấy email từ form data hiện tại
+        const formData = watch()
+        if (formData.email) {
+          // Clear error trước khi chuyển hướng
+          dispatch(clearError())
+          router.push(`/auth/verify?email=${encodeURIComponent(formData.email)}`)
+        }
+      }
+    }
+  }, [lastErrorPayload, isLoading, router, watch])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -120,16 +151,6 @@ export function LoginForm() {
         {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="rememberMe"
-          checked={rememberMe}
-          onCheckedChange={(checked) => setValue("rememberMe", !!checked)}
-        />
-        <Label htmlFor="rememberMe" className="text-sm font-normal">
-          Ghi nhớ đăng nhập
-        </Label>
-      </div>
 
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (

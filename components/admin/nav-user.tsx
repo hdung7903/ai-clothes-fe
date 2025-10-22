@@ -111,21 +111,6 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck />
-                Tài khoản
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Thanh toán
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Thông báo
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Đăng xuất

@@ -12,6 +12,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  lastErrorPayload?: any;
 }
 
 const initialState: AuthState = {
@@ -228,7 +229,10 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false;
+        // Lưu toàn bộ payload để có thể kiểm tra chi tiết
         state.error = action.payload ? Object.values(action.payload).flat().join(', ') : 'Login failed';
+        // Lưu payload gốc để component có thể kiểm tra
+        (state as any).lastErrorPayload = action.payload;
       })
       // Register
       .addCase(registerUser.pending, (state) => {

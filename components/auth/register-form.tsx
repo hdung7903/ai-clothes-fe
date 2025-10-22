@@ -28,7 +28,6 @@ const registerSchema = z
         "Mật khẩu phải có ít nhất 1 chữ hoa, 1 chữ thường và 1 số",
       ),
     confirmPassword: z.string(),
-    acceptTerms: z.boolean().refine((val) => val === true, "Bạn phải đồng ý với điều khoản và chính sách"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Mật khẩu xác nhận không khớp",
@@ -55,7 +54,6 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
   })
 
-  const acceptTerms = watch("acceptTerms")
 
   // Clear error when component mounts
   useEffect(() => {
@@ -63,7 +61,7 @@ export function RegisterForm() {
   }, [dispatch])
 
   const onSubmit = async (data: RegisterFormData) => {
-    const { firstName, lastName, confirmPassword, acceptTerms, ...credentials } = data
+    const { firstName, lastName, confirmPassword, ...credentials } = data
     const result = await dispatch(registerUser(credentials))
     
     if (registerUser.fulfilled.match(result)) {
@@ -201,25 +199,6 @@ export function RegisterForm() {
         {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>}
       </div>
 
-      <div className="flex items-start space-x-2">
-        <Checkbox
-          id="acceptTerms"
-          checked={acceptTerms}
-          onCheckedChange={(checked) => setValue("acceptTerms", !!checked)}
-          className="mt-1"
-        />
-        <Label htmlFor="acceptTerms" className="text-sm font-normal leading-5">
-          Tôi đồng ý với{" "}
-          <a href="/terms" className="text-primary hover:text-primary/80 underline">
-            Điều khoản dịch vụ
-          </a>{" "}
-          và{" "}
-          <a href="/privacy" className="text-primary hover:text-primary/80 underline">
-            Chính sách bảo mật
-          </a>
-        </Label>
-      </div>
-      {errors.acceptTerms && <p className="text-sm text-destructive">{errors.acceptTerms.message}</p>}
 
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? (

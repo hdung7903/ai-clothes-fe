@@ -19,8 +19,12 @@ export default function VerifyEmailPage() {
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
   const [success, setSuccess] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   useEffect(() => {
+    // Clear any previous errors when component mounts
+    dispatch(clearError())
+    
     // Prefer email from localStorage, fallback to query param
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('pendingVerificationEmail') : null
@@ -29,7 +33,16 @@ export default function VerifyEmailPage() {
     } catch {
       setEmail(presetEmail)
     }
-  }, [presetEmail])
+  }, [presetEmail, dispatch])
+
+  // Tự động gửi email verification khi có email
+  useEffect(() => {
+    if (email && !emailSent) {
+      console.log('Auto-sending verification email to:', email)
+      dispatch(requestEmailVerificationAction({ email }))
+      setEmailSent(true)
+    }
+  }, [email, emailSent, dispatch])
 
   const onVerify = async () => {
     if (!email || code.length !== 6) return
@@ -43,6 +56,7 @@ export default function VerifyEmailPage() {
   const onResend = async () => {
     if (!email) return
     await dispatch(requestEmailVerificationAction({ email }))
+    setEmailSent(true) // Đánh dấu đã gửi email
   }
 
   return (
@@ -62,6 +76,12 @@ export default function VerifyEmailPage() {
           {success && (
             <Alert>
               <AlertDescription>Email đã được xác thực! Đang chuyển hướng đến trang đăng nhập…</AlertDescription>
+            </Alert>
+          )}
+
+          {emailSent && !success && (
+            <Alert>
+              <AlertDescription>Mã xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.</AlertDescription>
             </Alert>
           )}
 
