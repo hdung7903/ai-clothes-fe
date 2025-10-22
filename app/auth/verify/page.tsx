@@ -20,6 +20,7 @@ export default function VerifyEmailPage() {
   const [code, setCode] = useState("")
   const [success, setSuccess] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
+  const [cooldownTime, setCooldownTime] = useState(0)
 
   useEffect(() => {
     // Clear any previous errors when component mounts
@@ -41,8 +42,19 @@ export default function VerifyEmailPage() {
       console.log('Auto-sending verification email to:', email)
       dispatch(requestEmailVerificationAction({ email }))
       setEmailSent(true)
+      setCooldownTime(60) // 60 giây cooldown
     }
   }, [email, emailSent, dispatch])
+
+  // Cooldown timer
+  useEffect(() => {
+    if (cooldownTime > 0) {
+      const timer = setTimeout(() => {
+        setCooldownTime(cooldownTime - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [cooldownTime])
 
   const onVerify = async () => {
     if (!email || code.length !== 6) return
@@ -54,9 +66,10 @@ export default function VerifyEmailPage() {
   }
 
   const onResend = async () => {
-    if (!email) return
+    if (!email || cooldownTime > 0) return
     await dispatch(requestEmailVerificationAction({ email }))
     setEmailSent(true) // Đánh dấu đã gửi email
+    setCooldownTime(60) // Reset cooldown 60 giây
   }
 
   return (
@@ -81,7 +94,10 @@ export default function VerifyEmailPage() {
 
           {emailSent && !success && (
             <Alert>
-              <AlertDescription>Mã xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.</AlertDescription>
+              <AlertDescription>
+                Mã xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.
+                {cooldownTime > 0 && ` Bạn có thể gửi lại mã sau ${cooldownTime} giây.`}
+              </AlertDescription>
             </Alert>
           )}
 
@@ -112,8 +128,13 @@ export default function VerifyEmailPage() {
             <Button className="w-full" onClick={onVerify} disabled={isLoading || !email || code.length !== 6}>
               Xác Thực Email
             </Button>
-            <Button variant="ghost" className="w-full" onClick={onResend} disabled={isLoading || !email}>
-              Gửi Lại Mã
+            <Button 
+              variant="ghost" 
+              className="w-full" 
+              onClick={onResend} 
+              disabled={isLoading || !email || cooldownTime > 0}
+            >
+              {cooldownTime > 0 ? `Gửi lại sau ${cooldownTime}s` : 'Gửi Lại Mã'}
             </Button>
           </div>
         </CardContent>
