@@ -12,34 +12,36 @@ import type { CreateOrUpdateTemplateRequest } from "@/types/template"
 import { searchProducts, type SearchProductsQuery, getProductById } from "@/services/productService"
 import type { ProductSummaryItem, ProductDetail } from "@/types/product"
 import { uploadImage } from "@/services/storageService"
+import { Palette, Package, Settings, Image, Plus, Check, X, Upload, Eye } from "lucide-react"
 
 interface TemplateFormProps {
   templateId?: string;
   mode: 'create' | 'edit';
+  productId?: string;
 }
 
 // Predefined print area groups for better UX (limited as requested)
 const printAreaGroups = [
   {
     title: 'Thân áo',
-    items: ['Front', 'Back'],
+    items: ['Mặt trước', 'Mặt sau'],
   },
   {
     title: 'Tay áo',
-    items: ['Left Sleeve', 'Right Sleeve'],
+    items: ['Tay trái', 'Tay phải'],
   },
 ]
 
 const groupedAreasFlat: string[] = printAreaGroups.flatMap(g => g.items)
 
-export function TemplateForm({ templateId, mode }: TemplateFormProps) {
+export function TemplateForm({ templateId, mode, productId }: TemplateFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
   const [formData, setFormData] = React.useState<CreateOrUpdateTemplateRequest>({
     templateId: "",
-    productId: "",
+    productId: productId || "",
     productOptionValueId: "",
     printAreaName: "",
     imageUrl: "",
@@ -85,6 +87,23 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
     run()
     return () => { ignore = true }
   }, [])
+
+  // Load product detail when productId is provided from props
+  React.useEffect(() => {
+    if (productId && mode === 'create') {
+      let ignore = false
+      const run = async () => {
+        try {
+          const res = await getProductById(productId)
+          if (!ignore && res.success) {
+            setProductDetail(res.data ?? null)
+          }
+        } catch { /* noop */ }
+      }
+      run()
+      return () => { ignore = true }
+    }
+  }, [productId, mode])
 
   React.useEffect(() => {
     if (mode === 'edit' && templateId) {
@@ -215,8 +234,11 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
     if (!productDetail) return [] as { id: string; label: string }[]
     const list: { id: string; label: string }[] = []
     for (const opt of productDetail.options) {
-      for (const val of opt.values) {
-        list.push({ id: val.optionValueId, label: `${opt.name}: ${val.value}` })
+      // Only show color options, skip size options
+      if (opt.name.toLowerCase().includes('color') || opt.name.toLowerCase().includes('màu')) {
+        for (const val of opt.values) {
+          list.push({ id: val.optionValueId, label: val.value })
+        }
       }
     }
     return list
@@ -295,113 +317,164 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-4xl">
-      <CardHeader>
-        <CardTitle>
-          {mode === 'create' ? 'Tạo Template mới' : 'Chỉnh sửa Template'}
-        </CardTitle>
-        <CardDescription>
-          {mode === 'create' ? 'Nhập thông tin để tạo template' : 'Cập nhật thông tin template'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+    <div className="mx-auto w-full max-w-6xl space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Palette className="h-8 w-8 text-primary" />
+            {mode === 'create' ? 'Tạo Template mới' : 'Chỉnh sửa Template'}
+          </h1>
+          <p className="text-muted-foreground">
+            {mode === 'create' ? 'Thiết kế và tạo template cho sản phẩm' : 'Cập nhật thông tin template'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => router.back()}>
+            <X className="h-4 w-4 mr-2" />
+            Hủy
+          </Button>
+          <Button type="submit" form="template-form" disabled={isLoading} className="bg-primary hover:bg-primary/90">
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Đang lưu...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4 mr-2" />
+                {mode === 'create' ? 'Lưu tất cả' : 'Cập nhật'}
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Chọn sản phẩm *</Label>
-                <Select value={formData.productId} onValueChange={handleProductChange} disabled={isLoading || isLoadingProducts}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={isLoadingProducts ? 'Đang tải sản phẩm...' : 'Chọn sản phẩm'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products.map((p) => (
-                      <SelectItem key={p.productId} value={p.productId}>{p.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <form id="template-form" onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <Alert variant="destructive" className="border-red-200 bg-red-50">
+            <AlertDescription className="flex items-center gap-2">
+              <X className="h-4 w-4" />
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-              <div className="space-y-2">
-                <Label>Chọn Option Value *</Label>
-                <Select
-                  value={formData.productOptionValueId}
-                  onValueChange={(v) => handleInputChange('productOptionValueId', v)}
-                  disabled={isLoading || !formData.productId || availableOptionValues.length === 0}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={!formData.productId ? 'Chọn sản phẩm trước' : (availableOptionValues.length ? 'Chọn option value' : 'Không có option value')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableOptionValues.map((ov) => (
-                      <SelectItem key={ov.id} value={ov.id}>{ov.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Khu vực in (Print area) *</Label>
-                <div className="rounded-md border p-3">
-                  <Input
-                    placeholder="Tìm khu vực (vd: front, back, sleeve, chest...)"
-                    className="mb-3"
-                    onChange={(e) => {
-                      const q = e.target.value.trim().toLowerCase()
-                      const firstMatched = groupedAreasFlat.find(x => x.toLowerCase().includes(q))
-                      if (q && firstMatched) {
-                        handleInputChange('printAreaName', firstMatched)
-                      }
-                    }}
-                    disabled={isLoading}
-                  />
-                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
-                    {printAreaGroups.map(group => (
-                      <div key={group.title} className="col-span-2 md:col-span-1">
-                        <div className="text-xs font-medium text-muted-foreground mb-1">{group.title}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {group.items.map((v) => {
-                            const isAlreadyAdded = mode === 'create' && addedAreas.some(a => a.printAreaName.toLowerCase() === v.toLowerCase())
-                            const isSelected = selectedArea === v
-                            return (
-                              <button
-                                type="button"
-                                key={v}
-                                onClick={() => handleAreaSelect(v)}
-                                className={
-                                  (isSelected
-                                    ? "ring-2 ring-ring bg-accent text-accent-foreground"
-                                    : isAlreadyAdded
-                                    ? "opacity-50 cursor-not-allowed bg-muted"
-                                    : "hover:bg-muted") +
-                                  " rounded-md border px-2 py-2 text-sm text-left"
-                                }
-                                disabled={isLoading || (mode === 'create' && isAlreadyAdded)}
-                                title={isAlreadyAdded ? "Khu vực này đã được thêm" : ""}
-                              >
-                                {v}
-                                {isAlreadyAdded && <span className="ml-1 text-xs">✓</span>}
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Custom option removed per request */}
-                </div>
-              </div>
-
-              {selectedArea && (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left Column - Form Controls */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Product Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Thông tin sản phẩm
+                </CardTitle>
+                <CardDescription>Chọn sản phẩm và tùy chọn để tạo template</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Hình ảnh cho {selectedArea} *</Label>
-                  <div className="flex flex-col gap-2">
+                  <Label className="text-sm font-medium">Chọn sản phẩm *</Label>
+                  <Select value={formData.productId} onValueChange={handleProductChange} disabled={isLoading || isLoadingProducts || (mode === 'create' && !!productId)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={isLoadingProducts ? 'Đang tải sản phẩm...' : 'Chọn sản phẩm'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.productId} value={p.productId}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {mode === 'create' && productId && (
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      Sản phẩm đã được chọn từ trang quản lý sản phẩm
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Chọn Option Value *</Label>
+                  <Select
+                    value={formData.productOptionValueId}
+                    onValueChange={(v) => handleInputChange('productOptionValueId', v)}
+                    disabled={isLoading || !formData.productId || availableOptionValues.length === 0}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={!formData.productId ? 'Chọn sản phẩm trước' : (availableOptionValues.length ? 'Chọn option value' : 'Không có option value')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableOptionValues.map((ov) => (
+                        <SelectItem key={ov.id} value={ov.id}>{ov.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Print Area Selection */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Khu vực in (Print area) *
+                </CardTitle>
+                <CardDescription>Chọn khu vực trên sản phẩm để in thiết kế</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                  {printAreaGroups.map(group => (
+                    <div key={group.title} className="col-span-2 md:col-span-1">
+                      <div className="text-sm font-medium text-muted-foreground mb-3">{group.title}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {group.items.map((v) => {
+                          const isAlreadyAdded = mode === 'create' && addedAreas.some(a => a.printAreaName.toLowerCase() === v.toLowerCase())
+                          const isSelected = selectedArea === v
+                          return (
+                            <button
+                              type="button"
+                              key={v}
+                              onClick={() => handleAreaSelect(v)}
+                              className={
+                                (isSelected
+                                  ? "ring-2 ring-primary bg-primary/10 text-primary border-primary"
+                                  : isAlreadyAdded
+                                  ? "opacity-50 cursor-not-allowed bg-muted border-muted"
+                                  : "hover:bg-muted border-border hover:border-primary/50") +
+                                " rounded-lg border px-3 py-3 text-sm text-left transition-all duration-200"
+                              }
+                              disabled={isLoading || (mode === 'create' && isAlreadyAdded)}
+                              title={isAlreadyAdded ? "Khu vực này đã được thêm" : ""}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span>{v}</span>
+                                {isAlreadyAdded && <Check className="h-3 w-3 text-green-600" />}
+                                {isSelected && !isAlreadyAdded && <div className="h-2 w-2 rounded-full bg-primary" />}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Image Upload */}
+            {selectedArea && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Image className="h-5 w-5" />
+                    Hình ảnh cho {selectedArea} *
+                  </CardTitle>
+                  <CardDescription>Upload hình ảnh hoặc nhập URL cho khu vực đã chọn</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">URL hình ảnh</Label>
                     <Input
                       id="imageUrl"
                       value={formData.imageUrl}
@@ -409,151 +482,190 @@ export function TemplateForm({ templateId, mode }: TemplateFormProps) {
                       placeholder="Dán URL hình ảnh (https://...)"
                       disabled={isLoading || isUploading}
                     />
-                    <div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Hoặc upload file</Label>
+                    <div className="flex items-center gap-2">
                       <Input
                         type="file"
                         accept="image/*"
                         onChange={(e) => handleAreaImageSelect((e.target as HTMLInputElement).files?.[0] || null)}
                         disabled={isLoading || isUploading}
+                        className="flex-1"
                       />
-                      {(selectedAreaPreview || (mode === 'edit' && formData.imageUrl)) ? (
-                        <div className="mt-2">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={selectedAreaPreview || formData.imageUrl} alt="Preview" className="aspect-square w-full max-w-xs rounded-md object-cover ring-1 ring-border" />
-                        </div>
-                      ) : null}
+                      <Upload className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    {mode === 'create' && (
-                      <Button
-                        type="button"
-                        onClick={handleCompleteArea}
-                        disabled={!selectedArea || (!formData.imageUrl && !selectedAreaImage)}
-                        className="w-full"
-                      >
-                        Hoàn thành chọn {selectedArea}
-                      </Button>
-                    )}
-                    {mode === 'edit' && selectedArea !== originalPrintAreaName && (
-                      <div className="text-xs text-amber-600">Bạn vừa đổi khu vực. Hãy chọn ảnh mới cho khu vực này trước khi cập nhật.</div>
-                    )}
                   </div>
-                </div>
-              )}
 
-
-              <div className="flex justify-start gap-2 pt-2 md:justify-end">
-                <Button type="button" variant="outline" onClick={() => router.back()} disabled={isLoading}>Hủy</Button>
-                <Button type="submit" disabled={isLoading}>{isLoading ? 'Đang lưu...' : (mode === 'create' ? 'Lưu tất cả' : 'Cập nhật')}</Button>
-              </div>
-            </div>
-
-            <div className="flex items-start justify-center">
-              <div className="w-full rounded-lg border p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <div className="text-sm font-medium text-muted-foreground">Khu vực đã thêm</div>
-                  {mode === 'edit' ? null : (
-                    <div className="text-xs text-muted-foreground">{addedAreas.length} khu vực</div>
+                  {(selectedAreaPreview || (mode === 'edit' && formData.imageUrl)) && (
+                    <div className="space-y-2">
+                      <Label>Xem trước</Label>
+                      <div className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img 
+                          src={selectedAreaPreview || formData.imageUrl} 
+                          alt="Preview" 
+                          className="aspect-square w-full max-w-xs rounded-lg object-cover ring-1 ring-border shadow-sm" 
+                        />
+                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                          <Eye className="h-3 w-3 inline mr-1" />
+                          Preview
+                        </div>
+                      </div>
+                    </div>
                   )}
-                </div>
+
+                  {mode === 'create' && (
+                    <Button
+                      type="button"
+                      onClick={handleCompleteArea}
+                      disabled={!selectedArea || (!formData.imageUrl && !selectedAreaImage)}
+                      className="w-full"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Hoàn thành chọn {selectedArea}
+                    </Button>
+                  )}
+                  
+                  {mode === 'edit' && selectedArea !== originalPrintAreaName && (
+                    <Alert className="border-amber-200 bg-amber-50">
+                      <AlertDescription className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Bạn vừa đổi khu vực. Hãy chọn ảnh mới cho khu vực này trước khi cập nhật.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Right Column - Preview */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Eye className="h-5 w-5" />
+                  Khu vực đã thêm
+                </CardTitle>
+                <CardDescription>
+                  {mode === 'edit' ? 'Template hiện tại' : `${addedAreas.length} khu vực`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 {mode === 'edit' ? (
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-                    <div className="rounded-md border p-2">
-                      <div className="text-sm font-medium truncate">{selectedArea || formData.printAreaName || 'Print area'}</div>
-                      <div className="mt-2">
+                  <div className="space-y-4">
+                    <div className="rounded-lg border p-4">
+                      <div className="text-sm font-medium mb-3">{selectedArea || formData.printAreaName || 'Print area'}</div>
+                      <div className="space-y-3">
                         {(
                           editImagePreview ||
                           selectedAreaPreview ||
-                          // Only show existing image if area unchanged
                           (selectedArea === originalPrintAreaName && formData.imageUrl)
                         ) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={editImagePreview || selectedAreaPreview || formData.imageUrl} alt={selectedArea || formData.printAreaName || 'Preview'} className="aspect-square w-full rounded-md object-cover ring-1 ring-border" />
+                          <div className="relative">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img 
+                              src={editImagePreview || selectedAreaPreview || formData.imageUrl} 
+                              alt={selectedArea || formData.printAreaName || 'Preview'} 
+                              className="aspect-square w-full rounded-lg object-cover ring-1 ring-border shadow-sm" 
+                            />
+                            <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                              <Eye className="h-3 w-3 inline mr-1" />
+                              Current
+                            </div>
+                          </div>
                         ) : (
-                          <div className="aspect-square w-full rounded-md border bg-muted/40" />
+                          <div className="aspect-square w-full rounded-lg border-2 border-dashed border-muted bg-muted/40 flex items-center justify-center">
+                            <div className="text-center text-muted-foreground">
+                              <Image className="h-8 w-8 mx-auto mb-2" />
+                              <p className="text-sm">Chưa có hình ảnh</p>
+                            </div>
+                          </div>
                         )}
-                      </div>
-                      <div className="mt-2">
-                        <Input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const f = (e.target as HTMLInputElement).files?.[0] || null
-                            setEditImageFile(f)
-                            if (f) {
-                              try {
-                                const u = URL.createObjectURL(f)
-                                setEditImagePreview(u)
-                              } catch {
+                        <div className="space-y-2">
+                          <Label className="text-xs">Thay đổi hình ảnh</Label>
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const f = (e.target as HTMLInputElement).files?.[0] || null
+                              setEditImageFile(f)
+                              if (f) {
+                                try {
+                                  const u = URL.createObjectURL(f)
+                                  setEditImagePreview(u)
+                                } catch {
+                                  setEditImagePreview(null)
+                                }
+                              } else {
                                 setEditImagePreview(null)
                               }
-                            } else {
-                              setEditImagePreview(null)
-                            }
-                          }}
-                          disabled={isLoading || isUploading}
-                        />
+                            }}
+                            disabled={isLoading || isUploading}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     {addedAreas.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">Chưa có khu vực nào. Thêm ở khung bên trái.</div>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Palette className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p className="text-sm">Chưa có khu vực nào</p>
+                        <p className="text-xs">Thêm ở khung bên trái</p>
+                      </div>
                     ) : (
-                      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                      <div className="space-y-3">
                         {addedAreas.map((a, idx) => (
-                          <div key={a.printAreaName + idx} className="rounded-md border p-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-medium truncate" title={a.printAreaName}>{a.printAreaName}</div>
+                          <div key={a.printAreaName + idx} className="rounded-lg border p-3">
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="text-sm font-medium truncate" title={a.printAreaName}>
+                                {a.printAreaName}
+                              </div>
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
                                 onClick={() => setAddedAreas(prev => prev.filter((_, i) => i !== idx))}
+                                className="h-6 w-6 p-0"
                               >
-                                Xóa
+                                <X className="h-3 w-3" />
                               </Button>
                             </div>
-                            <div className="mt-2">
+                            <div className="space-y-2">
                               {(a.previewUrl || a.url) ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={a.previewUrl || a.url!} alt={a.printAreaName} className="aspect-square w-full rounded-md object-cover ring-1 ring-border" />
+                                <div className="relative">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img 
+                                    src={a.previewUrl || a.url!} 
+                                    alt={a.printAreaName} 
+                                    className="aspect-square w-full rounded-md object-cover ring-1 ring-border" 
+                                  />
+                                  <div className="absolute top-1 right-1 bg-black/50 text-white text-xs px-1 py-0.5 rounded">
+                                    {idx + 1}
+                                  </div>
+                                </div>
                               ) : (
-                                <div className="aspect-square w-full rounded-md border bg-muted/40" />
+                                <div className="aspect-square w-full rounded-md border-2 border-dashed border-muted bg-muted/40 flex items-center justify-center">
+                                  <Image className="h-6 w-6 text-muted-foreground" />
+                                </div>
                               )}
-                            </div>
-                            <div className="mt-2">
-                              <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={async (e) => {
-                                  const f = (e.target as HTMLInputElement).files?.[0] || null
-                                  if (!f) {
-                                    setAddedAreas(prev => prev.map((it, i) => i === idx ? { ...it, file: null, previewUrl: null } : it))
-                                    return
-                                  }
-                                  try {
-                                    const url = URL.createObjectURL(f)
-                                    setAddedAreas(prev => prev.map((it, i) => i === idx ? { ...it, file: f, previewUrl: url, url: undefined } : it))
-                                  } catch {
-                                    setAddedAreas(prev => prev.map((it, i) => i === idx ? { ...it, file: f, previewUrl: null, url: undefined } : it))
-                                  }
-                                }}
-                                disabled={isLoading || isUploading}
-                              />
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </div>
+      </form>
+    </div>
   )
 }
 

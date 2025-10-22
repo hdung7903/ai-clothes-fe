@@ -1,5 +1,6 @@
 "use client"
 import * as React from "react"
+import { useSearchParams } from "next/navigation"
 import { AdminSidebar } from "@/components/admin/admin-sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -18,6 +19,8 @@ import {
 import { TemplateForm } from "@/components/admin/template-form"
 
 export default function Page() {
+  const searchParams = useSearchParams()
+  const productId = searchParams.get('productId')
   return (
     <SidebarProvider>
       <AdminSidebar />
@@ -33,18 +36,18 @@ export default function Page() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/templates">Templates</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/products">Sản phẩm</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Thêm template</BreadcrumbPage>
+                  <BreadcrumbPage>Tạo mới template</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <TemplateForm mode="create" />
+          <TemplateForm mode="create" productId={productId || undefined} />
         </div>
       </SidebarInset>
     </SidebarProvider>

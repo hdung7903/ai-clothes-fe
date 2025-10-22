@@ -60,11 +60,11 @@ export default function Page() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/templates">Templates</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/products">Sản phẩm</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Chi tiết</BreadcrumbPage>
+                  <BreadcrumbPage>Chi tiết template</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

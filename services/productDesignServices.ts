@@ -21,11 +21,13 @@ function getBaseUrl(): string {
 
 function getAccessToken(): string | null {
   try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null;
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem('auth.tokens');
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { accessToken?: string };
     return parsed?.accessToken ?? null;
-  } catch {
+  } catch (error) {
+    console.warn('Failed to get access token:', error);
     return null;
   }
 }
@@ -33,8 +35,21 @@ function getAccessToken(): string | null {
 function withAuth(headers: HeadersInit): HeadersInit {
   const h = new Headers(headers as HeadersInit);
   const token = getAccessToken();
-  if (token) h.set('Authorization', `Bearer ${token}`);
+  if (token) {
+    h.set('Authorization', `Bearer ${token}`);
+  }
   return h;
+}
+
+async function handleAuthError(response: Response): Promise<never> {
+  if (response.status === 401) {
+    // Token expired or invalid, clear local storage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth.tokens');
+    }
+    throw new Error('Authentication failed. Please login again.');
+  }
+  throw new Error(`Request failed with status ${response.status}`);
 }
 
 export interface SearchProductDesignsQuery {
@@ -53,6 +68,11 @@ export async function createOrUpdateProductDesign(payload: CreateOrUpdateProduct
     credentials: 'include',
     body: JSON.stringify(payload),
   });
+  
+  if (!res.ok) {
+    await handleAuthError(res);
+  }
+  
   return res.json() as Promise<CreateOrUpdateProductDesignResponse>;
 }
 
@@ -67,6 +87,11 @@ export async function searchProductDesigns(query: SearchProductDesignsQuery): Pr
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
+  
+  if (!res.ok) {
+    await handleAuthError(res);
+  }
+  
   return res.json() as Promise<SearchProductDesignsResponse>;
 }
 
@@ -77,6 +102,11 @@ export async function getProductDesignById(productDesignId: string): Promise<Get
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
+  
+  if (!res.ok) {
+    await handleAuthError(res);
+  }
+  
   return res.json() as Promise<GetProductDesignByIdResponse>;
 }
 
@@ -87,6 +117,11 @@ export async function deleteProductDesignById(productDesignId: string): Promise<
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
+  
+  if (!res.ok) {
+    await handleAuthError(res);
+  }
+  
   return res.json() as Promise<DeleteProductDesignByIdResponse>;
 }
 
@@ -99,6 +134,11 @@ export async function getProductDesignsByProduct(productId: string, productOptio
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
   });
+  
+  if (!res.ok) {
+    await handleAuthError(res);
+  }
+  
   return res.json() as Promise<GetProductDesignsByProductResponse>;
 }
 

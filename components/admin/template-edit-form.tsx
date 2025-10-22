@@ -18,8 +18,8 @@ interface TemplateEditFormProps {
 }
 
 const editPrintAreaGroups = [
-  { title: 'Thân áo', items: ['Front', 'Back'] },
-  { title: 'Tay áo', items: ['Left Sleeve', 'Right Sleeve'] },
+  { title: 'Thân áo', items: ['Mặt trước', 'Mặt sau'] },
+  { title: 'Tay áo', items: ['Tay trái', 'Tay phải'] },
 ]
 
 export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
@@ -44,6 +44,9 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
   const [originalImageUrl, setOriginalImageUrl] = React.useState<string>("")
   const [newImageFile, setNewImageFile] = React.useState<File | null>(null)
   const [newImagePreview, setNewImagePreview] = React.useState<string | null>(null)
+  // Store image previews for each area
+  const [areaImagePreviews, setAreaImagePreviews] = React.useState<Record<string, string>>({})
+  const [areaImageFiles, setAreaImageFiles] = React.useState<Record<string, File>>({})
   const [productInfo, setProductInfo] = React.useState<{ name: string; imageUrl: string; optionName: string; optionValue: string } | null>(null)
   const [templatesForOption, setTemplatesForOption] = React.useState<TemplateSummaryItem[]>([])
 
@@ -108,6 +111,17 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     return () => { ignore = true }
   }, [templateId])
 
+  // Cleanup URL objects on unmount
+  React.useEffect(() => {
+    return () => {
+      Object.values(areaImagePreviews).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [])
+
   const handleInputChange = (field: keyof CreateOrUpdateTemplateRequest, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
@@ -124,8 +138,11 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     if (!productDetail) return [] as { id: string; label: string }[]
     const list: { id: string; label: string }[] = []
     for (const opt of productDetail.options) {
-      for (const val of opt.values) {
-        list.push({ id: val.optionValueId, label: `${opt.name}: ${val.value}` })
+      // Only show color options, skip size options
+      if (opt.name.toLowerCase().includes('color') || opt.name.toLowerCase().includes('màu')) {
+        for (const val of opt.values) {
+          list.push({ id: val.optionValueId, label: val.value })
+        }
       }
     }
     return list
@@ -137,6 +154,31 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
       setFormData(prev => ({ ...prev, productOptionValueId: availableOptionValues[0].id }))
     }
   }, [availableOptionValues, formData.productOptionValueId])
+
+  // Clear area image previews when option value changes and update product info
+  React.useEffect(() => {
+    // Clear stored previews when option value changes
+    setAreaImagePreviews({})
+    setAreaImageFiles({})
+    setNewImagePreview(null)
+    setNewImageFile(null)
+    
+    // Update product info when option value changes
+    if (formData.productOptionValueId && productDetail) {
+      const selectedOption = productDetail.options.find(opt => 
+        opt.values.some(val => val.optionValueId === formData.productOptionValueId)
+      )
+      const selectedValue = selectedOption?.values.find(val => val.optionValueId === formData.productOptionValueId)
+      
+      if (selectedOption && selectedValue) {
+        setProductInfo(prev => ({
+          ...prev!,
+          optionName: selectedOption.name,
+          optionValue: selectedValue.value
+        }))
+      }
+    }
+  }, [formData.productOptionValueId, productDetail])
 
   // Fetch templates for current product + option value
   React.useEffect(() => {
@@ -155,28 +197,78 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
   // When option value changes, update current area's image from templates (if exists) unless user selected a new file
   React.useEffect(() => {
     if (!selectedArea) return
-    if (newImageFile || newImagePreview) return
+    // If user has uploaded an image for this area, use that instead of template data
+    if (areaImagePreviews[selectedArea]) {
+      setFormData(prev => ({ ...prev, imageUrl: areaImagePreviews[selectedArea] }))
+      return
+    }
     const match = templatesForOption.find(t => t.printAreaName === selectedArea)
     setFormData(prev => ({ ...prev, imageUrl: match?.imageUrl || "" }))
-  }, [templatesForOption, selectedArea, newImageFile, newImagePreview])
+  }, [templatesForOption, selectedArea, areaImagePreviews])
 
   const handleAreaSelect = (areaName: string) => {
     setSelectedArea(areaName)
-    setFormData(prev => ({ ...prev, printAreaName: areaName, imageUrl: areaName === originalArea ? prev.imageUrl : "" }))
-    setNewImageFile(null)
-    setNewImagePreview(null)
+    setFormData(prev => ({ ...prev, printAreaName: areaName }))
+    
+    // Update current image preview based on what's stored for this area
+    if (areaImagePreviews[areaName]) {
+      setNewImagePreview(areaImagePreviews[areaName])
+      setNewImageFile(areaImageFiles[areaName])
+    } else {
+      setNewImagePreview(null)
+      setNewImageFile(null)
+    }
   }
 
   const handleNewImageSelect = (file?: File | null) => {
     setNewImageFile(file || null)
-    if (!file) { setNewImagePreview(null); return }
-    try { setNewImagePreview(URL.createObjectURL(file)) } catch { setNewImagePreview(null) }
+    if (!file) { 
+      setNewImagePreview(null)
+      // Remove from stored previews for current area
+      if (selectedArea) {
+        setAreaImagePreviews(prev => {
+          const updated = { ...prev }
+          delete updated[selectedArea]
+          return updated
+        })
+        setAreaImageFiles(prev => {
+          const updated = { ...prev }
+          delete updated[selectedArea]
+          return updated
+        })
+      }
+      return 
+    }
+    try { 
+      const previewUrl = URL.createObjectURL(file)
+      setNewImagePreview(previewUrl)
+      // Store the preview and file for current area
+      if (selectedArea) {
+        setAreaImagePreviews(prev => ({ ...prev, [selectedArea]: previewUrl }))
+        setAreaImageFiles(prev => ({ ...prev, [selectedArea]: file }))
+      }
+    } catch { 
+      setNewImagePreview(null) 
+    }
   }
 
   const handleDeleteCurrentImage = () => {
     setFormData(prev => ({ ...prev, imageUrl: "" }))
     setNewImageFile(null)
     setNewImagePreview(null)
+    // Remove from stored previews for current area
+    if (selectedArea) {
+      setAreaImagePreviews(prev => {
+        const updated = { ...prev }
+        delete updated[selectedArea]
+        return updated
+      })
+      setAreaImageFiles(prev => {
+        const updated = { ...prev }
+        delete updated[selectedArea]
+        return updated
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,13 +277,14 @@ export function TemplateEditForm({ templateId }: TemplateEditFormProps) {
     setIsLoading(true)
     try {
       let finalImageUrl = formData.imageUrl
-      if (selectedArea !== originalArea && !newImageFile && !finalImageUrl) {
-        throw new Error('Vui lòng chọn ảnh mới cho khu vực đã đổi')
-      }
-      if (newImageFile) {
-        const up = await uploadImage(newImageFile)
+      // Use the stored file for current area if available
+      const currentAreaFile = areaImageFiles[selectedArea]
+      if (currentAreaFile) {
+        const up = await uploadImage(currentAreaFile)
         if (!up.success || !up.data) throw new Error('Upload ảnh thất bại')
         finalImageUrl = up.data
+      } else if (selectedArea !== originalArea && !finalImageUrl) {
+        throw new Error('Vui lòng chọn ảnh mới cho khu vực đã đổi')
       }
       const payload: CreateOrUpdateTemplateRequest = {
         ...formData,

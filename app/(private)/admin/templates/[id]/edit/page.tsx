@@ -37,11 +37,11 @@ export default function Page() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/templates">Templates</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/products">Sản phẩm</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Chỉnh sửa</BreadcrumbPage>
+                  <BreadcrumbPage>Chỉnh sửa template</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

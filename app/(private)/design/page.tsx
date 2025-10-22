@@ -64,6 +64,8 @@ export default function DesignToolPage(): ReactElement {
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]); // Ảnh AI chờ lưu
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const [imageLoading, setImageLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
@@ -466,12 +468,19 @@ export default function DesignToolPage(): ReactElement {
 
         {/* Design Canvas Section */}
         <div className="flex-1 relative overflow-visible bg-gray-50">
-          <div className="w-full h-[80vh] flex items-center justify-center p-4">
+          <div className="w-full flex items-center justify-center p-4">
             <TShirtDesigner 
               ref={canvasRef} // ForwardRef để gọi addImageDecoration
-              initialImage="/photo.png"
-              imageSource="local" 
+              imageUrl={currentImageUrl || undefined}
               designType="tshirt"
+              onImageChange={(newImageUrl) => {
+                setCurrentImageUrl(newImageUrl);
+                console.log('Image changed to:', newImageUrl);
+              }}
+              onLoadingChange={(loading) => {
+                setImageLoading(loading);
+                console.log('Image loading:', loading);
+              }}
             />
           </div>
         </div>

@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Palette, Edit, Share, Trash2, Search, Plus } from "lucide-react"
+import { Palette, ShoppingCart, Trash2, Search, Plus } from "lucide-react"
 import { searchProductDesigns } from "@/services/productDesignServices"
+import { addItem } from "@/services/cartServices"
 import type { ProductDesignSummaryItem } from "@/types/productDesign"
+import type { AddCartItemRequest } from "@/types/cart"
 import { useAppSelector } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
 
@@ -83,9 +85,34 @@ export default function SavedDesignsPage() {
     }
   }
 
-  const handleEditDesign = (designId: string) => {
-    // Navigate to design editor with the design ID
-    router.push(`/design?edit=${designId}`)
+  const handleAddToCart = async (design: ProductDesignSummaryItem) => {
+    try {
+      // Check if design has templates
+      if (design.templates.length === 0) {
+        alert("Thiết kế này chưa có template nào để thêm vào giỏ hàng.")
+        return
+      }
+
+      // For now, we'll use the productOptionValueId as productVariantId
+      // In a real scenario, you might need to fetch product details to get the correct variant ID
+      // or show a modal to let user select specific variant
+      const cartItem: AddCartItemRequest = {
+        productVariantId: design.productOptionValueId, // Using productOptionValueId as variant ID
+        productDesignId: design.id,
+        quantity: 1
+      }
+
+      const response = await addItem(cartItem)
+      
+      if (response.success) {
+        alert("Đã thêm thiết kế vào giỏ hàng thành công!")
+      } else {
+        alert("Không thể thêm thiết kế vào giỏ hàng. Vui lòng thử lại.")
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error)
+      alert("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.")
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -225,13 +252,10 @@ export default function SavedDesignsPage() {
                         <Button 
                           size="sm" 
                           className="flex-1"
-                          onClick={() => handleEditDesign(design.id)}
+                          onClick={() => handleAddToCart(design)}
                         >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Chỉnh Sửa
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Share className="h-4 w-4" />
+                          <ShoppingCart className="h-4 w-4 mr-2" />
+                          Thêm vào giỏ
                         </Button>
                         <Button 
                           variant="outline" 

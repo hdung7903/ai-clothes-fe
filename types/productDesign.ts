@@ -12,7 +12,7 @@ export interface ProductDesignTemplateRequest {
 }
 
 export interface CreateOrUpdateProductDesignRequest {
-  productDesignId: string;
+  productDesignId: string | null;
   productId: string;
   productOptionValueId: string;
   name: string;
