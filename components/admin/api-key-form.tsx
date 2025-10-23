@@ -97,7 +97,6 @@ export function ApiKeyForm() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Chatbot API Key</h3>
-                    <p className="text-sm text-muted-foreground">GPT-4, GPT-3.5 Turbo cho trò chuyện</p>
                   </div>
                 </div>
                 
@@ -133,7 +132,6 @@ export function ApiKeyForm() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-lg">Image API Key</h3>
-                    <p className="text-sm text-muted-foreground">DALL-E 3, DALL-E 2 cho tạo ảnh</p>
                   </div>
                 </div>
                 

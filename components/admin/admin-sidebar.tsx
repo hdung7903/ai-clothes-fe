@@ -43,7 +43,6 @@ export function AdminSidebar({
         icon: Users,
         items: [
           { title: "Tất cả người dùng", url: "/admin/users" },
-          { title: "Thêm người dùng", url: "/admin/users/new" },
         ],
       },
       {
@@ -79,7 +78,6 @@ export function AdminSidebar({
         icon: ShoppingCart,
         items: [
           { title: "Tất cả đơn hàng", url: "/admin/orders" },
-          { title: "Tạo đơn hàng", url: "/admin/orders/new" },
         ],
       },
       {
