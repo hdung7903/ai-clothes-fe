@@ -49,6 +49,7 @@ interface ImageDecoration extends BaseDecoration {
   imageUrl: string;
   width: number;
   height: number;
+  originalAspectRatio: number; // Store original image aspect ratio
   imageElement?: HTMLImageElement;
 }
 
@@ -759,12 +760,22 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         prevDecorations.map((d) => {
         if (d.id === selectedId) {
             if (d.type === "image") {
-            const aspectRatio = d.width / d.height;
-            return { 
-              ...d, 
-              width: newSize, 
-                height: newSize / aspectRatio,
-            };
+            if (maintainAspectRatio) {
+              // Use original image aspect ratio, not current dimensions
+              const originalAspectRatio = d.originalAspectRatio;
+              return { 
+                ...d, 
+                width: newSize, 
+                  height: newSize / originalAspectRatio,
+              };
+            } else {
+              // Free resize - allow independent width/height adjustment
+              return { 
+                ...d, 
+                width: Math.max(20, d.width + dx), 
+                  height: Math.max(20, d.height + dy),
+              };
+            }
           }
         }
         return d;
@@ -874,6 +885,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         y: pa.y + pa.height / 2,
         width: width,
         height: height,
+        originalAspectRatio: img.width / img.height, // Store original image aspect ratio
         rotation: 0,
         visible: true,
         locked: false,
@@ -1733,13 +1745,18 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                         onChange={(e) => {
                           const newWidth = parseInt(e.target.value);
                           if (maintainAspectRatio) {
-                          const aspectRatio =
-                            selectedDecoration.width /
-                            selectedDecoration.height;
-                          updateProperty("width", newWidth);
-                          updateProperty("height", newWidth / aspectRatio);
+                            // Use original image aspect ratio, not current dimensions
+                            const originalAspectRatio = selectedDecoration.originalAspectRatio;
+                            const newHeight = newWidth / originalAspectRatio;
+                            setDecorations(
+                              decorations.map((d) =>
+                                d.id === selectedId 
+                                  ? ({ ...d, width: newWidth, height: newHeight } as Decoration) 
+                                  : d
+                              )
+                            );
                           } else {
-                          updateProperty("width", newWidth);
+                            updateProperty("width", newWidth);
                           }
                         }}
                         className="w-full"
@@ -1759,13 +1776,18 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                         onChange={(e) => {
                           const newHeight = parseInt(e.target.value);
                           if (maintainAspectRatio) {
-                          const aspectRatio =
-                            selectedDecoration.width /
-                            selectedDecoration.height;
-                          updateProperty("height", newHeight);
-                          updateProperty("width", newHeight * aspectRatio);
+                            // Use original image aspect ratio, not current dimensions
+                            const originalAspectRatio = selectedDecoration.originalAspectRatio;
+                            const newWidth = newHeight * originalAspectRatio;
+                            setDecorations(
+                              decorations.map((d) =>
+                                d.id === selectedId 
+                                  ? ({ ...d, width: newWidth, height: newHeight } as Decoration) 
+                                  : d
+                              )
+                            );
                           } else {
-                          updateProperty("height", newHeight);
+                            updateProperty("height", newHeight);
                           }
                         }}
                         className="w-full"
