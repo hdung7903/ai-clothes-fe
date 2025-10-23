@@ -247,7 +247,7 @@ export default function DesignToolPage(): ReactElement {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
       {/* Header */}
       <div className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 flex-shrink-0 shadow-sm">
         <div className="flex items-center justify-between">
@@ -266,10 +266,10 @@ export default function DesignToolPage(): ReactElement {
       </div>
 
       {/* Main Content: Chat (30%) + Canvas (70%) */}
-      <div className="flex-1 flex overflow-hidden min-h-0 w-full">
+      <div className="flex-1 flex overflow-auto w-full">
         {/* Chat Section */}
-        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0">
-          <ScrollArea className="flex-1 p-4 min-h-0">
+        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 max-h-full">
+          <ScrollArea className="flex-1 p-4 h-0">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -467,8 +467,8 @@ export default function DesignToolPage(): ReactElement {
         </div>
 
         {/* Design Canvas Section */}
-        <div className="flex-1 relative overflow-visible bg-gray-50">
-          <div className="w-full flex items-center justify-center p-4">
+        <div className="flex-1 relative overflow-auto bg-gray-50">
+          <div className="w-full flex items-center justify-center p-4 min-h-full">
             <TShirtDesigner 
               ref={canvasRef} // ForwardRef để gọi addImageDecoration
               imageUrl={currentImageUrl || undefined}

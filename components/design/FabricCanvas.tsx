@@ -49,6 +49,7 @@ interface ImageDecoration extends BaseDecoration {
   imageUrl: string;
   width: number;
   height: number;
+  originalAspectRatio: number; // Store original image aspect ratio
   imageElement?: HTMLImageElement;
 }
 
@@ -147,7 +148,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [maintainAspectRatio, setMaintainAspectRatio] = useState(true);
+  const [maintainAspectRatio, setMaintainAspectRatio] = useState(false);
   const [savingDesign, setSavingDesign] = useState(false);
     const [lastClickPosition, setLastClickPosition] = useState<{
       x: number;
@@ -759,12 +760,22 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         prevDecorations.map((d) => {
         if (d.id === selectedId) {
             if (d.type === "image") {
-            const aspectRatio = d.width / d.height;
-            return { 
-              ...d, 
-              width: newSize, 
-                height: newSize / aspectRatio,
-            };
+            if (maintainAspectRatio) {
+              // Use original image aspect ratio, not current dimensions
+              const originalAspectRatio = d.originalAspectRatio;
+              return { 
+                ...d, 
+                width: newSize, 
+                  height: newSize / originalAspectRatio,
+              };
+            } else {
+              // Free resize - allow independent width/height adjustment
+              return { 
+                ...d, 
+                width: Math.max(20, d.width + dx), 
+                  height: Math.max(20, d.height + dy),
+              };
+            }
           }
         }
         return d;
@@ -874,6 +885,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         y: pa.y + pa.height / 2,
         width: width,
         height: height,
+        originalAspectRatio: img.width / img.height, // Store original image aspect ratio
         rotation: 0,
         visible: true,
         locked: false,
@@ -1729,18 +1741,17 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                         type="range"
                         min="50"
                         max="500"
-                        value={selectedDecoration.width}
+                        value={Math.round(selectedDecoration.width)}
                         onChange={(e) => {
                           const newWidth = parseInt(e.target.value);
-                          if (maintainAspectRatio) {
-                          const aspectRatio =
-                            selectedDecoration.width /
-                            selectedDecoration.height;
-                          updateProperty("width", newWidth);
-                          updateProperty("height", newWidth / aspectRatio);
-                          } else {
-                          updateProperty("width", newWidth);
-                          }
+                          // Only update width, keep height unchanged
+                          setDecorations(
+                            decorations.map((d) =>
+                              d.id === selectedId 
+                                ? ({ ...d, width: newWidth } as Decoration) 
+                                : d
+                            )
+                          );
                         }}
                         className="w-full"
                         disabled={selectedDecoration.locked}
@@ -1755,38 +1766,21 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                         type="range"
                         min="50"
                         max="500"
-                        value={selectedDecoration.height}
+                        value={Math.round(selectedDecoration.height)}
                         onChange={(e) => {
                           const newHeight = parseInt(e.target.value);
-                          if (maintainAspectRatio) {
-                          const aspectRatio =
-                            selectedDecoration.width /
-                            selectedDecoration.height;
-                          updateProperty("height", newHeight);
-                          updateProperty("width", newHeight * aspectRatio);
-                          } else {
-                          updateProperty("height", newHeight);
-                          }
+                          // Only update height, keep width unchanged
+                          setDecorations(
+                            decorations.map((d) =>
+                              d.id === selectedId 
+                                ? ({ ...d, height: newHeight } as Decoration) 
+                                : d
+                            )
+                          );
                         }}
                         className="w-full"
                         disabled={selectedDecoration.locked}
                       />
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="maintain-aspect-ratio"
-                        checked={maintainAspectRatio}
-                        onChange={(e) => setMaintainAspectRatio(e.target.checked)}
-                        className="rounded"
-                      />
-                    <label
-                      htmlFor="maintain-aspect-ratio"
-                      className="text-sm font-medium"
-                    >
-                        Giữ Tỷ Lệ Khung Hình
-                      </label>
                     </div>
                 
                 <div>

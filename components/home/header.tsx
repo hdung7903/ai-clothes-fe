@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { ShoppingCart, User, Menu, LogOut, Settings, X } from "lucide-react"
+import { ShoppingCart, User, Menu, LogOut, Settings, X, Shield } from "lucide-react"
 import Link from "next/link"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
 import { logoutUser } from "@/redux/authSlice"
@@ -115,6 +115,14 @@ export function Header() {
                     <span>Thiết Kế Của Tôi</span>
                   </Link>
                 </DropdownMenuItem>
+                {user.roles?.includes('Administrator') && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/dashboard" className="flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      <span>Quản Trị</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={handleLogout}
@@ -228,6 +236,16 @@ export function Header() {
                         <Settings className="h-4 w-4" />
                         <span>Thiết Kế Của Tôi</span>
                       </Link>
+                      {user.roles?.includes('Administrator') && (
+                        <Link 
+                          href="/admin/dashboard" 
+                          className="flex items-center gap-2 text-foreground hover:text-primary transition-colors py-2"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          <Shield className="h-4 w-4" />
+                          <span>Quản Trị</span>
+                        </Link>
+                      )}
                       <button 
                         onClick={handleLogout}
                         className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors py-2 w-full text-left"
