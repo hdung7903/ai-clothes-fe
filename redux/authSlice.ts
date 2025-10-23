@@ -11,6 +11,7 @@ export interface AuthState {
   tokens: TokenPair | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isBootstrapping: boolean; // Track if initial auth bootstrap is in progress
   error: string | null;
   lastErrorPayload?: any;
 }
@@ -20,6 +21,7 @@ const initialState: AuthState = {
   tokens: null,
   isAuthenticated: false,
   isLoading: false,
+  isBootstrapping: true, // Start as true, will be set to false after bootstrap
   error: null,
 };
 
@@ -202,6 +204,9 @@ const authSlice = createSlice({
     setTokens: (state, action: PayloadAction<TokenPair | null>) => {
       state.tokens = action.payload;
     },
+    setBootstrapComplete: (state) => {
+      state.isBootstrapping = false;
+    },
     logout: (state) => {
       state.user = null;
       state.tokens = null;
@@ -351,13 +356,18 @@ const authSlice = createSlice({
         });
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
+        console.warn('❌ Failed to fetch user profile:', action.payload);
         state.isLoading = false;
         state.error = action.payload ? Object.values(action.payload).flat().join(', ') : 'Failed to load profile';
+        // If profile fetch fails, clear auth state to force re-login
+        state.user = null;
+        state.tokens = null;
+        state.isAuthenticated = false;
       });
   },
 });
 
-export const { clearError, setUser, setTokens, logout } = authSlice.actions;
+export const { clearError, setUser, setTokens, setBootstrapComplete, logout } = authSlice.actions;
 export default authSlice.reducer;
 
 

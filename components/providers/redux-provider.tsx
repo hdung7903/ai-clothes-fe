@@ -3,7 +3,7 @@
 import { Provider } from 'react-redux';
 import { store } from '@/redux';
 import { useEffect } from 'react';
-import { fetchUserProfile, setTokens } from '@/redux/authSlice';
+import { fetchUserProfile, setTokens, setBootstrapComplete } from '@/redux/authSlice';
 import { refreshTokenUsingCookies } from '@/services/authServices';
 import { fetchCartItems } from '@/redux/cartSlice';
 import type { TokenPair } from '@/types/auth';
@@ -60,6 +60,8 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
         } catch (error) {
           console.warn('Failed to parse stored tokens:', error);
           stored = null;
+          // Clear invalid tokens
+          localStorage.removeItem('auth.tokens');
         }
 
         // Fetch cart items from server on startup
@@ -72,28 +74,41 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
             refreshToken: stored.refreshToken,
           });
           if (!cancelled && refreshed.success && refreshed.data) {
-            console.log('✅ Token refresh successful, fetching user profile...');
+            console.log('✅ Token refresh successful, setting tokens and fetching user profile...');
             store.dispatch(setTokens(refreshed.data));
             const profileResult = await store.dispatch(fetchUserProfile(refreshed.data.accessToken));
             console.log('👤 Profile fetch result:', profileResult);
-            return;
+            if (profileResult.type.endsWith('/fulfilled')) {
+              console.log('✅ Bootstrap authentication successful');
+            } else {
+              console.warn('⚠️ Profile fetch failed, clearing tokens');
+              localStorage.removeItem('auth.tokens');
+              store.dispatch(setTokens(null));
+            }
           } else {
             console.warn('❌ Token refresh failed, clearing stored tokens');
             localStorage.removeItem('auth.tokens');
+            store.dispatch(setTokens(null));
           }
-        }
-
-        if (!cancelled) {
-          console.log('Attempting to load profile with cookie session...');
-          // Fallback: try loading profile with cookie session if server supports it
-          await store.dispatch(fetchUserProfile(''));
+        } else {
+          console.log('ℹ️ No stored tokens found, user needs to log in');
         }
       } catch (error) {
-        console.error('Bootstrap authentication failed:', error);
+        console.error('❌ Bootstrap authentication failed:', error);
         // Clear invalid tokens
         try {
           localStorage.removeItem('auth.tokens');
-        } catch {}
+          store.dispatch(setTokens(null));
+        } catch (cleanupError) {
+          console.error('Failed to cleanup after bootstrap error:', cleanupError);
+        }
+      } finally {
+        // Always mark bootstrap as complete, even if it failed
+        // This must happen to prevent infinite loading states
+        if (!cancelled) {
+          console.log('🏁 Bootstrap complete, marking as done');
+          store.dispatch(setBootstrapComplete());
+        }
       }
     })();
 

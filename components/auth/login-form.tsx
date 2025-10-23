@@ -24,9 +24,19 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [loginAttempted, setLoginAttempted] = useState(false)
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const { isLoading, error, isAuthenticated, tokens, user, lastErrorPayload } = useAppSelector((state) => state.auth)
+  const authState = useAppSelector((state) => state.auth)
+  const { 
+    isLoading, 
+    error, 
+    isAuthenticated, 
+    tokens, 
+    user, 
+    lastErrorPayload,
+    isBootstrapping = true // Default to true to prevent premature redirects
+  } = authState
 
   const {
     register,
@@ -41,19 +51,30 @@ export function LoginForm() {
 
   // Điều hướng sau khi đăng nhập dựa trên vai trò người dùng
   useEffect(() => {
+    // If user explicitly logged in (not bootstrap), allow redirect even during bootstrap
+    if (!loginAttempted && isBootstrapping) {
+      console.log('⏳ Bootstrap in progress and no login attempt yet, waiting...')
+      return
+    }
+    
     if (!isAuthenticated) return
-    if (!user) return
+    if (!user) {
+      console.log('⏳ Authenticated but no user profile yet, waiting...')
+      return
+    }
 
+    console.log('🚀 Login successful, redirecting based on role:', user.roles)
     if (Array.isArray(user.roles) && user.roles.includes('Administrator')) {
       router.push('/admin/dashboard')
     } else {
       router.push('/')
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, isBootstrapping, loginAttempted])
 
   // Fetch profile once we have tokens
   useEffect(() => {
     if (tokens?.accessToken && !user) {
+      console.log('📥 Fetching user profile with token...')
       dispatch(fetchUserProfile(tokens.accessToken))
     }
   }, [tokens?.accessToken, user, dispatch])
@@ -64,6 +85,8 @@ export function LoginForm() {
   }, [dispatch])
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log('🔐 Login attempt started')
+    setLoginAttempted(true)
     const result = await dispatch(loginUser(data))
     
     // Kiểm tra nếu có lỗi ACCOUNT_EMAIL_NOT_VERIFIED
@@ -79,6 +102,8 @@ export function LoginForm() {
         router.push(`/auth/verify?email=${encodeURIComponent(data.email)}`)
         return
       }
+    } else if (loginUser.fulfilled.match(result)) {
+      console.log('✅ Login fulfilled, tokens received:', result.payload)
     }
   }
 

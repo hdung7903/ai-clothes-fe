@@ -368,43 +368,114 @@ export default function Page({ params }: PageProps) {
     setIsLoading(true)
     setError(null)
     try {
-      // Validate required fields
+      // ===== VALIDATE REQUIRED FIELDS =====
+      
+      // 1. Validate product name
       if (!name || !name.trim()) {
-        throw new Error("Tên sản phẩm là bắt buộc")
+        throw new Error("Tên sản phẩm là bắt buộc và không được để trống")
       }
+      
+      // 2. Validate description
       if (!description || !description.trim()) {
-        throw new Error("Mô tả sản phẩm là bắt buộc")
+        throw new Error("Mô tả sản phẩm là bắt buộc và không được để trống")
       }
+      
+      // 3. Validate image URL
       if (!imageUrl || !imageUrl.trim()) {
         throw new Error("Hình ảnh sản phẩm là bắt buộc")
       }
       
+      // 4. Validate category
       const finalCategoryId = categoryId || product.category?.categoryId || ""
-      if (!finalCategoryId) {
-        throw new Error("Danh mục là bắt buộc")
+      if (!finalCategoryId || !finalCategoryId.trim()) {
+        throw new Error("Danh mục là bắt buộc. Vui lòng chọn ít nhất một danh mục")
       }
       
-      // Validate numeric inputs
-      const basePriceValue = basePrice ? Number(basePrice) : 0
-      if (isNaN(basePriceValue) || basePriceValue <= 0) {
+      // 5. Validate base price
+      if (!basePrice || basePrice.trim() === "") {
+        throw new Error("Giá cơ bản là bắt buộc")
+      }
+      const basePriceValue = Number(basePrice)
+      if (isNaN(basePriceValue)) {
+        throw new Error("Giá cơ bản phải là số hợp lệ")
+      }
+      if (basePriceValue <= 0) {
         throw new Error("Giá cơ bản phải lớn hơn 0")
       }
       
-      // Validate variant prices and stock
-      for (const variant of variants) {
-        if (isNaN(variant.price) || variant.price < 0) {
-          throw new Error(`Giá của biến thể ${variant.sku || 'không có SKU'} không hợp lệ`)
-        }
-        if (isNaN(variant.stock) || variant.stock < 0) {
-          throw new Error(`Tồn kho của biến thể ${variant.sku || 'không có SKU'} không hợp lệ`)
-        }
-      }
+      // ===== VALIDATE OPTIONS =====
       
       // Filter out options with empty values
       const validOptions = options.map(opt => ({
         ...opt,
         values: opt.values.filter(v => v.value && v.value.trim() !== "")
       })).filter(opt => opt.values.length > 0)
+      
+      // Check if there are valid options
+      if (validOptions.length === 0) {
+        throw new Error("Sản phẩm phải có ít nhất một tùy chọn (màu sắc hoặc kích thước)")
+      }
+      
+      // Check for COLOR and SIZE options
+      const colorOption = validOptions.find(opt => opt.name === "COLOR")
+      const sizeOption = validOptions.find(opt => opt.name === "SIZE")
+      
+      if (!colorOption || colorOption.values.length === 0) {
+        throw new Error("Sản phẩm phải có ít nhất một màu sắc")
+      }
+      
+      if (!sizeOption || sizeOption.values.length === 0) {
+        throw new Error("Sản phẩm phải có ít nhất một kích thước")
+      }
+      
+      // ===== VALIDATE VARIANTS =====
+      
+      if (variants.length === 0) {
+        throw new Error("Sản phẩm phải có ít nhất một biến thể")
+      }
+      
+      // Validate each variant
+      for (let i = 0; i < variants.length; i++) {
+        const variant = variants[i]
+        
+        // Check SKU
+        if (!variant.sku || !variant.sku.trim()) {
+          throw new Error(`Biến thể #${i + 1}: SKU là bắt buộc`)
+        }
+        
+        // Check price
+        if (variant.price === null || variant.price === undefined) {
+          throw new Error(`Biến thể "${variant.sku}": Giá là bắt buộc`)
+        }
+        if (isNaN(variant.price)) {
+          throw new Error(`Biến thể "${variant.sku}": Giá phải là số hợp lệ`)
+        }
+        if (variant.price < 0) {
+          throw new Error(`Biến thể "${variant.sku}": Giá không được âm`)
+        }
+        
+        // Check stock
+        if (variant.stock === null || variant.stock === undefined) {
+          throw new Error(`Biến thể "${variant.sku}": Tồn kho là bắt buộc`)
+        }
+        if (isNaN(variant.stock)) {
+          throw new Error(`Biến thể "${variant.sku}": Tồn kho phải là số nguyên hợp lệ`)
+        }
+        if (variant.stock < 0) {
+          throw new Error(`Biến thể "${variant.sku}": Tồn kho không được âm`)
+        }
+        if (!Number.isInteger(variant.stock)) {
+          throw new Error(`Biến thể "${variant.sku}": Tồn kho phải là số nguyên`)
+        }
+        
+        // Check option values
+        if (!variant.optionValues.COLOR || !variant.optionValues.COLOR.trim()) {
+          throw new Error(`Biến thể "${variant.sku}": Màu sắc là bắt buộc`)
+        }
+        if (!variant.optionValues.SIZE || !variant.optionValues.SIZE.trim()) {
+          throw new Error(`Biến thể "${variant.sku}": Kích thước là bắt buộc`)
+        }
+      }
 
       // Ensure variants have correct id values
       const validVariants = variants.map(variant => ({
@@ -416,9 +487,9 @@ export default function Page({ params }: PageProps) {
 
       await createOrUpdateProduct({
         productId: product.productId,
-        name,
-        description,
-        imageUrl,
+        name: name.trim(),
+        description: description.trim(),
+        imageUrl: imageUrl.trim(),
         basePrice: basePriceValue,
         categoryId: finalCategoryId,
         options: validOptions,

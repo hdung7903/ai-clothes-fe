@@ -32,7 +32,14 @@ import { useRouter } from "next/navigation"
 
 export default function Page() {
   const router = useRouter()
-  const { isAuthenticated, user, tokens, isLoading } = useAppSelector((state) => state.auth)
+  const authState = useAppSelector((state) => state.auth)
+  const { 
+    isAuthenticated, 
+    user, 
+    tokens, 
+    isLoading,
+    isBootstrapping = true // Default to true to prevent premature redirects
+  } = authState
   
   const [query, setQuery] = React.useState("")
   const [pageSize, setPageSize] = React.useState(10)
@@ -56,10 +63,17 @@ export default function Page() {
       hasUser: !!user, 
       hasTokens: !!tokens, 
       isLoading,
+      isBootstrapping,
       userRoles: user?.roles,
       userRolesDetail: user?.roles?.map(role => `"${role}"`),
       authChecked 
     })
+
+    // Wait for bootstrap to complete before checking authentication
+    if (isBootstrapping) {
+      console.log('⏳ Bootstrap still in progress, waiting...')
+      return
+    }
 
     // Add a longer delay to ensure Redux state is fully hydrated and avoid race conditions
     const timer = setTimeout(() => {
@@ -111,7 +125,7 @@ export default function Page() {
     }, 500) // Increased to 500ms delay to avoid race conditions
 
     return () => clearTimeout(timer)
-  }, [isAuthenticated, user, tokens, isLoading, router, authChecked, redirectAttempted])
+  }, [isAuthenticated, user, tokens, router, authChecked, isLoading, redirectAttempted, isBootstrapping])
 
   // Separate effect to handle authChecked changes
   React.useEffect(() => {
@@ -269,9 +283,7 @@ export default function Page() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <h1 className="text-xl font-semibold">Quản lý đơn hàng</h1>
-              <Button asChild>
-                <Link href="/admin/orders/new">Tạo đơn hàng</Link>
-              </Button>
+             
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex gap-2">
