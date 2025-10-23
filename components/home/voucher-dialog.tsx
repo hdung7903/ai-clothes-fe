@@ -38,39 +38,38 @@ export function VoucherDialog() {
     try {
       const response = await searchVouchers({
         IsActive: true,
-        SortBy: 'CREATED_ON',
-        SortDescending: true,
         PageNumber: page,
         PageSize: DISPLAY_CONFIG.PAGE_SIZE
       })
       
       if (response.success && response.data) {
         // Map API response to VoucherSummaryItem format
-        const newVouchers = response.data.items.map((item: any) => {
+        const newVouchers: VoucherSummaryItem[] = response.data.items.map((item: any) => {
           // Determine discount type based on value and description
-          let discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' = 'FIXED_AMOUNT'
+          let discountType: 'PERCENT' | 'FIXED_AMOUNT' = 'FIXED_AMOUNT'
           if (item.discountType) {
-            discountType = item.discountType
+            discountType = item.discountType === 'PERCENTAGE' ? 'PERCENT' : item.discountType
           } else if (item.discountValue && item.discountValue <= 100) {
             // If discount value is <= 100 and no type specified, assume percentage
-            discountType = 'PERCENTAGE'
+            discountType = 'PERCENT'
           } else if (item.description && item.description.includes('%')) {
             // Check description for percentage indicator
-            discountType = 'PERCENTAGE'
+            discountType = 'PERCENT'
           }
           
           return {
-            voucherId: item.id,
+            id: item.id,
             code: item.code,
-            name: item.description || item.code,
+            description: item.description || item.code,
             discountType,
             discountValue: item.discountValue,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            usedCount: item.usedCount || 0,
             isActive: item.isActive,
-            validFrom: item.startDate,
-            validTo: item.endDate,
-            usageLimit: undefined, // Not provided in API response
-            usedCount: item.usedCount,
-            createdBy: undefined // Not provided in API response
+            createdAt: item.createdAt || new Date().toISOString(),
+            lastModifiedAt: item.lastModifiedAt || new Date().toISOString(),
+            products: item.products || []
           }
         })
         setVouchers(prev => append ? [...prev, ...newVouchers] : newVouchers)
@@ -171,7 +170,7 @@ export function VoucherDialog() {
 
   // Format discount text
   const formatDiscountText = (voucher: VoucherSummaryItem) => {
-    if (voucher.discountType === 'PERCENTAGE') {
+    if (voucher.discountType === 'PERCENT') {
       return `GIẢM ${voucher.discountValue || 0}%`
     } else {
       return `GIẢM ${(voucher.discountValue || 0).toLocaleString('vi-VN')}₫`
@@ -195,17 +194,14 @@ export function VoucherDialog() {
   // Check if voucher is available
   const isAvailable = (voucher: VoucherSummaryItem) => {
     const now = new Date()
-    const validFrom = new Date(voucher.validFrom)
-    const validTo = new Date(voucher.validTo)
+    const validFrom = new Date(voucher.startDate)
+    const validTo = new Date(voucher.endDate)
     
     return now >= validFrom && now <= validTo && voucher.isActive
   }
 
   // Get category based on usage
   const getCategory = (voucher: VoucherSummaryItem) => {
-    if (voucher.usageLimit && voucher.usedCount >= voucher.usageLimit * 0.8) {
-      return 'limited'
-    }
     if (voucher.usedCount > 50) {
       return 'popular'
     }
@@ -282,11 +278,11 @@ export function VoucherDialog() {
               {vouchers.map((voucher, index) => {
                 const category = getCategory(voucher)
                 const available = isAvailable(voucher)
-                const expired = isExpired(voucher.validTo)
+                const expired = isExpired(voucher.endDate)
                 
                 return (
                   <div
-                    key={voucher.voucherId || `voucher-${index}`}
+                    key={voucher.id || `voucher-${index}`}
                     className={`group relative flex flex-col gap-3 rounded-xl border p-4 transition-all duration-200 ${
                       available 
                         ? 'border-gray-200 dark:border-gray-800 hover:border-primary/50 hover:shadow-md bg-gradient-to-br from-white to-gray-50/50 dark:from-gray-900 dark:to-gray-800/50'
@@ -321,12 +317,12 @@ export function VoucherDialog() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2 mb-1">
                           <span className="text-base font-bold text-gray-900 dark:text-gray-100">
-                            {voucher.name}
+                            {voucher.description}
                           </span>
                         </div>
                         
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          {voucher.discountType === 'PERCENTAGE' 
+                          {voucher.discountType === 'PERCENT' 
                             ? `Giảm ${voucher.discountValue || 0}% cho đơn hàng`
                             : `Giảm ${(voucher.discountValue || 0).toLocaleString('vi-VN')}₫ cho đơn hàng`
                           }
@@ -335,16 +331,8 @@ export function VoucherDialog() {
                         <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            HSD: {formatDate(voucher.validTo)}
+                            HSD: {formatDate(voucher.endDate)}
                           </span>
-                          {voucher.usageLimit && (
-                            <>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <span className="font-medium">Đã dùng:</span> {voucher.usedCount}/{voucher.usageLimit}
-                              </span>
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>

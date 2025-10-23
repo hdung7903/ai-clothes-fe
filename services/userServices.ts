@@ -183,6 +183,7 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
       roles: [user.role],
       tokenCount: user.token,
       balance: user.balance,
+      isBanned: user.isBanned,
     }
   }));
   
@@ -236,6 +237,57 @@ export async function changeUserRole(userId: string, role: 'User' | 'Administrat
   if (!res.ok) {
     const errorText = await res.text();
     console.error('changeUserRole API error:', res.status, errorText);
+    throw new Error(`API request failed: ${res.status} ${errorText}`);
+  }
+
+  return res.json();
+}
+
+// Update user information API
+export interface UpdateUserInfoRequest {
+  fullName?: string;
+  phone?: string;
+  bio?: string;
+}
+
+export async function updateUserInfo(request: UpdateUserInfoRequest): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
+  const baseUrl = getBaseUrl();
+  const url = baseUrl + '/api/Users/Info';
+  const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
+  headers.set('Content-Type', 'application/json');
+
+  const body = JSON.stringify(request);
+
+  console.log('updateUserInfo request:', { url, body, headers: Object.fromEntries(headers.entries()) });
+
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers,
+    body,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('updateUserInfo API error:', res.status, errorText);
+    
+    // Handle specific error cases
+    if (res.status === 400) {
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.errors?.COMMON_UNAUTHORIZED) {
+          console.error('User not authenticated. Redirecting to login...');
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth.tokens');
+            window.location.href = '/auth/login';
+          }
+          throw new Error('User not authenticated. Please login again.');
+        }
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+      }
+    }
+    
     throw new Error(`API request failed: ${res.status} ${errorText}`);
   }
 

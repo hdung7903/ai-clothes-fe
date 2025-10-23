@@ -26,6 +26,7 @@ import type { TreeSelectProps } from "antd"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Plus, Folder, FolderOpen } from "lucide-react"
+import type { Category } from "@/types/category"
 
 export default function Page() {
   const router = useRouter()
@@ -33,7 +34,7 @@ export default function Page() {
   const [parentId, setParentId] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
-  const [categories, setCategories] = React.useState<{ id: string; name: string; parentCategoryId: string | null | undefined; subCategories?: any[] }[]>([])
+  const [categories, setCategories] = React.useState<Category[]>([])
 
   React.useEffect(() => {
     let ignore = false
@@ -193,7 +194,7 @@ export default function Page() {
                             title: subCategory.name,
                             value: subCategory.id,
                             key: subCategory.id,
-                            children: subCategory.subCategories?.map(grandChild => ({
+                            children: subCategory.subCategories?.map((grandChild: Category) => ({
                               title: grandChild.name,
                               value: grandChild.id,
                               key: grandChild.id,

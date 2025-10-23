@@ -276,12 +276,12 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
               {voucher.products && voucher.products.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {voucher.products.map((product) => (
-                    <div key={product.productId} className="flex items-center space-x-3 p-3 rounded-lg border">
+                    <div key={product.id} className="flex items-center space-x-3 p-3 rounded-lg border">
                       <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                        {product.productImageUrl ? (
+                        {product.imageUrl ? (
                           <img
-                            src={product.productImageUrl}
-                            alt={product.productName}
+                            src={product.imageUrl}
+                            alt={product.name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -291,8 +291,8 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm truncate">{product.productName}</h4>
-                        <p className="text-xs text-muted-foreground">ID: {product.productId}</p>
+                        <h4 className="font-medium text-sm truncate">{product.name}</h4>
+                        <p className="text-xs text-muted-foreground">ID: {product.id}</p>
                       </div>
                     </div>
                   ))}

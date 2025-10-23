@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
-import { registerUser, clearError, requestEmailVerificationAction } from "@/redux/authSlice"
+import { registerUser, clearError } from "@/redux/authSlice"
 
 const registerSchema = z
   .object({
@@ -71,8 +71,7 @@ export function RegisterForm() {
           window.localStorage.setItem('pendingVerificationEmail', credentials.email)
         }
       } catch {}
-      // Fire and forget email verification request and navigate to verify page
-      dispatch(requestEmailVerificationAction({ email: credentials.email }))
+      // Navigate to verify page without sending OTP automatically
       router.push(`/auth/verify?email=${encodeURIComponent(credentials.email)}`)
     }
   }

@@ -57,10 +57,10 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const subtotal = cartItems.reduce((sum, item) => {
-    // Use totalAmount from API if available (after discount), otherwise use original price
-    return sum + (item.totalAmount || item.price * item.quantity);
+    // Always use original price for subtotal calculation
+    return sum + (item.price * item.quantity);
   }, 0);
-  const [shipping, setShipping] = useState<number>(19999);
+  const [shipping] = useState<number>(0);
   const [voucherCode, setVoucherCode] = useState<string>("");
   const [discount, setDiscount] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -397,14 +397,10 @@ export default function CheckoutPage() {
       setVoucherError("");
       return;
     }
-    // Simple demo rules: SAVE10 => 10% off, FREESHIP => free shipping
+    // Simple demo rules: SAVE10 => 10% off
     if (code === "SAVE10") {
       const pct = 0.1;
       setDiscount(Math.floor(subtotal * pct));
-    } else if (code === "FREESHIP") {
-      setDiscount(0);
-      setShipping(0);
-      return;
     } else {
       setDiscount(0);
     }
@@ -830,7 +826,7 @@ export default function CheckoutPage() {
                         id="voucher"
                         value={voucherCode}
                         onChange={(e) => setVoucherCode(e.target.value)}
-                        placeholder="VD: SAVE10 hoặc FREESHIP"
+                        placeholder="VD: SAVE10"
                         className={
                           voucherError
                             ? "border-red-500 focus:border-red-500"
@@ -912,7 +908,6 @@ export default function CheckoutPage() {
                   <div className="space-y-3">
                     {cartItems.map((item) => {
                       const originalPrice = item.price * item.quantity;
-                      const finalPrice = item.totalAmount || originalPrice;
                       const hasDiscount =
                         item.discountAmount && item.discountAmount > 0;
 
@@ -935,32 +930,9 @@ export default function CheckoutPage() {
                             )}
                           </div>
                           <div className="text-right">
-                            {hasDiscount ? (
-                              <div className="space-y-1">
-                                <div className="text-sm text-muted-foreground line-through">
-                                  {formatCurrency(
-                                    originalPrice,
-                                    "VND",
-                                    "vi-VN"
-                                  )}
-                                </div>
-                                <div className="font-medium text-green-600">
-                                  {formatCurrency(finalPrice, "VND", "vi-VN")}
-                                </div>
-                                <div className="text-xs text-green-600">
-                                  -
-                                  {formatCurrency(
-                                    item.discountAmount || 0,
-                                    "VND",
-                                    "vi-VN"
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="font-medium">
-                                {formatCurrency(originalPrice, "VND", "vi-VN")}
-                              </span>
-                            )}
+                            <span className="font-medium">
+                              {formatCurrency(originalPrice, "VND", "vi-VN")}
+                            </span>
                           </div>
                         </div>
                       );
@@ -970,13 +942,13 @@ export default function CheckoutPage() {
                   {/* Pricing Breakdown */}
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Tạm tính</span>
+                      <span>Giá gốc</span>
                       <span>{formatCurrency(subtotal, "VND", "vi-VN")}</span>
                     </div>
 
                     {discount > 0 && (
                       <div className="flex justify-between text-green-600">
-                        <span>Giảm giá (tổng)</span>
+                        <span>Giảm giá</span>
                         <span>-{formatCurrency(discount, "VND", "vi-VN")}</span>
                       </div>
                     )}

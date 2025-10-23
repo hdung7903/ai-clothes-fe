@@ -79,7 +79,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
               isActive: response.data.isActive,
               startDate: startDateTime.toISOString().split('T')[0],
               endDate: endDateTime.toISOString().split('T')[0],
-              productIds: response.data.products.map(p => p.productId),
+              productIds: response.data.products.map(p => p.id),
             })
             
             // Set time values

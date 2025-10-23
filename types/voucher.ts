@@ -10,7 +10,7 @@ export interface Voucher {
   isActive: boolean;
   createdAt: string;
   lastModifiedAt: string;
-  products: VoucherProduct[];
+  products: VoucherProductDetail[];
 }
 
 export interface VoucherProduct {
@@ -19,7 +19,7 @@ export interface VoucherProduct {
   productImageUrl: string;
 }
 
-export interface ProductDetail {
+export interface VoucherProductDetail {
   id: string;
   name: string;
   description: string;
@@ -39,7 +39,7 @@ export interface VoucherSummaryItem {
   isActive: boolean;
   createdAt: string;
   lastModifiedAt: string;
-  products: VoucherProduct[];
+  products: VoucherProductDetail[];
 }
 
 export type DiscountType = 'PERCENT' | 'FIXED_AMOUNT';
@@ -103,8 +103,8 @@ export interface GetVoucherByIdResponse {
     isActive: boolean;
     createdAt: string;
     lastModifiedAt: string;
-    products: VoucherProduct[];
-    productDetails: ProductDetail[];
+    products: VoucherProductDetail[];
+    productDetails: VoucherProductDetail[];
   };
 }
 

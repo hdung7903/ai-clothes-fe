@@ -36,15 +36,7 @@ export default function VerifyEmailPage() {
     }
   }, [presetEmail, dispatch])
 
-  // Tự động gửi email verification khi có email
-  useEffect(() => {
-    if (email && !emailSent) {
-      console.log('Auto-sending verification email to:', email)
-      dispatch(requestEmailVerificationAction({ email }))
-      setEmailSent(true)
-      setCooldownTime(60) // 60 giây cooldown
-    }
-  }, [email, emailSent, dispatch])
+  // No longer auto-send verification email
 
   // Cooldown timer
   useEffect(() => {
@@ -101,9 +93,19 @@ export default function VerifyEmailPage() {
             </Alert>
           )}
 
+          {!emailSent && !success && (
+            <Alert>
+              <AlertDescription>
+                Nhấn "Gửi Mã Xác Thực" để nhận mã xác thực qua email.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Chúng tôi đã gửi mã đến</p>
+              <p className="text-sm text-muted-foreground">
+                {emailSent ? "Chúng tôi đã gửi mã đến" : "Mã sẽ được gửi đến"}
+              </p>
               <p className="text-sm font-medium break-all">{email || '—'}</p>
             </div>
 
@@ -134,7 +136,7 @@ export default function VerifyEmailPage() {
               onClick={onResend} 
               disabled={isLoading || !email || cooldownTime > 0}
             >
-              {cooldownTime > 0 ? `Gửi lại sau ${cooldownTime}s` : 'Gửi Lại Mã'}
+              {cooldownTime > 0 ? `Gửi lại sau ${cooldownTime}s` : emailSent ? 'Gửi Lại Mã' : 'Gửi Mã Xác Thực'}
             </Button>
           </div>
         </CardContent>

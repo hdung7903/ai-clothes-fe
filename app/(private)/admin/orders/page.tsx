@@ -37,7 +37,7 @@ export default function Page() {
   const [query, setQuery] = React.useState("")
   const [pageSize, setPageSize] = React.useState(10)
   const [page, setPage] = React.useState(1)
-  const [statusFilter, setStatusFilter] = React.useState<number | undefined>(undefined)
+  const [statusFilter, setStatusFilter] = React.useState<string | undefined>(undefined)
   const [paymentStatusFilter, setPaymentStatusFilter] = React.useState<string | undefined>(undefined)
   
   const [orders, setOrders] = React.useState<AdminOrderResponseItem[]>([])
@@ -282,9 +282,9 @@ export default function Page() {
                   className="md:max-w-sm"
                 />
                 <Select
-                  value={statusFilter === undefined ? "all" : String(statusFilter)}
+                  value={statusFilter === undefined ? "all" : statusFilter}
                   onValueChange={(v) => {
-                    setStatusFilter(v === "all" ? undefined : Number(v))
+                    setStatusFilter(v === "all" ? undefined : v)
                     setPage(1)
                   }}
                 >
@@ -293,13 +293,14 @@ export default function Page() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="0">Chờ xử lý</SelectItem>
-                    <SelectItem value="1">Đã xác nhận</SelectItem>
-                    <SelectItem value="2">Đang xử lý</SelectItem>
-                    <SelectItem value="3">Đã gửi hàng</SelectItem>
-                    <SelectItem value="4">Đã giao hàng</SelectItem>
-                    <SelectItem value="5">Đã hủy</SelectItem>
-                    <SelectItem value="6">Đã trả hàng</SelectItem>
+                    <SelectItem value="PENDING">Chờ xử lý</SelectItem>
+                    <SelectItem value="ACCEPTED">Đã xác nhận</SelectItem>
+                    <SelectItem value="REJECTED">Đã từ chối</SelectItem>
+                    <SelectItem value="SHIPPED">Đã gửi hàng</SelectItem>
+                    <SelectItem value="CONFIRM_RECEIVED">Đã giao hàng</SelectItem>
+                    <SelectItem value="CANCELLED">Đã hủy</SelectItem>
+                    <SelectItem value="EXPIRED">Hết hạn</SelectItem>
+                    <SelectItem value="RETURNED">Đã trả hàng</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select

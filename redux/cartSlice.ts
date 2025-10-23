@@ -140,7 +140,7 @@ export const fetchCartItems = createAsyncThunk<
       if (response.success && response.data) {
         return response.data.map(convertCartItemResponse);
       }
-      throw new Error(response.message || 'Failed to fetch cart items');
+      throw new Error('Failed to fetch cart items');
     } catch (error) {
       return rejectWithValue(error instanceof Error ? error.message : 'Failed to fetch cart items');
     }

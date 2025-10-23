@@ -25,6 +25,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import * as React from "react"
 import { getUsers, banUser, changeUserRole, getProfile, type GetUsersParams } from "@/services/userServices"
 import type { UserProfile } from "@/types/user"
+import { toast } from "sonner"
 
 type Row = {
   id: string
@@ -81,7 +82,7 @@ export default function Page() {
                 fullName: user.fullName,
                 email: user.email,
                 role: primaryRole,
-                isBanned: false, // We'll get this from API response
+                isBanned: user.isBanned || false, // Get isBanned from API response
               }
             })
           setRows(userRows)
@@ -152,6 +153,17 @@ export default function Page() {
   const handleBanUser = async (userId: string, isBanned: boolean) => {
     try {
       await banUser(userId, isBanned);
+      
+      // Show success toast
+      toast.success(
+        isBanned ? "Đã cấm người dùng thành công" : "Đã gỡ cấm người dùng thành công",
+        {
+          description: isBanned 
+            ? "Người dùng đã bị cấm và không thể đăng nhập" 
+            : "Người dùng đã được gỡ cấm và có thể đăng nhập bình thường"
+        }
+      );
+      
       // Refresh the user list
       const params: GetUsersParams = {
         pageNumber: page,
@@ -172,12 +184,15 @@ export default function Page() {
             fullName: user.fullName,
             email: user.email,
             role: primaryRole,
-            isBanned: false,
+            isBanned: user.isBanned || false,
           }
         });
       setRows(userRows);
     } catch (error) {
       console.error('Error banning user:', error);
+      toast.error("Không thể cập nhật trạng thái người dùng", {
+        description: "Vui lòng thử lại sau"
+      });
       setError("Không thể cập nhật trạng thái người dùng");
     }
   };
@@ -185,6 +200,12 @@ export default function Page() {
   const handleChangeRole = async (userId: string, newRole: 'User' | 'Administrator') => {
     try {
       await changeUserRole(userId, newRole);
+      
+      // Show success toast
+      toast.success("Đã thay đổi vai trò thành công", {
+        description: `Vai trò đã được cập nhật thành ${newRole === 'Administrator' ? 'Quản trị viên' : 'Người dùng'}`
+      });
+      
       // Refresh the user list
       const params: GetUsersParams = {
         pageNumber: page,
@@ -205,12 +226,15 @@ export default function Page() {
             fullName: user.fullName,
             email: user.email,
             role: primaryRole,
-            isBanned: false,
+            isBanned: user.isBanned || false,
           }
         });
       setRows(userRows);
     } catch (error) {
       console.error('Error changing user role:', error);
+      toast.error("Không thể thay đổi vai trò người dùng", {
+        description: "Vui lòng thử lại sau"
+      });
       setError("Không thể thay đổi vai trò người dùng");
     }
   };

@@ -10,6 +10,7 @@ export interface UserProfileBase extends UserRoleBase {
   fullName: string;
   tokenCount: number;
   balance: number;
+  isBanned?: boolean;
 }
 
 export type UserProfile = UserProfileBase;

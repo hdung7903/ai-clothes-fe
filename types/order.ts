@@ -116,7 +116,7 @@ export type UpdateOrderStatusByUserResponse = string;
 export interface AdminGetOrdersQuery {
   pageNumber: number;
   pageSize: number;
-  status?: number; // 0..6 per API
+  status?: string; // PENDING, REJECTED, ACCEPTED, SHIPPED, CONFIRM_RECEIVED, CANCELLED, EXPIRED, RETURNED
   paymentStatus?: string; // String values like "ONLINE_PAYMENT_PAID"
   customerName?: string;
   customerEmail?: string;
