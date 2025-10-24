@@ -6,11 +6,15 @@ import { useSelector } from 'react-redux'
 import { RootState } from '@/redux'
 import { Loader2 } from 'lucide-react'
 
-interface AdminGuardProps {
+interface AuthGuardProps {
   children: React.ReactNode
 }
 
-export function AdminGuard({ children }: AdminGuardProps) {
+/**
+ * AuthGuard - Bảo vệ các route yêu cầu đăng nhập
+ * Redirect về /auth/login nếu chưa đăng nhập
+ */
+export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const { user, isAuthenticated, isLoading, isBootstrapping } = useSelector((state: RootState) => state.auth)
   const hasRedirected = useRef(false)
@@ -32,16 +36,6 @@ export function AdminGuard({ children }: AdminGuardProps) {
       router.push('/auth/login')
       return
     }
-
-    // Kiểm tra role Administrator
-    const hasAdminRole = user.roles?.includes('Administrator')
-    
-    if (!hasAdminRole) {
-      // Chuyển về trang thông báo không có quyền
-      hasRedirected.current = true
-      router.push('/unauthorized')
-      return
-    }
   }, [user, isAuthenticated, isLoading, isBootstrapping, router])
 
   // Hiển thị loading khi đang kiểm tra hoặc đang bootstrap
@@ -50,14 +44,14 @@ export function AdminGuard({ children }: AdminGuardProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin" />
-          <p className="text-sm text-muted-foreground">Đang kiểm tra quyền truy cập...</p>
+          <p className="text-sm text-muted-foreground">Đang xác thực...</p>
         </div>
       </div>
     )
   }
 
-  // Nếu chưa đăng nhập hoặc không có quyền, không hiển thị nội dung
-  if (!isAuthenticated || !user || !user.roles?.includes('Administrator')) {
+  // Nếu chưa đăng nhập, không hiển thị nội dung
+  if (!isAuthenticated || !user) {
     return null
   }
 

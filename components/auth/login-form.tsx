@@ -58,8 +58,11 @@ export function LoginForm() {
 
   // Điều hướng sau khi đăng nhập thành công
   useEffect(() => {
-    // Only redirect after a login attempt, not on mount
+    // Only redirect after a login attempt, not on mount or during bootstrap
     if (!loginAttempted) return
+    
+    // Don't redirect if still bootstrapping
+    if (isBootstrapping) return
     
     if (!isAuthenticated) return
     if (!user) {
@@ -73,7 +76,7 @@ export function LoginForm() {
     } else {
       router.push('/')
     }
-  }, [isAuthenticated, user, router, loginAttempted])
+  }, [isAuthenticated, user, router, loginAttempted, isBootstrapping])
 
   // Clear error when component mounts
   useEffect(() => {

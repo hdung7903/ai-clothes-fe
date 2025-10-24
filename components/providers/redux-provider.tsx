@@ -2,7 +2,7 @@
 
 import { Provider } from 'react-redux';
 import { store } from '@/redux';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { fetchUserProfile, setTokens, setBootstrapComplete } from '@/redux/authSlice';
 import { refreshTokenUsingCookies } from '@/services/authServices';
 import { fetchCartItems } from '@/redux/cartSlice';
@@ -13,42 +13,40 @@ interface ReduxProviderProps {
 }
 
 export function ReduxProvider({ children }: ReduxProviderProps) {
+  const isBootstrapped = useRef(false);
+
   // Bootstrap auth on the client after hydration
   // 1) Attempt refresh via cookies to obtain a fresh access token
   // 2) If access token obtained, fetch user profile and populate state
   useEffect(() => {
+    // Chỉ bootstrap một lần
+    if (isBootstrapped.current) {
+      return;
+    }
+    isBootstrapped.current = true;
+
     let cancelled = false;
 
     // Persist tokens on any store update
     const unsubscribe = store.subscribe(() => {
       const state = store.getState() as { auth: { tokens: TokenPair | null, isAuthenticated: boolean, user: any } };
       const tokens = state.auth.tokens;
-      const isAuthenticated = state.auth.isAuthenticated;
-      const user = state.auth.user;
-      
-      console.log('Redux store updated:', { 
-        hasTokens: !!tokens, 
-        isAuthenticated, 
-        hasUser: !!user,
-        tokenPreview: tokens ? tokens.accessToken.substring(0, 20) + '...' : null
-      });
       
       if (tokens) {
         try {
           localStorage.setItem('auth.tokens', JSON.stringify(tokens));
-          console.log('✅ Tokens saved to localStorage successfully');
         } catch (error) {
           console.error('❌ Failed to save tokens to localStorage:', error);
         }
       } else {
         try {
           localStorage.removeItem('auth.tokens');
-          console.log('🗑️ Tokens removed from localStorage');
         } catch (error) {
           console.error('❌ Failed to remove tokens from localStorage:', error);
         }
       }
     });
+
 
     // Bootstrap: use stored tokens to refresh with cookies and restore user
     (async () => {
@@ -74,10 +72,9 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
             refreshToken: stored.refreshToken,
           });
           if (!cancelled && refreshed.success && refreshed.data) {
-            console.log('✅ Token refresh successful, setting tokens and fetching user profile...');
+            console.log('✅ Token refresh successful');
             store.dispatch(setTokens(refreshed.data));
             const profileResult = await store.dispatch(fetchUserProfile(refreshed.data.accessToken));
-            console.log('👤 Profile fetch result:', profileResult);
             if (profileResult.type.endsWith('/fulfilled')) {
               console.log('✅ Bootstrap authentication successful');
             } else {
@@ -91,7 +88,7 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
             store.dispatch(setTokens(null));
           }
         } else {
-          console.log('ℹ️ No stored tokens found, user needs to log in');
+          console.log('ℹ️ No stored tokens found');
         }
       } catch (error) {
         console.error('❌ Bootstrap authentication failed:', error);
@@ -106,7 +103,7 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
         // Always mark bootstrap as complete, even if it failed
         // This must happen to prevent infinite loading states
         if (!cancelled) {
-          console.log('🏁 Bootstrap complete, marking as done');
+          console.log('🏁 Bootstrap complete');
           store.dispatch(setBootstrapComplete());
         }
       }
@@ -120,6 +117,4 @@ export function ReduxProvider({ children }: ReduxProviderProps) {
 
   return <Provider store={store}>{children}</Provider>;
 }
-
-
 

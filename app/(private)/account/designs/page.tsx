@@ -31,9 +31,7 @@ export default function SavedDesignsPage() {
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [designToDelete, setDesignToDelete] = useState<string | null>(null)
-  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
-  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
+  const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -60,13 +58,19 @@ export default function SavedDesignsPage() {
         }
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : "Unknown error"
-        if (errorMessage.includes('AUTHENTICATION_REQUIRED')) {
+        if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
           setError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+          toast.error("Phiên đăng nhập hết hạn", {
+            description: "Đang chuyển đến trang đăng nhập..."
+          })
           setTimeout(() => {
             router.push('/auth/login?next=/account/designs')
           }, 2000)
         } else {
           setError("Không thể tải danh sách thiết kế.")
+          toast.error("Lỗi tải dữ liệu", {
+            description: errorMessage
+          })
         }
       } finally {
         setIsLoading(false)
@@ -99,26 +103,19 @@ export default function SavedDesignsPage() {
       setPageNumber(1)
     } catch (error) {
       console.error("Error deleting design:", error)
-      setErrorMessage("Không thể xóa thiết kế. Vui lòng thử lại.")
-      setErrorDialogOpen(true)
+      toast.error("Không thể xóa thiết kế", {
+        description: "Vui lòng thử lại sau"
+      })
       setDeleteDialogOpen(false)
     }
   }
 
   const handleAddToCart = async (design: ProductDesignSummaryItem) => {
     try {
-      // Check if design has templates
-      if (design.templates.length === 0) {
-        setErrorMessage("Thiết kế này chưa có template nào để thêm vào giỏ hàng.")
-        setErrorDialogOpen(true)
-        return
-      }
-
-      // For now, we'll use the productOptionValueId as productVariantId
-      // In a real scenario, you might need to fetch product details to get the correct variant ID
-      // or show a modal to let user select specific variant
+      setAddingToCart(prev => ({ ...prev, [design.id]: true }))
+      
       const cartItem: AddCartItemRequest = {
-        productVariantId: design.productOptionValueId, // Using productOptionValueId as variant ID
+        productVariantId: design.productOptionValueId,
         productDesignId: design.id,
         quantity: 1
       }
@@ -126,15 +123,32 @@ export default function SavedDesignsPage() {
       const response = await addItem(cartItem)
       
       if (response.success) {
-        toast.success("Đã thêm thiết kế vào giỏ hàng thành công!")
+        toast.success("Đã thêm thiết kế vào giỏ hàng!", {
+          description: `${design.name} - ${design.productName}`
+        })
       } else {
-        setErrorMessage("Không thể thêm thiết kế vào giỏ hàng. Vui lòng thử lại.")
-        setErrorDialogOpen(true)
+        toast.error("Không thể thêm vào giỏ hàng", {
+          description: "Vui lòng thử lại sau"
+        })
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra"
       console.error("Error adding to cart:", error)
-      setErrorMessage("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.")
-      setErrorDialogOpen(true)
+      
+      if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
+        toast.error("Phiên đăng nhập hết hạn", {
+          description: "Vui lòng đăng nhập lại"
+        })
+        setTimeout(() => {
+          router.push('/auth/login?next=/account/designs')
+        }, 1500)
+      } else {
+        toast.error("Lỗi thêm vào giỏ hàng", {
+          description: errorMessage
+        })
+      }
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [design.id]: false }))
     }
   }
 
@@ -252,9 +266,6 @@ export default function SavedDesignsPage() {
                             <Palette className="h-12 w-12 text-muted-foreground" />
                           </div>
                         )}
-                        <Badge className="absolute top-2 right-2" variant="secondary">
-                          {design.templates.length} template{design.templates.length !== 1 ? 's' : ''}
-                        </Badge>
                       </div>
                     </Link>
                     <CardHeader>
@@ -287,9 +298,10 @@ export default function SavedDesignsPage() {
                           size="sm" 
                           className="flex-1"
                           onClick={() => handleAddToCart(design)}
+                          disabled={addingToCart[design.id]}
                         >
                           <ShoppingCart className="h-4 w-4 mr-2" />
-                          Thêm vào giỏ
+                          {addingToCart[design.id] ? 'Đang thêm...' : 'Thêm vào giỏ'}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -353,19 +365,6 @@ export default function SavedDesignsPage() {
             <Button variant="destructive" onClick={confirmDelete}>
               Xóa
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Error Dialog */}
-      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Lỗi</DialogTitle>
-            <DialogDescription>{errorMessage}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setErrorDialogOpen(false)}>Đóng</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
