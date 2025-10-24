@@ -233,28 +233,30 @@ export default function SavedDesignsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {designs.map((design) => (
                   <Card key={design.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="aspect-square relative bg-muted">
-                      {design.icons.length > 0 ? (
-                        <img
-                          src={design.icons[0].imageUrl}
-                          alt={design.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : design.templates.length > 0 ? (
-                        <img
-                          src={design.templates[0].designImageUrl}
-                          alt={design.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Palette className="h-12 w-12 text-muted-foreground" />
-                        </div>
-                      )}
-                      <Badge className="absolute top-2 right-2" variant="secondary">
-                        {design.templates.length} template{design.templates.length !== 1 ? 's' : ''}
-                      </Badge>
-                    </div>
+                    <Link href={`/account/designs/${design.id}`}>
+                      <div className="aspect-square relative bg-muted cursor-pointer">
+                        {design.icons.length > 0 ? (
+                          <img
+                            src={design.icons[0].imageUrl}
+                            alt={design.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : design.templates.length > 0 ? (
+                          <img
+                            src={design.templates[0].designImageUrl}
+                            alt={design.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Palette className="h-12 w-12 text-muted-foreground" />
+                          </div>
+                        )}
+                        <Badge className="absolute top-2 right-2" variant="secondary">
+                          {design.templates.length} template{design.templates.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                    </Link>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
                         <Palette className="h-4 w-4" />
@@ -272,6 +274,15 @@ export default function SavedDesignsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="flex gap-2">
+                        <Link href={`/account/designs/${design.id}`} className="flex-1">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="w-full"
+                          >
+                            Xem chi tiết
+                          </Button>
+                        </Link>
                         <Button 
                           size="sm" 
                           className="flex-1"

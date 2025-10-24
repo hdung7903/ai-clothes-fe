@@ -315,6 +315,7 @@ export default function Page({ params }: PageProps) {
                     <TableHead>Giảm giá</TableHead>
                     <TableHead>Giá sau giảm</TableHead>
                     <TableHead className="text-right">Thành tiền</TableHead>
+                    <TableHead className="text-center">Hành động</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -383,6 +384,15 @@ export default function Page({ params }: PageProps) {
                             </p>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.productDesignId && (
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={`/admin/orders/${order.orderId}/design/${item.productDesignId}`}>
+                              Xem thiết kế
+                            </Link>
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

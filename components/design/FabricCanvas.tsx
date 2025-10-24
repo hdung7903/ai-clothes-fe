@@ -23,6 +23,8 @@ import {
   MoveUp,
   MoveDown,
   Upload,
+  Image as ImageIcon,
+  Sparkles,
 } from "lucide-react";
 import type { CreateOrUpdateProductDesignRequest } from "@/types/productDesign";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -157,6 +159,16 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     } | null>(null);
   const [clickCount, setClickCount] = useState(0);
     const [imageLoading, setImageLoading] = useState(false);
+  
+  // Image library states
+  const [uploadedImages, setUploadedImages] = useState<Array<{url: string, name: string}>>([]);
+  const [suggestedImages, setSuggestedImages] = useState<Array<{url: string, name: string}>>([
+    // Mock suggested images - replace with actual API call
+    { url: "https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?w=200", name: "Logo 1" },
+    { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200", name: "Logo 2" },
+    { url: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=200", name: "Hình 3" },
+  ]);
+  
   // Track which sides actually have template images returned from API
     const [sideHasTemplate, setSideHasTemplate] = useState<
       Record<Side, boolean>
@@ -994,7 +1006,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                "📖 Result length:",
                (event.target.result as string).length
              );
-          addImageDecoration(event.target.result as string, file.name);
+          const imageUrl = event.target.result as string;
+          addImageDecoration(imageUrl, file.name);
+          
+          // Add to uploaded images library
+          setUploadedImages(prev => [...prev, { url: imageUrl, name: file.name }]);
            } else {
              console.error("❌ File read failed - no result");
         }
@@ -1527,6 +1543,76 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   {uploadingImage ? "Đang Tải..." : "Tải Hình Ảnh"}
               </button>
             </div>
+          </div>
+
+          {/* Image Library - Uploaded Images */}
+          {/* <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon size={16} className="text-blue-600" />
+              <h3 className="font-semibold text-sm">Ảnh Đã Tải ({uploadedImages.length})</h3>
+            </div>
+            {uploadedImages.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
+                Chưa có ảnh nào được tải lên
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                {uploadedImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => addImageDecoration(img.url, img.name)}
+                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-all hover:shadow-md group relative"
+                    title={img.name}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">
+                        Thêm
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div> */}
+
+          {/* Image Library - Suggested Images */}
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={16} className="text-purple-600" />
+              <h3 className="font-semibold text-sm">Ảnh Đề Xuất ({suggestedImages.length})</h3>
+            </div>
+            {suggestedImages.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
+                Chưa có ảnh đề xuất
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                {suggestedImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => addImageDecoration(img.url, img.name)}
+                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:shadow-md group relative"
+                    title={img.name}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">
+                        Thêm
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

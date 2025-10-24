@@ -9,7 +9,7 @@ import Link from "next/link"
 import { useMemo, useEffect } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { RootState } from "@/redux"
-import { fetchCartItems, deleteItemsAsync, clearError } from "@/redux/cartSlice"
+import { fetchCartItems, deleteItemsAsync, clearError, updateItemQuantityAsync, updateItemQuantity } from "@/redux/cartSlice"
 import { formatCurrency } from "../../../utils/format"
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover"
 
@@ -31,6 +31,25 @@ export default function CartPage() {
 
   const handleRemoveItem = (cartItemId: string) => {
     dispatch(deleteItemsAsync([cartItemId]))
+  }
+
+  const handleUpdateQuantity = (cartItemId: string, newQuantity: number) => {
+    if (newQuantity < 1) return
+    
+    // Find the item to get productVariantId and productDesignId
+    const item = cartItems.find(item => item.id === cartItemId)
+    if (!item) return
+    
+    // Optimistic update - update UI immediately
+    dispatch(updateItemQuantity({ cartItemId, quantity: newQuantity }))
+    
+    // Then update on server
+    dispatch(updateItemQuantityAsync({ 
+      cartItemId, 
+      productVariantId: item.productVariantId,
+      productDesignId: item.productDesignId ?? null,
+      quantity: newQuantity 
+    }))
   }
 
   const subtotal = useMemo(() => cartItems.reduce((sum: number, item) => sum + item.price * item.quantity, 0), [cartItems])
@@ -94,7 +113,25 @@ export default function CartPage() {
                           </p>
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">Số lượng: {item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={loading || item.quantity <= 1}
+                                onClick={()=>handleUpdateQuantity(item.id, item.quantity - 1)}
+                              >
+                                <Minus className="h-4 w-4" />
+                              </Button>
+                              <span className="w-12 text-center font-medium">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                disabled={loading}
+                                onClick={()=>handleUpdateQuantity(item.id, item.quantity + 1)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
                             </div>
                             <div className="flex items-center gap-4">
                               <span className="text-xl font-bold text-primary">

@@ -55,16 +55,16 @@ export function Header() {
                 className="h-8 w-8 object-contain"
               />
             </div>
-            <span className="text-xl font-bold text-foreground">TEECRAFT</span>
+            <span className="text-xl font-bold">
+              <span className="text-green-600">TEE</span>
+              <span className="text-yellow-500">CRAFT</span>
+            </span>
           </Link>
         </div>
 
         <nav className="hidden md:flex items-center space-x-8">
           <Link href="/products" className="text-foreground hover:text-primary transition-colors">
             Sản Phẩm
-          </Link>
-          <Link href="/design" className="text-foreground hover:text-primary transition-colors">
-            Công Cụ Thiết Kế
           </Link>
           <Link href="/about" className="text-foreground hover:text-primary transition-colors">
             Về Chúng Tôi
@@ -161,13 +161,6 @@ export function Header() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Sản Phẩm
-                  </Link>
-                  <Link 
-                    href="/design" 
-                    className="text-foreground hover:text-primary transition-colors py-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    Công Cụ Thiết Kế
                   </Link>
                   <Link 
                     href="/about" 

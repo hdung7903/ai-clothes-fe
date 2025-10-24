@@ -42,7 +42,7 @@ export function isAuthenticated(): boolean {
   return getAccessToken() !== null;
 }
 
-async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
+async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE' | 'PUT'; payload?: TReq }): Promise<TRes> {
   const baseUrl = getBaseUrl();
   const token = getAccessToken();
   

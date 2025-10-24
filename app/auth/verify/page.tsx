@@ -13,7 +13,7 @@ export default function VerifyEmailPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const dispatch = useAppDispatch()
-  const { isLoading, error } = useAppSelector((s) => s.auth)
+  const { isLoading, error, isAuthenticated, user, isBootstrapping } = useAppSelector((s) => s.auth)
   const presetEmail = searchParams.get("email") ?? ""
 
   const [email, setEmail] = useState("")
@@ -21,6 +21,20 @@ export default function VerifyEmailPage() {
   const [success, setSuccess] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [cooldownTime, setCooldownTime] = useState(0)
+
+  // Redirect authenticated users away from verify page (optional - may want to allow verified users to re-verify)
+  // Uncomment if you want to redirect authenticated users
+  // useEffect(() => {
+  //   if (isBootstrapping) return
+  //   if (isAuthenticated && user) {
+  //     console.log('👤 User already authenticated, redirecting from verify page...')
+  //     if (user.roles?.includes('Administrator')) {
+  //       router.replace('/admin/dashboard')
+  //     } else {
+  //       router.replace('/')
+  //     }
+  //   }
+  // }, [isAuthenticated, user, isBootstrapping, router])
 
   useEffect(() => {
     // Clear any previous errors when component mounts

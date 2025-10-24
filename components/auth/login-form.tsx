@@ -48,14 +48,18 @@ export function LoginForm() {
     resolver: zodResolver(loginSchema),
   })
 
-
-  // Điều hướng sau khi đăng nhập dựa trên vai trò người dùng
+  // Fetch profile once we have tokens after login attempt
   useEffect(() => {
-    // If user explicitly logged in (not bootstrap), allow redirect even during bootstrap
-    if (!loginAttempted && isBootstrapping) {
-      console.log('⏳ Bootstrap in progress and no login attempt yet, waiting...')
-      return
+    if (loginAttempted && tokens?.accessToken && !user) {
+      console.log('📥 Fetching user profile with token...')
+      dispatch(fetchUserProfile(tokens.accessToken))
     }
+  }, [tokens?.accessToken, user, dispatch, loginAttempted])
+
+  // Điều hướng sau khi đăng nhập thành công
+  useEffect(() => {
+    // Only redirect after a login attempt, not on mount
+    if (!loginAttempted) return
     
     if (!isAuthenticated) return
     if (!user) {
@@ -69,15 +73,7 @@ export function LoginForm() {
     } else {
       router.push('/')
     }
-  }, [isAuthenticated, user, router, isBootstrapping, loginAttempted])
-
-  // Fetch profile once we have tokens
-  useEffect(() => {
-    if (tokens?.accessToken && !user) {
-      console.log('📥 Fetching user profile with token...')
-      dispatch(fetchUserProfile(tokens.accessToken))
-    }
-  }, [tokens?.accessToken, user, dispatch])
+  }, [isAuthenticated, user, router, loginAttempted])
 
   // Clear error when component mounts
   useEffect(() => {

@@ -6,6 +6,7 @@ import type { CartItemResponse } from '@/types/cart';
 export interface CartItem {
   id: string; // cartId for internal cart management
   productVariantId: string; // productVariantId for order creation
+  productDesignId?: string | null; // productDesignId if custom design
   name: string;
   price: number; // unit price
   quantity: number;
@@ -40,6 +41,12 @@ const cartSlice = createSlice({
     },
     setItems(state, action: PayloadAction<CartItem[]>) {
       state.items = action.payload;
+    },
+    updateItemQuantity(state, action: PayloadAction<{ cartItemId: string; quantity: number }>) {
+      const item = state.items.find(item => item.id === action.payload.cartItemId);
+      if (item) {
+        item.quantity = action.payload.quantity;
+      }
     },
     updateItemDiscounts(state, action: PayloadAction<{ productVariantId: string; discountAmount: number; totalAmount: number; voucherCode: string; voucherDiscountPercent: number }[]>) {
       action.payload.forEach(discount => {
@@ -105,7 +112,8 @@ const cartSlice = createSlice({
       .addCase(deleteItemsAsync.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to delete items from cart';
-      });
+      })
+
   },
 });
 
@@ -118,6 +126,7 @@ function convertCartItemResponse(response: CartItemResponse): CartItem {
   return {
     id: response.cartId, // Use cartId as the unique identifier for cart management
     productVariantId: response.productVariantId, // Store productVariantId for order creation
+    productDesignId: response.productDesignId, // Store productDesignId for custom designs
     name: response.productName,
     price: response.unitPrice,
     quantity: response.quantity,
@@ -180,5 +189,28 @@ export const deleteItemsAsync = createAsyncThunk<
   }
 );
 
-export const { clearError, setItems, updateItemDiscounts, clearDiscounts } = cartSlice.actions;
+// Update item quantity by deleting and re-adding with new quantity
+export const updateItemQuantityAsync = createAsyncThunk<
+  void,
+  { cartItemId: string; productVariantId: string; productDesignId: string | null; quantity: number },
+  { state: RootState }
+>(
+  'cart/updateItemQuantityAsync',
+  async ({ cartItemId, productVariantId, productDesignId, quantity }, { dispatch, rejectWithValue }) => {
+    try {
+      // Delete the old item first
+      await deleteServerCartItems({ cartItemIds: [cartItemId] });
+      // Add the item back with new quantity
+      await addServerCartItem({ productVariantId, productDesignId, quantity });
+      // Refresh cart to get updated data
+      dispatch(fetchCartItems());
+    } catch (error) {
+      // If update fails, refresh cart to sync with server
+      dispatch(fetchCartItems());
+      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update item quantity');
+    }
+  }
+);
+
+export const { clearError, setItems, updateItemQuantity, updateItemDiscounts, clearDiscounts } = cartSlice.actions;
 export default cartSlice.reducer;
