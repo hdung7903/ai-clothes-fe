@@ -12,11 +12,11 @@ interface AdminGuardProps {
 
 export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter()
-  const { user, isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth)
+  const { user, isAuthenticated, isLoading, isBootstrapping } = useSelector((state: RootState) => state.auth)
 
   useEffect(() => {
-    // Nếu đang loading, chờ
-    if (isLoading) return
+  // Nếu đang loading hoặc đang bootstrap (khởi tạo auth trên client), chờ
+  if (isLoading || isBootstrapping) return
 
     // Nếu chưa đăng nhập, chuyển về trang login
     if (!isAuthenticated || !user) {
@@ -34,8 +34,8 @@ export function AdminGuard({ children }: AdminGuardProps) {
     }
   }, [user, isAuthenticated, isLoading, router])
 
-  // Hiển thị loading khi đang kiểm tra
-  if (isLoading) {
+  // Hiển thị loading khi đang kiểm tra hoặc đang bootstrap
+  if (isLoading || isBootstrapping) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
