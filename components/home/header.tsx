@@ -13,6 +13,7 @@ import {
   ChevronDown
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
 import { logoutUser } from "@/redux/authSlice"
 import { fetchCartItems } from "@/redux/cartSlice"
@@ -37,6 +38,7 @@ export function Header() {
   const { isAuthenticated, user } = useAppSelector((s) => s.auth)
   const cartCount = useAppSelector((s) => s.cart.items.reduce((sum, it) => sum + it.quantity, 0))
   const dispatch = useAppDispatch()
+  const router = useRouter()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
@@ -52,6 +54,8 @@ export function Header() {
       await dispatch(logoutUser()).unwrap()
       setIsMobileMenuOpen(false)
       setIsDropdownOpen(false)
+      // Điều hướng sang trang login sau khi logout thành công
+      router.push('/auth/login')
     } catch (error) {
       console.error('Logout failed:', error)
     }

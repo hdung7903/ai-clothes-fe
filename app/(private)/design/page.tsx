@@ -258,9 +258,8 @@ export default function DesignToolPage(): ReactElement {
               </Button>
             </Link>
             <h1 className="text-2xl font-bold">
-              <span className="text-green-600">TEE</span>
-              <span className="text-yellow-500">CRAFT</span>
-              <span className="text-gray-900"> Designer</span>
+              <span className="text-green-600">TEECRAFT</span>
+              <span className="text-yellow-500">Designer</span>
             </h1>
           </div>
           <div className="flex items-center gap-2">

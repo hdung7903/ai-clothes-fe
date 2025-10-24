@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { toast } from "sonner";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -95,52 +96,58 @@ export default function Page() {
 
   const currentPage = Math.min(page, totalPages);
 
+  // Function to fetch products - can be reused for reload
+  const fetchProducts = React.useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const payload: SearchProductsQuery = {
+        SearchTerm: query || undefined,
+        SortBy: "CREATED_ON",
+        SortDescending: true,
+        PageNumber: currentPage,
+        PageSize: pageSize,
+      };
+      const res = await searchProducts(payload);
+      setItems(res.data?.items ?? []);
+      setTotalPages(res.data?.totalPages || 1);
+
+      // Load templates for each product
+      const templates: Record<string, TemplateSummaryItem[]> = {};
+      for (const product of res.data?.items ?? []) {
+        try {
+          const templateRes = await getTemplatesByProduct(
+            product.productId
+          );
+          if (templateRes.success) {
+            templates[product.productId] = templateRes.data ?? [];
+          }
+        } catch (error) {
+          console.error(
+            `Failed to load templates for product ${product.productId}:`,
+            error
+          );
+          templates[product.productId] = [];
+        }
+      }
+      setProductTemplates(templates);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast.error('Không thể tải danh sách sản phẩm');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [query, currentPage, pageSize]);
+
   React.useEffect(() => {
     let ignore = false;
     const run = async () => {
-      setIsLoading(true);
-      try {
-        const payload: SearchProductsQuery = {
-          SearchTerm: query || undefined,
-          SortBy: "CREATED_ON",
-          SortDescending: true,
-          PageNumber: currentPage,
-          PageSize: pageSize,
-        };
-        const res = await searchProducts(payload);
-        if (!ignore) {
-          setItems(res.data?.items ?? []);
-          setTotalPages(res.data?.totalPages || 1);
-
-          // Load templates for each product
-          const templates: Record<string, TemplateSummaryItem[]> = {};
-          for (const product of res.data?.items ?? []) {
-            try {
-              const templateRes = await getTemplatesByProduct(
-                product.productId
-              );
-              if (templateRes.success) {
-                templates[product.productId] = templateRes.data ?? [];
-              }
-            } catch (error) {
-              console.error(
-                `Failed to load templates for product ${product.productId}:`,
-                error
-              );
-              templates[product.productId] = [];
-            }
-          }
-          setProductTemplates(templates);
-        }
-      } finally {
-        if (!ignore) setIsLoading(false);
-      }
+      await fetchProducts();
     };
     run();
     return () => {
       ignore = true;
     };
-  }, [query, currentPage, pageSize]);
+  }, [fetchProducts]);
 
   // Helper function to get template URL
   const getTemplateUrl = (productId: string) => {
@@ -447,14 +454,22 @@ export default function Page() {
                                           const res = await deleteProductById(
                                             p.productId
                                           );
-                                          if (res.data) {
-                                            setItems((prev) =>
-                                              prev.filter(
-                                                (it) =>
-                                                  it.productId !== p.productId
-                                              )
-                                            );
+                                          if (res.success) {
+                                            toast.success('Xóa sản phẩm thành công', {
+                                              description: `Sản phẩm "${p.name}" đã được xóa khỏi hệ thống.`,
+                                            });
+                                            // Reload the product list
+                                            await fetchProducts();
+                                          } else {
+                                            toast.error('Xóa sản phẩm thất bại', {
+                                              description: res.errors?.general?.[0] || 'Đã có lỗi xảy ra',
+                                            });
                                           }
+                                        } catch (error) {
+                                          console.error('Delete product error:', error);
+                                          toast.error('Xóa sản phẩm thất bại', {
+                                            description: 'Không thể kết nối đến máy chủ',
+                                          });
                                         } finally {
                                           setIsLoading(false);
                                         }

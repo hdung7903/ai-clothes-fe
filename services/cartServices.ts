@@ -1,4 +1,4 @@
-import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse, GetCartItemsResponse } from '@/types/cart';
+import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse, GetCartItemsResponse, GetCartItemByOptionRequest, GetCartItemByOptionResponse } from '@/types/cart';
 
 const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
@@ -42,7 +42,7 @@ export function isAuthenticated(): boolean {
   return getAccessToken() !== null;
 }
 
-async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE' | 'PUT'; payload?: TReq }): Promise<TRes> {
+async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE' | 'PUT'; payload?: TReq; useBodyForGet?: boolean }): Promise<TRes> {
   const baseUrl = getBaseUrl();
   const token = getAccessToken();
   
@@ -52,11 +52,14 @@ async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 
   }
   
   try {
+    // For GET requests with payload, send as body (special case for itemByOption API)
+    const shouldUseBody = options.method !== 'GET' || options.useBodyForGet;
+    
     const res = await fetch(baseUrl + path, {
       method: options.method,
       headers: withAuth(defaultHeaders),
       credentials: 'include',
-      body: options.payload ? JSON.stringify(options.payload) : undefined,
+      body: shouldUseBody && options.payload ? JSON.stringify(options.payload) : undefined,
     });
     
     // Handle HTTP errors
@@ -108,6 +111,16 @@ export async function deleteItems(payload: DeleteCartItemsRequest): Promise<Dele
  */
 export async function getCartItems(): Promise<GetCartItemsResponse> {
   return requestJson<never, GetCartItemsResponse>('/api/Cart/item', { method: 'GET' });
+}
+
+/**
+ * Add item to cart by product options with authentication
+ * @param {GetCartItemByOptionRequest} payload - Product options to add to cart
+ * @returns {Promise<GetCartItemByOptionResponse>} API response with cart item ID
+ * @throws {Error} If authentication fails or request fails
+ */
+export async function addItemByOption(payload: GetCartItemByOptionRequest): Promise<GetCartItemByOptionResponse> {
+  return requestJson<GetCartItemByOptionRequest, GetCartItemByOptionResponse>('/api/Cart/itemByOption', { method: 'POST', payload });
 }
 
 

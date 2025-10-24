@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Palette, ShoppingCart, Trash2, Search, Plus } from "lucide-react"
-import { searchProductDesigns } from "@/services/productDesignServices"
-import { addItem } from "@/services/cartServices"
+import { searchProductDesigns, deleteProductDesignById } from "@/services/productDesignServices"
+import { addItemByOption } from "@/services/cartServices"
 import type { ProductDesignSummaryItem } from "@/types/productDesign"
-import type { AddCartItemRequest } from "@/types/cart"
+import type { GetCartItemByOptionRequest } from "@/types/cart"
 import { useAppSelector } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -94,19 +94,59 @@ export default function SavedDesignsPage() {
     if (!designToDelete) return
     
     try {
-      // TODO: Implement delete functionality
-      console.log("Delete design:", designToDelete)
-      toast.success("Đã xóa thiết kế thành công!")
+      const response = await deleteProductDesignById(designToDelete)
+      
+      if (response.success) {
+        toast.success("Đã xóa thiết kế thành công!")
+        setDeleteDialogOpen(false)
+        setDesignToDelete(null)
+        
+        // Reload the current page or go to page 1 if current page becomes empty
+        const remainingItems = totalCount - 1
+        const maxPage = Math.ceil(remainingItems / pageSize)
+        if (pageNumber > maxPage && maxPage > 0) {
+          setPageNumber(maxPage)
+        } else {
+          // Reload current page
+          const res = await searchProductDesigns({
+            PageNumber: pageNumber,
+            PageSize: pageSize,
+            SearchTerm: searchTerm || undefined
+          })
+          
+          if (res.success && res.data) {
+            setDesigns(res.data.items)
+            setTotalPages(res.data.totalPages)
+            setTotalCount(res.data.totalCount)
+          }
+        }
+      } else {
+        const errorMsg = response.errors 
+          ? Object.values(response.errors).flat().join(', ')
+          : "Vui lòng thử lại sau"
+        toast.error("Không thể xóa thiết kế", {
+          description: errorMsg
+        })
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra"
+      console.error("Error deleting design:", error)
+      
+      if (errorMessage.includes('Authentication') || errorMessage.includes('401')) {
+        toast.error("Phiên đăng nhập hết hạn", {
+          description: "Vui lòng đăng nhập lại"
+        })
+        setTimeout(() => {
+          router.push('/auth/login?next=/account/designs')
+        }, 1500)
+      } else {
+        toast.error("Không thể xóa thiết kế", {
+          description: errorMessage
+        })
+      }
+    } finally {
       setDeleteDialogOpen(false)
       setDesignToDelete(null)
-      // After successful deletion, reload the list
-      setPageNumber(1)
-    } catch (error) {
-      console.error("Error deleting design:", error)
-      toast.error("Không thể xóa thiết kế", {
-        description: "Vui lòng thử lại sau"
-      })
-      setDeleteDialogOpen(false)
     }
   }
 
@@ -114,17 +154,23 @@ export default function SavedDesignsPage() {
     try {
       setAddingToCart(prev => ({ ...prev, [design.id]: true }))
       
-      const cartItem: AddCartItemRequest = {
-        productVariantId: design.productOptionValueId,
+      // Use the new itemByOption API to add item to cart
+      const cartItemRequest: GetCartItemByOptionRequest = {
+        productId: design.productId,
+        productOptionValueIds: [design.productOptionValueId], // Convert single ID to array
         productDesignId: design.id,
         quantity: 1
       }
 
-      const response = await addItem(cartItem)
+      const response = await addItemByOption(cartItemRequest)
       
-      if (response.success) {
+      if (response.success && response.data) {
         toast.success("Đã thêm thiết kế vào giỏ hàng!", {
-          description: `${design.name} - ${design.productName}`
+          description: `${design.name} - ${design.productName}`,
+          action: {
+            label: "Xem giỏ hàng",
+            onClick: () => router.push('/cart')
+          }
         })
       } else {
         toast.error("Không thể thêm vào giỏ hàng", {

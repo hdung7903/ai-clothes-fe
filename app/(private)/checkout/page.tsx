@@ -37,7 +37,7 @@ import {
   clearDiscounts,
 } from "@/redux/cartSlice";
 import { logout } from "@/redux/authSlice";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createQrCode } from "@/services/paymentServices";
 import {
@@ -50,11 +50,27 @@ import {
 } from "@/components/ui/dialog";
 
 export default function CheckoutPage() {
-  const cartItems = useAppSelector((s) => s.cart.items);
+  const searchParams = useSearchParams();
+  const allCartItems = useAppSelector((s) => s.cart.items);
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated);
   const user = useAppSelector((s) => s.auth.user);
   const dispatch = useAppDispatch();
   const router = useRouter();
+
+  // Get selected item IDs from URL params
+  const selectedItemIds = useMemo(() => {
+    const itemsParam = searchParams.get('items');
+    return itemsParam ? itemsParam.split(',') : [];
+  }, [searchParams]);
+
+  // Filter cart items to only include selected ones
+  const cartItems = useMemo(() => {
+    if (selectedItemIds.length === 0) {
+      // If no items specified, use all cart items (fallback)
+      return allCartItems;
+    }
+    return allCartItems.filter(item => selectedItemIds.includes(item.id));
+  }, [allCartItems, selectedItemIds]);
 
   const subtotal = cartItems.reduce((sum, item) => {
     // Always use original price for subtotal calculation
@@ -626,10 +642,30 @@ export default function CheckoutPage() {
             <h1 className="text-3xl font-bold text-foreground mb-2">
               Thanh Toán
             </h1>
-            <p className="text-muted-foreground">Hoàn tất đơn hàng của bạn</p>
+            <p className="text-muted-foreground">
+              Hoàn tất đơn hàng của bạn {cartItems.length > 0 && `(${cartItems.length} sản phẩm)`}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Empty cart warning */}
+          {cartItems.length === 0 && (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Truck className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold mb-2">Không có sản phẩm nào được chọn</h2>
+                <p className="text-muted-foreground mb-4">
+                  Vui lòng quay lại giỏ hàng và chọn sản phẩm để thanh toán
+                </p>
+                <Link href="/cart">
+                  <Button>Quay lại giỏ hàng</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Checkout form - only show if there are items */}
+          {cartItems.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Checkout Form */}
             <div className="space-y-6">
               {/* Shipping Information */}
@@ -984,6 +1020,7 @@ export default function CheckoutPage() {
               </Card>
             </div>
           </div>
+          )}
         </div>
       </div>
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>

@@ -4,23 +4,34 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { RootState } from "@/redux"
 import { fetchCartItems, deleteItemsAsync, clearError, updateItemQuantityAsync, updateItemQuantity } from "@/redux/cartSlice"
 import { formatCurrency } from "../../../utils/format"
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover"
+import { useRouter } from "next/navigation"
 
 export default function CartPage() {
   const dispatch = useAppDispatch()
+  const router = useRouter()
   const { items: cartItems, loading, error } = useAppSelector((s: RootState) => s.cart)
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
 
   // Fetch cart items on component mount
   useEffect(() => {
     dispatch(fetchCartItems())
   }, [dispatch])
+
+  // Auto-select all items when cart loads
+  useEffect(() => {
+    if (cartItems.length > 0 && selectedItems.size === 0) {
+      setSelectedItems(new Set(cartItems.map(item => item.id)))
+    }
+  }, [cartItems, selectedItems.size])
 
   // Clear error when component unmounts
   useEffect(() => {
@@ -29,8 +40,32 @@ export default function CartPage() {
     }
   }, [dispatch])
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(new Set(cartItems.map(item => item.id)))
+    } else {
+      setSelectedItems(new Set())
+    }
+  }
+
+  const handleSelectItem = (itemId: string, checked: boolean) => {
+    const newSelected = new Set(selectedItems)
+    if (checked) {
+      newSelected.add(itemId)
+    } else {
+      newSelected.delete(itemId)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const isAllSelected = cartItems.length > 0 && selectedItems.size === cartItems.length
+
   const handleRemoveItem = (cartItemId: string) => {
     dispatch(deleteItemsAsync([cartItemId]))
+    // Remove from selected items if it was selected
+    const newSelected = new Set(selectedItems)
+    newSelected.delete(cartItemId)
+    setSelectedItems(newSelected)
   }
 
   const handleUpdateQuantity = (cartItemId: string, newQuantity: number) => {
@@ -52,8 +87,23 @@ export default function CartPage() {
     }))
   }
 
-  const subtotal = useMemo(() => cartItems.reduce((sum: number, item) => sum + item.price * item.quantity, 0), [cartItems])
-  const total = subtotal 
+  const subtotal = useMemo(() => {
+    return cartItems
+      .filter(item => selectedItems.has(item.id))
+      .reduce((sum: number, item) => sum + item.price * item.quantity, 0)
+  }, [cartItems, selectedItems])
+  
+  const total = subtotal
+
+  const selectedItemsCount = selectedItems.size
+
+  const handleCheckout = () => {
+    if (selectedItems.size === 0) return
+    
+    // Convert selected item IDs to query params
+    const selectedIds = Array.from(selectedItems).join(',')
+    router.push(`/checkout?items=${selectedIds}`)
+  } 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
@@ -97,10 +147,40 @@ export default function CartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Cart Items */}
               <div className="lg:col-span-2 space-y-4">
+                {/* Select All Card */}
+                <Card className="bg-muted/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id="select-all"
+                        checked={isAllSelected}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <label
+                        htmlFor="select-all"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Chọn tất cả ({cartItems.length} sản phẩm)
+                      </label>
+                      {selectedItemsCount > 0 && selectedItemsCount < cartItems.length && (
+                        <span className="text-xs text-muted-foreground ml-auto">
+                          Đã chọn {selectedItemsCount}/{cartItems.length}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {cartItems.map((item) => (
-                  <Card key={item.id}>
+                  <Card key={item.id} className={selectedItems.has(item.id) ? 'border-green-500 border-2' : ''}>
                     <CardContent className="p-6">
                       <div className="flex gap-4">
+                        <Checkbox
+                          id={`item-${item.id}`}
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                          className="mt-1"
+                        />
                         <img
                           src={item.image || "/placeholder.svg"}
                           alt={item.name}
@@ -156,13 +236,24 @@ export default function CartPage() {
 
               {/* Order Summary */}
               <div>
-                <Card>
+                <Card className="sticky top-4">
                   <CardHeader>
                     <CardTitle>Tóm Tắt Đơn Hàng</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {selectedItemsCount > 0 ? (
+                        <span className="text-green-600 font-medium">
+                          {selectedItemsCount} sản phẩm đã chọn
+                        </span>
+                      ) : (
+                        <span className="text-orange-600">
+                          Chưa chọn sản phẩm nào
+                        </span>
+                      )}
+                    </p>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between">
-                      <span>Tạm tính</span>
+                      <span>Tạm tính ({selectedItemsCount} sản phẩm)</span>
                       <span>{formatCurrency(subtotal, 'VND', 'vi-VN')}</span>
                     </div>
                     <Separator />
@@ -174,10 +265,22 @@ export default function CartPage() {
                       * Giá trên chưa bao gồm chi phí vận chuyển.
                     </p>
                     <LoginRequiredPopover action="tiến hành thanh toán">
-                      <Link href="/checkout">
-                        <Button className="w-full">Tiến hành thanh toán</Button>
-                      </Link>
+                      <Button 
+                        className="w-full" 
+                        onClick={handleCheckout}
+                        disabled={selectedItemsCount === 0}
+                      >
+                        {selectedItemsCount === 0 
+                          ? 'Vui lòng chọn sản phẩm' 
+                          : `Thanh toán (${selectedItemsCount})`
+                        }
+                      </Button>
                     </LoginRequiredPopover>
+                    {selectedItemsCount === 0 && (
+                      <p className="text-xs text-orange-600 text-center">
+                        Vui lòng chọn ít nhất một sản phẩm để thanh toán
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               </div>

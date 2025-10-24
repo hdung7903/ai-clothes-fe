@@ -10,6 +10,13 @@ export interface DeleteCartItemsRequest {
   cartItemIds: string[];
 }
 
+export interface GetCartItemByOptionRequest {
+  productId: string;
+  productOptionValueIds: string[];
+  productDesignId: string;
+  quantity: number;
+}
+
 export interface VariantOption {
   optionName: string;
   optionValue: string;
@@ -34,6 +41,7 @@ export interface CartItemResponse {
 export type AddCartItemResponse = ApiEnvelope<string>;
 export type DeleteCartItemsResponse = ApiEnvelope<boolean>;
 export type GetCartItemsResponse = ApiEnvelope<CartItemResponse[]>;
+export type GetCartItemByOptionResponse = ApiEnvelope<string>;
 
 
 

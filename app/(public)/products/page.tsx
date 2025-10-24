@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from "@/components/ui/select"
 import { TreeSelect } from 'antd'
-import { ShoppingCart, Search } from "lucide-react"
+import { ShoppingCart, Search, Filter, X, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ProductGridSkeleton } from "@/components/ui/loading/product-skeleton"
 import { searchProducts, type SearchProductsQuery } from "@/services/productService"
@@ -17,14 +17,24 @@ import { formatCurrency } from "../../../utils/format"
 import { useAppDispatch } from "@/redux/hooks"
 import { addItemAsync } from "@/redux/cartSlice"
 
+type PriceRange = 'all' | 'under-500k' | '500k-1m' | '1m-2m' | 'over-2m'
+type SortOption = 'newest' | 'oldest' | 'price-low' | 'price-high' | 'name-asc' | 'name-desc'
+
 export default function ProductsPage() {
   const dispatch = useAppDispatch()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [products, setProducts] = useState<any[]>([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [currentPage, setCurrentPage] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
   const [categories, setCategories] = useState<any[]>([])
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [searchInput, setSearchInput] = useState<string>("") // For debounced search
+  const [priceRange, setPriceRange] = useState<PriceRange>('all')
+  const [sortOption, setSortOption] = useState<SortOption>('newest')
+  const [pageSize] = useState(9)
 
   // Convert categories to Ant Design TreeSelect format
   const convertToTreeData = (categories: any[]): any[] => {
@@ -38,45 +48,95 @@ export default function ProductsPage() {
     }))
   }
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      setIsLoading(true)
-      setError(null)
-      try {
-        const query: SearchProductsQuery = {
-          SearchTerm: undefined,
-          CategoryId: selectedCategoryIds.length === 0 ? undefined : selectedCategoryIds[0], // For now, use first selected category
-          MinPrice: undefined,
-          MaxPrice: undefined,
-          SortBy: 'CREATED_ON',
-          SortDescending: true,
-          PageNumber: 1,
-          PageSize: 9,
-        }
-        const res = await searchProducts(query)
-        const items = res.data?.items ?? []
-        // Map API items to UI-friendly objects
-        const mapped = items.map((p) => ({
-          id: p.productId,
-          name: p.name,
-          image: p.imageUrl,
-          priceRange: {
-            min: p.minPrice,
-            max: p.maxPrice,
-          },
-          // Category is not provided on summary; leave undefined
-        }))
-        setProducts(mapped)
-      } catch (e) {
-        setError("Failed to load products.")
-      } finally {
-        setIsLoading(false)
-      }
+  // Calculate min/max price based on selected range
+  const priceFilter = useMemo(() => {
+    switch (priceRange) {
+      case 'under-500k':
+        return { min: undefined, max: 500000 }
+      case '500k-1m':
+        return { min: 500000, max: 1000000 }
+      case '1m-2m':
+        return { min: 1000000, max: 2000000 }
+      case 'over-2m':
+        return { min: 2000000, max: undefined }
+      default:
+        return { min: undefined, max: undefined }
     }
+  }, [priceRange])
 
+  // Calculate sort parameters
+  const sortParams = useMemo(() => {
+    switch (sortOption) {
+      case 'oldest':
+        return { sortBy: 'CREATED_ON' as const, sortDesc: false }
+      case 'price-low':
+        return { sortBy: 'PRICE' as const, sortDesc: false }
+      case 'price-high':
+        return { sortBy: 'PRICE' as const, sortDesc: true }
+      case 'name-asc':
+        return { sortBy: 'NAME' as const, sortDesc: false }
+      case 'name-desc':
+        return { sortBy: 'NAME' as const, sortDesc: true }
+      default: // newest
+        return { sortBy: 'CREATED_ON' as const, sortDesc: true }
+    }
+  }, [sortOption])
+
+    const hasActiveFilters = searchTerm || selectedCategoryIds.length > 0 || priceRange !== 'all'
+
+  // Load products function with proper API integration
+  const loadProducts = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const query: SearchProductsQuery = {
+        SearchTerm: searchTerm || undefined,
+        CategoryId: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : undefined,
+        MinPrice: priceFilter.min,
+        MaxPrice: priceFilter.max,
+        SortBy: sortParams.sortBy,
+        SortDescending: sortParams.sortDesc,
+        PageNumber: currentPage,
+        PageSize: pageSize,
+      }
+      
+      const res = await searchProducts(query)
+      const items = res.data?.items ?? []
+      const mapped = items.map((p) => ({
+        id: p.productId,
+        name: p.name,
+        image: p.imageUrl,
+        priceRange: {
+          min: p.minPrice,
+          max: p.maxPrice,
+        },
+      }))
+      setProducts(mapped)
+      setTotalPages(res.data?.totalPages ?? 1)
+    } catch (e) {
+      console.error('Error loading products:', e)
+      setError("Không thể tải danh sách sản phẩm. Vui lòng thử lại.")
+    } finally {
+      setIsLoading(false)
+    }
+  }, [searchTerm, selectedCategoryIds, priceFilter.min, priceFilter.max, sortParams.sortBy, sortParams.sortDesc, currentPage, pageSize])
+
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput)
+      setCurrentPage(1) // Reset to first page on search
+    }, 500) // 500ms debounce
+
+    return () => clearTimeout(timer)
+  }, [searchInput])
+
+  // Load products when filters change
+  useEffect(() => {
     loadProducts()
-  }, [selectedCategoryIds])
+  }, [loadProducts])
 
+  // Load categories on mount
   useEffect(() => {
     const run = async () => {
       try {
@@ -90,12 +150,21 @@ export default function ProductsPage() {
     run()
   }, [])
 
+  const handleClearFilters = () => {
+    setSearchInput("")
+    setSearchTerm("")
+    setSelectedCategoryIds([])
+    setPriceRange('all')
+    setSortOption('newest')
+    setCurrentPage(1)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Products</h1>
-          <p className="text-muted-foreground">Discover AI-designed clothing and create your own</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Sản Phẩm</h1>
+          <p className="text-muted-foreground">Khám phá các sản phẩm thời trang được thiết kế bởi AI và tạo riêng cho bạn</p>
         </div>
 
         {/* Main Layout: Filter Sidebar (1/3) + Product List (2/3) */}
@@ -104,7 +173,10 @@ export default function ProductsPage() {
           <div className="w-full lg:w-1/3">
             <Card className="sticky top-4">
               <CardHeader>
-                <CardTitle className="text-lg">Bộ lọc tìm kiếm</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Filter className="h-5 w-5" />
+                  Bộ lọc tìm kiếm
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Search */}
@@ -112,8 +184,28 @@ export default function ProductsPage() {
                   <label className="text-sm font-medium">Tìm kiếm</label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input placeholder="Tìm kiếm sản phẩm..." className="pl-10" />
+                    <Input 
+                      placeholder="Tìm kiếm sản phẩm..." 
+                      className="pl-10 pr-10" 
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      disabled={isLoading}
+                    />
+                    {searchInput && (
+                      <button
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setSearchInput("")}
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
+                  {searchInput && searchInput !== searchTerm && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Đang tìm kiếm...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Category Filter */}
@@ -122,21 +214,17 @@ export default function ProductsPage() {
                   <TreeSelect
                     style={{ width: '100%' }}
                     value={selectedCategoryIds}
-                    onChange={setSelectedCategoryIds}
+                    onChange={(value) => {
+                      setSelectedCategoryIds(value)
+                      setCurrentPage(1) // Reset to first page
+                    }}
                     treeData={convertToTreeData(categories)}
                     treeCheckable={true}
                     showCheckedStrategy={TreeSelect.SHOW_CHILD}
                     placeholder="Chọn danh mục"
                     maxTagCount="responsive"
                     treeDefaultExpandAll={false}
-                    styles={{
-                      popup: {
-                        root: {
-                          maxHeight: 200,
-                          overflow: 'auto'
-                        }
-                      }
-                    }}
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -145,24 +233,84 @@ export default function ProductsPage() {
                   <label className="text-sm font-medium">Mức giá</label>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="all-price" name="price" value="all" className="rounded" />
-                      <label htmlFor="all-price" className="text-sm">Tất cả</label>
+                      <input 
+                        type="radio" 
+                        id="all-price" 
+                        name="price" 
+                        value="all" 
+                        checked={priceRange === 'all'}
+                        onChange={(e) => {
+                          setPriceRange(e.target.value as PriceRange)
+                          setCurrentPage(1)
+                        }}
+                        className="rounded" 
+                        disabled={isLoading}
+                      />
+                      <label htmlFor="all-price" className="text-sm cursor-pointer">Tất cả</label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="under-500k" name="price" value="under-500k" className="rounded" />
-                      <label htmlFor="under-500k" className="text-sm">Dưới 500.000₫</label>
+                      <input 
+                        type="radio" 
+                        id="under-500k" 
+                        name="price" 
+                        value="under-500k" 
+                        checked={priceRange === 'under-500k'}
+                        onChange={(e) => {
+                          setPriceRange(e.target.value as PriceRange)
+                          setCurrentPage(1)
+                        }}
+                        className="rounded" 
+                        disabled={isLoading}
+                      />
+                      <label htmlFor="under-500k" className="text-sm cursor-pointer">Dưới 500.000₫</label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="500k-1m" name="price" value="500k-1m" className="rounded" />
-                      <label htmlFor="500k-1m" className="text-sm">500.000₫ - 1.000.000₫</label>
+                      <input 
+                        type="radio" 
+                        id="500k-1m" 
+                        name="price" 
+                        value="500k-1m" 
+                        checked={priceRange === '500k-1m'}
+                        onChange={(e) => {
+                          setPriceRange(e.target.value as PriceRange)
+                          setCurrentPage(1)
+                        }}
+                        className="rounded" 
+                        disabled={isLoading}
+                      />
+                      <label htmlFor="500k-1m" className="text-sm cursor-pointer">500.000₫ - 1.000.000₫</label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="1m-2m" name="price" value="1m-2m" className="rounded" />
-                      <label htmlFor="1m-2m" className="text-sm">1.000.000₫ - 2.000.000₫</label>
+                      <input 
+                        type="radio" 
+                        id="1m-2m" 
+                        name="price" 
+                        value="1m-2m" 
+                        checked={priceRange === '1m-2m'}
+                        onChange={(e) => {
+                          setPriceRange(e.target.value as PriceRange)
+                          setCurrentPage(1)
+                        }}
+                        className="rounded" 
+                        disabled={isLoading}
+                      />
+                      <label htmlFor="1m-2m" className="text-sm cursor-pointer">1.000.000₫ - 2.000.000₫</label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="radio" id="over-2m" name="price" value="over-2m" className="rounded" />
-                      <label htmlFor="over-2m" className="text-sm">Trên 2.000.000₫</label>
+                      <input 
+                        type="radio" 
+                        id="over-2m" 
+                        name="price" 
+                        value="over-2m" 
+                        checked={priceRange === 'over-2m'}
+                        onChange={(e) => {
+                          setPriceRange(e.target.value as PriceRange)
+                          setCurrentPage(1)
+                        }}
+                        className="rounded" 
+                        disabled={isLoading}
+                      />
+                      <label htmlFor="over-2m" className="text-sm cursor-pointer">Trên 2.000.000₫</label>
                     </div>
                   </div>
                 </div>
@@ -170,23 +318,40 @@ export default function ProductsPage() {
                 {/* Sort Options */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Sắp xếp</label>
-                  <Select>
+                  <Select 
+                    value={sortOption} 
+                    onValueChange={(value) => {
+                      setSortOption(value as SortOption)
+                      setCurrentPage(1)
+                    }}
+                    disabled={isLoading}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sắp xếp theo" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="newest">Mới nhất</SelectItem>
+                      <SelectItem value="oldest">Cũ nhất</SelectItem>
                       <SelectItem value="price-low">Giá: Thấp đến cao</SelectItem>
                       <SelectItem value="price-high">Giá: Cao đến thấp</SelectItem>
-                      <SelectItem value="rating">Đánh giá cao nhất</SelectItem>
+                      <SelectItem value="name-asc">Tên: A-Z</SelectItem>
+                      <SelectItem value="name-desc">Tên: Z-A</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Clear Filters */}
-                <Button variant="outline" className="w-full">
-                  Xóa bộ lọc
-                </Button>
+                {hasActiveFilters && (
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={handleClearFilters}
+                    disabled={isLoading}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Xóa bộ lọc
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -196,8 +361,14 @@ export default function ProductsPage() {
             {/* Results Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
-                <h2 className="text-xl font-semibold">Tìm thấy {products.length} kết quả</h2>
-                <p className="text-sm text-muted-foreground">Hiển thị sản phẩm theo bộ lọc của bạn</p>
+                <h2 className="text-xl font-semibold">
+                  {isLoading ? 'Đang tải...' : `Tìm thấy ${products.length} sản phẩm`}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {hasActiveFilters 
+                    ? 'Hiển thị sản phẩm theo bộ lọc của bạn' 
+                    : 'Hiển thị tất cả sản phẩm'}
+                </p>
               </div>
             </div>
 
@@ -205,65 +376,107 @@ export default function ProductsPage() {
             {isLoading ? (
               <ProductGridSkeleton />
             ) : error ? (
-              <div className="text-sm text-destructive">{error}</div>
+              <Card className="p-6">
+                <div className="text-center">
+                  <p className="text-destructive mb-4">{error}</p>
+                  <Button onClick={loadProducts}>Thử lại</Button>
+                </div>
+              </Card>
             ) : products.length === 0 ? (
               <Empty className="border">
                 <EmptyHeader>
                   <EmptyTitle>Không tìm thấy sản phẩm</EmptyTitle>
-                  <EmptyDescription>Hãy thử điều chỉnh tìm kiếm hoặc bộ lọc của bạn.</EmptyDescription>
+                  <EmptyDescription>
+                    {hasActiveFilters 
+                      ? 'Hãy thử điều chỉnh tìm kiếm hoặc bộ lọc của bạn.' 
+                      : 'Hiện tại chưa có sản phẩm nào.'}
+                  </EmptyDescription>
                 </EmptyHeader>
+                {hasActiveFilters && (
+                  <Button variant="outline" onClick={handleClearFilters} className="mt-4">
+                    <X className="h-4 w-4 mr-2" />
+                    Xóa bộ lọc
+                  </Button>
+                )}
               </Empty>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {products.map((product) => (
-                  <Card
-                    key={product.id}
-                    className="overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/20 transition-all cursor-pointer"
-                    onClick={() => router.push(`/products/${product.id}`)}
-                    role="link"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault()
-                        router.push(`/products/${product.id}`)
-                      }
-                    }}
-                  >
-                    <CardHeader className="p-0">
-                      <div className="aspect-square relative">
-                        <img
-                          src={product.image || "/placeholder.svg"}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    </CardHeader>
-                    <CardFooter className="flex justify-between items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-lg truncate">{product.name}</CardTitle>
-                        {product.priceRange && (
-                          <CardDescription className="mt-1">
-                            {formatCurrency(product.priceRange.min, 'VND', 'vi-VN')}
-                            {product.priceRange.max !== product.priceRange.min && ` - ${formatCurrency(product.priceRange.max, 'VND', 'vi-VN')}`}
-                          </CardDescription>
-                        )}
-                      </div>
-                      <Button
-                        variant="secondary"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation()
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {products.map((product) => (
+                    <Card
+                      key={product.id}
+                      className="overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 hover:ring-1 hover:ring-primary/20 transition-all cursor-pointer"
+                      onClick={() => router.push(`/products/${product.id}`)}
+                      role="link"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
                           router.push(`/products/${product.id}`)
-                        }}
-                        aria-label={`Go to ${product.name} details`}
-                        className="flex-shrink-0"
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
+                        }
+                      }}
+                    >
+                      <CardHeader className="p-0">
+                        <div className="aspect-square relative">
+                          <img
+                            src={product.image || "/placeholder.svg"}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        </div>
+                      </CardHeader>
+                      <CardFooter className="flex justify-between items-start gap-3">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg truncate">{product.name}</CardTitle>
+                          {product.priceRange && (
+                            <CardDescription className="mt-1">
+                              {formatCurrency(product.priceRange.min, 'VND', 'vi-VN')}
+                              {product.priceRange.max !== product.priceRange.min && ` - ${formatCurrency(product.priceRange.max, 'VND', 'vi-VN')}`}
+                            </CardDescription>
+                          )}
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            router.push(`/products/${product.id}`)
+                          }}
+                          aria-label={`Xem chi tiết ${product.name}`}
+                          className="flex-shrink-0"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1 || isLoading}
+                    >
+                      Trang trước
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Trang {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages || isLoading}
+                    >
+                      Trang sau
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
