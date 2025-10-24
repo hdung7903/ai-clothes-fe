@@ -45,15 +45,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     variants: { variantId: string; price: number; stock: number; optionValues: Record<string, string> }[]
   } | null>(null)
 
-  // Get colors that have templates available
-  const colorsWithTemplates = useMemo(() => {
-    if (templates.length === 0) return []
-    const colorTemplates = templates.filter(template => 
-      template.productOptionName?.toLowerCase() === 'color'
+  // Check if selected color has templates available
+  const hasTemplatesForSelectedColor = useMemo(() => {
+    if (!selectedColor || templates.length === 0) return false
+    return templates.some(template => 
+      template.productOptionName?.toLowerCase() === 'color' && 
+      template.productOptionValue?.toLowerCase() === selectedColor.toLowerCase()
     )
-    const uniqueColors = [...new Set(colorTemplates.map(t => t.productOptionValue))]
-    return uniqueColors
-  }, [templates])
+  }, [templates, selectedColor])
 
   // Filter templates by selected color
   const filteredTemplates = useMemo(() => {
@@ -63,13 +62,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       template.productOptionValue?.toLowerCase() === selectedColor.toLowerCase()
     )
   }, [templates, selectedColor])
-
-  // Get available print areas for selected color
-  const availablePrintAreas = useMemo(() => {
-    if (!selectedColor || filteredTemplates.length === 0) return []
-    const printAreas = filteredTemplates.map(t => t.printAreaName).filter(Boolean)
-    return [...new Set(printAreas)] // Remove duplicates
-  }, [filteredTemplates, selectedColor])
 
   // Mock feedback data - in a real app, this would come from an API
   const [feedback] = useState([
@@ -142,20 +134,18 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           const list = Array.isArray(templatesRes?.data) ? templatesRes.data : []
           setTemplates(list)
           setTemplateCount(list.length)
-          
-          // Auto-select first color that has templates
-          if (list.length > 0) {
-            const colorTemplates = list.filter(template => 
-              template.productOptionName?.toLowerCase() === 'color'
-            )
-            if (colorTemplates.length > 0) {
-              const firstColor = colorTemplates[0].productOptionValue
-              setSelectedColor(firstColor)
-            }
-          }
         } catch {
           setTemplates([])
           setTemplateCount(0)
+        }
+
+        // Auto-select first color from product (not from templates)
+        if (allColors.length > 0) {
+          setSelectedColor(allColors[0])
+        }
+        // Auto-select first size from product
+        if (allSizes.length > 0) {
+          setSelectedSize(allSizes[0])
         }
       } catch (e) {
         setError("Không thể tải thông tin sản phẩm.")
@@ -406,28 +396,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <span className="text-3xl font-bold text-primary">{formatCurrency(selectedVariant?.price ?? product.price, 'VND', 'vi-VN')}</span>
               </div>
 
-              {/* Template availability */}
-              <div className="mt-2 flex flex-col gap-3 rounded-md border p-3 bg-card">
-                <div className="text-sm text-muted-foreground">
-                  {!selectedColor && (
-                    <span>Vui lòng chọn màu sắc để xem mẫu thiết kế có sẵn.</span>
-                  )}
-                  {selectedColor && templateCount === null && (
-                    <span>Đang kiểm tra mẫu thiết kế có sẵn cho màu {selectedColor}…</span>
-                  )}
-                  {selectedColor && templateCount !== null && filteredTemplates.length > 0 && (
+              {/* Template availability - Only show when color has templates */}
+              {selectedColor && hasTemplatesForSelectedColor && filteredTemplates.length > 0 && (
+                <div className="mt-2 flex flex-col gap-3 rounded-md border p-3 bg-card">
+                  <div className="text-sm text-muted-foreground">
                     <span>
-                      Có mẫu thiết kế sẵn cho màu {selectedColor}.
+                      ✨ Có mẫu thiết kế sẵn cho màu {selectedColor}.
                     </span>
-                  )}
-                  {selectedColor && templateCount !== null && filteredTemplates.length === 0 && (
-                    <span>
-                      Chưa có mẫu thiết kế sẵn cho màu {selectedColor}.
-                    </span>
-                  )}
-                </div>
-
-                {filteredTemplates.length > 0 && (
+                  </div>
                   <div className="flex flex-col gap-2">
                     <p className="text-sm text-muted-foreground">
                       Bạn có thể bắt đầu thiết kế với màu {selectedColor} này.
@@ -438,8 +414,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       </Button>
                     </Link>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <p className="text-muted-foreground">{product.description}</p>
@@ -461,7 +437,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </Select>
             </div>
 
-            {/* Color Selection - Only show colors that have templates */}
+            {/* Color Selection - Show all colors from product */}
             <div>
               <label className="text-sm font-medium mb-2 block">Màu sắc</label>
               <Select value={selectedColor} onValueChange={setSelectedColor}>
@@ -469,24 +445,16 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <SelectValue placeholder="Chọn màu sắc" />
                 </SelectTrigger>
                 <SelectContent>
-                  {colorsWithTemplates.length > 0 ? (
-                    colorsWithTemplates.map((color) => (
-                      <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    product.colors.map((color) => (
-                      <SelectItem key={color} value={color}>
-                        {color}
-                      </SelectItem>
-                    ))
-                  )}
+                  {product.colors.map((color) => (
+                    <SelectItem key={color} value={color}>
+                      {color}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-              {colorsWithTemplates.length > 0 && (
+              {selectedColor && hasTemplatesForSelectedColor && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Chỉ hiển thị màu sắc có mẫu thiết kế sẵn
+                  Màu này có mẫu thiết kế sẵn
                 </p>
               )}
             </div>
