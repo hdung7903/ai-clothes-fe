@@ -53,8 +53,8 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
   const [productInfo, setProductInfo] = React.useState<{ name: string; imageUrl: string; optionName: string; optionValue: string } | null>(null)
   const [templatesForOption, setTemplatesForOption] = React.useState<TemplateSummaryItem[]>([])
   
-  // For create mode - store added areas
-  const [addedAreas, setAddedAreas] = React.useState<{ printAreaName: string; url?: string; file?: File | null; previewUrl?: string | null }[]>([])
+  // For create mode - store added areas with uploaded URLs
+  const [addedAreas, setAddedAreas] = React.useState<{ printAreaName: string; url: string }[]>([])
   
   // Ref for file input to reset it
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -146,17 +146,6 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
       return () => { ignore = true }
     }
   }, [templateId, mode])
-
-  // Cleanup URL objects on unmount
-  React.useEffect(() => {
-    return () => {
-      Object.values(areaImagePreviews).forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
-    }
-  }, [])
 
   const handleInputChange = (field: keyof CreateOrUpdateTemplateRequest, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -271,7 +260,7 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
     }
   }
 
-  const handleNewImageSelect = (file?: File | null) => {
+  const handleNewImageSelect = async (file?: File | null) => {
     setNewImageFile(file || null)
     if (!file) { 
       setNewImagePreview(null)
@@ -287,19 +276,41 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
           delete updated[selectedArea]
           return updated
         })
+        // Clear imageUrl when removing file
+        setFormData(prev => ({ ...prev, imageUrl: "" }))
       }
       return 
     }
-    try { 
-      const previewUrl = URL.createObjectURL(file)
-      setNewImagePreview(previewUrl)
-      // Store the preview and file for current area
-      if (selectedArea) {
-        setAreaImagePreviews(prev => ({ ...prev, [selectedArea]: previewUrl }))
-        setAreaImageFiles(prev => ({ ...prev, [selectedArea]: file }))
+    
+    // Upload image immediately when file is selected
+    try {
+      setIsLoading(true)
+      const uploadRes = await uploadImage(file)
+      if (!uploadRes.success || !uploadRes.data) {
+        toast.error('Upload ảnh thất bại')
+        setNewImageFile(null)
+        setNewImagePreview(null)
+        return
       }
-    } catch { 
-      setNewImagePreview(null) 
+      
+      const uploadedUrl = uploadRes.data
+      setNewImagePreview(uploadedUrl)
+      
+      // Store the uploaded URL and file for current area
+      if (selectedArea) {
+        setAreaImagePreviews(prev => ({ ...prev, [selectedArea]: uploadedUrl }))
+        setAreaImageFiles(prev => ({ ...prev, [selectedArea]: file }))
+        // Update formData with uploaded URL
+        setFormData(prev => ({ ...prev, imageUrl: uploadedUrl }))
+      }
+      
+      toast.success('Upload ảnh thành công')
+    } catch (error) {
+      toast.error('Upload ảnh thất bại')
+      setNewImagePreview(null)
+      setNewImageFile(null)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -351,11 +362,10 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
   }
 
   const handleCompleteArea = () => {
-    if (!selectedArea || (!formData.imageUrl && !newImageFile)) return
+    if (!selectedArea || !formData.imageUrl) return
     
-    const newItem = newImageFile
-      ? { printAreaName: selectedArea, file: newImageFile, previewUrl: newImagePreview ?? null }
-      : { printAreaName: selectedArea, url: formData.imageUrl }
+    // Since image is already uploaded in handleNewImageSelect, just use the URL from formData
+    const newItem = { printAreaName: selectedArea, url: formData.imageUrl }
     
     setAddedAreas(prev => [...prev, newItem])
     setSelectedArea("")
@@ -379,23 +389,17 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
           setIsLoading(false)
           return
         }
-        // Resolve image URLs: use direct URL if provided, otherwise upload file
-        const resolved = await Promise.all(addedAreas.map(async (a) => {
-          let finalUrl = a.url || ''
-          if (!finalUrl) {
-            if (!a.file) throw new Error('Thiếu ảnh cho khu vực ' + a.printAreaName)
-            const uploadRes = await uploadImage(a.file)
-            if (!uploadRes.success || !uploadRes.data) throw new Error('Upload ảnh thất bại cho ' + a.printAreaName)
-            finalUrl = uploadRes.data
-          }
+        // Images are already uploaded, just use the URLs
+        const resolved = addedAreas.map((a) => {
+          if (!a.url) throw new Error('Thiếu ảnh cho khu vực ' + a.printAreaName)
           return {
             templateId: null, // Always null for create mode
             productId: formData.productId,
             productOptionValueId: formData.productOptionValueId,
             printAreaName: a.printAreaName,
-            imageUrl: finalUrl,
+            imageUrl: a.url,
           }
-        }))
+        })
         const results = await Promise.all(resolved.map(payload => createOrUpdateTemplate(payload)))
         const anyFail = results.some(r => !r.success)
         if (anyFail) {
@@ -409,15 +413,11 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
           toast.success(`Tạo thành công ${resolved.length} template(s)`)
         }
       } else {
-        // Edit mode: if a new file selected, upload first
+        // Edit mode: image is already uploaded in handleNewImageSelect if new file was selected
         let finalImageUrl = formData.imageUrl
-        const currentAreaFile = areaImageFiles[selectedArea]
-        if (currentAreaFile) {
-          const up = await uploadImage(currentAreaFile)
-          if (!up.success || !up.data) throw new Error('Upload ảnh thất bại')
-          finalImageUrl = up.data
-        } else if (selectedArea !== originalArea && !finalImageUrl) {
-          throw new Error('Vui lòng chọn ảnh mới cho khu vực đã đổi')
+        
+        if (!finalImageUrl) {
+          throw new Error('Vui lòng chọn ảnh cho template')
         }
         
         // For edit mode, check if this area has existing template with image from API
@@ -654,11 +654,11 @@ export function TemplateEditForm({ templateId, mode = 'edit', productId }: Templ
                               </Button>
                             </div>
                             <div className="space-y-2">
-                              {(a.previewUrl || a.url) ? (
+                              {a.url ? (
                                 <div className="relative">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img 
-                                    src={a.previewUrl || a.url!} 
+                                    src={a.url} 
                                     alt={a.printAreaName} 
                                     className="aspect-square w-full rounded-md object-cover ring-1 ring-border" 
                                   />
