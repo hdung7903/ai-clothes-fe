@@ -97,7 +97,7 @@ export default function ContactPage() {
                     <div>
                       <p className="font-medium">Địa Chỉ</p>
                       <p className="text-muted-foreground">
-                        De La Thanh, Đống Đa
+                        Đê La Thành, Đống Đa
                         <br />
                         Hà Nội, Việt Nam
                       </p>
