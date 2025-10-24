@@ -84,10 +84,6 @@ export function AdminSidebar({
         title: "Quản lý ảnh",
         url: "/admin/images",
         icon: ImageIcon,
-        items: [
-          { title: "Tất cả ảnh", url: "/admin/images" },
-          { title: "Thêm ảnh", url: "/admin/images/new" },
-        ],
       },
       {
         title: "Cài đặt API",

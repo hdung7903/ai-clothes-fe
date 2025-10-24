@@ -4,43 +4,24 @@ import type { PagedResult } from './product';
 // Suggestion Image Types
 export interface SuggestionImage {
   id: string;
-  name: string;
   imageUrl: string;
-  description?: string;
-  category?: string;
-  isActive: boolean;
-  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface SuggestionImageSummaryItem {
   id: string;
-  name: string;
   imageUrl: string;
-  description?: string;
-  category?: string;
   isActive: boolean;
-  displayOrder: number;
 }
 
 export interface CreateSuggestionImageRequest {
-  name: string;
   imageUrl: string;
-  description?: string;
-  category?: string;
-  isActive?: boolean;
-  displayOrder?: number;
 }
 
 export interface UpdateSuggestionImageRequest {
   id: string;
-  name?: string;
   imageUrl?: string;
-  description?: string;
-  category?: string;
-  isActive?: boolean;
-  displayOrder?: number;
 }
 
 export interface SearchSuggestionImagesQuery {

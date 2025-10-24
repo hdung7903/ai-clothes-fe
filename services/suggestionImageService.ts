@@ -1,134 +1,117 @@
-import type {
-  CreateSuggestionImageRequest,
-  CreateSuggestionImageResponse,
-  UpdateSuggestionImageRequest,
-  UpdateSuggestionImageResponse,
+import type { ApiEnvelope } from '@/types/shared'
+import type { PagedResult } from '@/types/product'
+import type { 
+  SuggestionImageSummaryItem, 
+  SuggestionImage,
   SearchSuggestionImagesQuery,
-  SearchSuggestionImagesResponse,
-  GetSuggestionImageByIdResponse,
-  DeleteSuggestionImageByIdResponse,
-  GetAllActiveSuggestionImagesResponse,
-} from '@/types/suggestionImage';
-
-const defaultJsonHeaders: HeadersInit = {
-  'Content-Type': 'application/json',
-  'Accept': 'application/json',
-};
+  CreateSuggestionImageRequest,
+  UpdateSuggestionImageRequest
+} from '@/types/suggestionImage'
 
 function getBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5050';
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) {
+    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '')
+  }
+  return ''
 }
 
 function getAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem('accessToken');
-}
-
-function withAuth(headers: HeadersInit): HeadersInit {
-  const token = getAccessToken();
-  if (!token) return headers;
-  return {
-    ...headers,
-    Authorization: `Bearer ${token}`,
-  };
-}
-
-async function handleAuthError(response: Response): Promise<never> {
-  if (response.status === 401) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.location.href = '/auth/login';
-    }
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as { accessToken?: string }
+    return parsed?.accessToken ?? null
+  } catch {
+    return null
   }
-  throw new Error(`HTTP ${response.status}: ${response.statusText}`);
 }
 
-/**
- * Create a new suggestion image
- */
-export async function createSuggestionImage(payload: CreateSuggestionImageRequest): Promise<CreateSuggestionImageResponse> {
-  const url = `${getBaseUrl()}/api/SuggestionImage`;
-  const res = await fetch(url, {
+function getHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  }
+  const token = getAccessToken()
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
+export async function searchSuggestionImages(
+  query: SearchSuggestionImagesQuery
+): Promise<ApiEnvelope<PagedResult<SuggestionImageSummaryItem>>> {
+  const baseUrl = getBaseUrl()
+  const params = new URLSearchParams()
+  
+  if (query.SearchTerm) params.append('SearchTerm', query.SearchTerm)
+  if (query.Category) params.append('Category', query.Category)
+  if (query.IsActive !== undefined) params.append('IsActive', String(query.IsActive))
+  if (query.PageNumber) params.append('PageNumber', String(query.PageNumber))
+  if (query.PageSize) params.append('PageSize', String(query.PageSize))
+  if (query.SortBy) params.append('SortBy', query.SortBy)
+  if (query.SortOrder) params.append('SortOrder', query.SortOrder)
+
+  const res = await fetch(`${baseUrl}/api/SuggestionImage/Search?${params.toString()}`, {
+    method: 'GET',
+    headers: getHeaders(),
+    credentials: 'include',
+  })
+
+  return res.json() as Promise<ApiEnvelope<PagedResult<SuggestionImageSummaryItem>>>
+}
+
+export async function getSuggestionImageById(
+  id: string
+): Promise<ApiEnvelope<SuggestionImage>> {
+  const baseUrl = getBaseUrl()
+  const res = await fetch(`${baseUrl}/api/SuggestionImage/${id}`, {
+    method: 'GET',
+    headers: getHeaders(),
+    credentials: 'include',
+  })
+
+  return res.json() as Promise<ApiEnvelope<SuggestionImage>>
+}
+
+export async function createSuggestionImage(
+  command: CreateSuggestionImageRequest
+): Promise<ApiEnvelope<string>> {
+  const baseUrl = getBaseUrl()
+  const res = await fetch(`${baseUrl}/api/SuggestionImage`, {
     method: 'POST',
-    headers: withAuth(defaultJsonHeaders),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return handleAuthError(res);
-  return res.json();
+    headers: getHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(command),
+  })
+
+  return res.json() as Promise<ApiEnvelope<string>>
 }
 
-/**
- * Update an existing suggestion image
- */
-export async function updateSuggestionImage(payload: UpdateSuggestionImageRequest): Promise<UpdateSuggestionImageResponse> {
-  const url = `${getBaseUrl()}/api/SuggestionImage/${payload.id}`;
-  const res = await fetch(url, {
+export async function updateSuggestionImage(
+  id: string,
+  command: UpdateSuggestionImageRequest
+): Promise<ApiEnvelope<null>> {
+  const baseUrl = getBaseUrl()
+  const res = await fetch(`${baseUrl}/api/SuggestionImage/${id}`, {
     method: 'PUT',
-    headers: withAuth(defaultJsonHeaders),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) return handleAuthError(res);
-  return res.json();
+    headers: getHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(command),
+  })
+
+  return res.json() as Promise<ApiEnvelope<null>>
 }
 
-/**
- * Search suggestion images with filters and pagination
- */
-export async function searchSuggestionImages(query: SearchSuggestionImagesQuery): Promise<SearchSuggestionImagesResponse> {
-  const params = new URLSearchParams();
-  if (query.PageNumber) params.append('PageNumber', String(query.PageNumber));
-  if (query.PageSize) params.append('PageSize', String(query.PageSize));
-  if (query.SearchTerm) params.append('SearchTerm', query.SearchTerm);
-  if (query.Category) params.append('Category', query.Category);
-  if (query.IsActive !== undefined) params.append('IsActive', String(query.IsActive));
-  if (query.SortBy) params.append('SortBy', query.SortBy);
-  if (query.SortOrder) params.append('SortOrder', query.SortOrder);
-
-  const url = `${getBaseUrl()}/api/SuggestionImage/search?${params.toString()}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: withAuth(defaultJsonHeaders),
-  });
-  if (!res.ok) return handleAuthError(res);
-  return res.json();
-}
-
-/**
- * Get suggestion image by ID
- */
-export async function getSuggestionImageById(id: string): Promise<GetSuggestionImageByIdResponse> {
-  const url = `${getBaseUrl()}/api/SuggestionImage/${id}`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: withAuth(defaultJsonHeaders),
-  });
-  if (!res.ok) return handleAuthError(res);
-  return res.json();
-}
-
-/**
- * Delete suggestion image by ID
- */
-export async function deleteSuggestionImageById(id: string): Promise<DeleteSuggestionImageByIdResponse> {
-  const url = `${getBaseUrl()}/api/SuggestionImage/${id}`;
-  const res = await fetch(url, {
+export async function deleteSuggestionImageById(
+  id: string
+): Promise<ApiEnvelope<null>> {
+  const baseUrl = getBaseUrl()
+  const res = await fetch(`${baseUrl}/api/SuggestionImage/${id}`, {
     method: 'DELETE',
-    headers: withAuth(defaultJsonHeaders),
-  });
-  if (!res.ok) return handleAuthError(res);
-  return res.json();
-}
+    headers: getHeaders(),
+    credentials: 'include',
+  })
 
-/**
- * Get all active suggestion images (for public use)
- */
-export async function getAllActiveSuggestionImages(): Promise<GetAllActiveSuggestionImagesResponse> {
-  const url = `${getBaseUrl()}/api/SuggestionImage/active`;
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: defaultJsonHeaders,
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  return res.json();
+  return res.json() as Promise<ApiEnvelope<null>>
 }

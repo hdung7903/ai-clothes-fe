@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -22,10 +23,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-import { Eye, Pencil, Trash2 } from "lucide-react"
+import { Eye, Trash2, Upload } from "lucide-react"
 import * as React from "react"
 import { searchSuggestionImages, deleteSuggestionImageById } from "@/services/suggestionImageService"
 import type { SearchSuggestionImagesQuery, SuggestionImageSummaryItem } from "@/types/suggestionImage"
+import { ImageUploadDialog } from "@/components/admin/image-upload-dialog"
 
 export default function SuggestionImagesPage() {
   const [query, setQuery] = React.useState("")
@@ -36,66 +38,70 @@ export default function SuggestionImagesPage() {
   const [items, setItems] = React.useState<SuggestionImageSummaryItem[]>([])
   const [totalPages, setTotalPages] = React.useState(1)
   const [isLoading, setIsLoading] = React.useState(false)
+  const [uploadDialogOpen, setUploadDialogOpen] = React.useState(false)
+  const [viewDialogOpen, setViewDialogOpen] = React.useState(false)
+  const [selectedImage, setSelectedImage] = React.useState<SuggestionImageSummaryItem | null>(null)
 
   const currentPage = Math.min(page, totalPages)
+
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const payload: SearchSuggestionImagesQuery = {
+        PageNumber: currentPage,
+        PageSize: pageSize,
+        SearchTerm: query || undefined,
+        Category: categoryFilter === "all" ? undefined : categoryFilter,
+        IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
+        SortBy: "displayOrder",
+        SortOrder: "asc",
+      }
+      const res = await searchSuggestionImages(payload)
+      setItems(res.data?.items ?? [])
+      setTotalPages(res.data?.totalPages || 1)
+    } catch (error) {
+      console.error("Error loading images:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [query, categoryFilter, isActiveFilter, currentPage, pageSize])
 
   React.useEffect(() => {
     let ignore = false
     const run = async () => {
-      setIsLoading(true)
-      try {
-        const payload: SearchSuggestionImagesQuery = {
-          PageNumber: currentPage,
-          PageSize: pageSize,
-          SearchTerm: query || undefined,
-          Category: categoryFilter === "all" ? undefined : categoryFilter,
-          IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
-          SortBy: "displayOrder",
-          SortOrder: "asc",
-        }
-        const res = await searchSuggestionImages(payload)
-        if (!ignore) {
-          setItems(res.data?.items ?? [])
-          setTotalPages(res.data?.totalPages || 1)
-        }
-      } catch (error) {
-        console.error("Error loading images:", error)
-      } finally {
-        if (!ignore) setIsLoading(false)
+      if (!ignore) {
+        await loadData()
       }
     }
     run()
     return () => {
       ignore = true
     }
-  }, [query, categoryFilter, isActiveFilter, currentPage, pageSize])
+  }, [loadData])
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa ảnh "${name}"?`)) return
-
+  const handleDelete = async (id: string) => {
     try {
       const res = await deleteSuggestionImageById(id)
       if (res.success) {
         // Reload data
         setPage(1)
-        const payload: SearchSuggestionImagesQuery = {
-          PageNumber: 1,
-          PageSize: pageSize,
-          SearchTerm: query || undefined,
-          Category: categoryFilter === "all" ? undefined : categoryFilter,
-          IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
-          SortBy: "displayOrder",
-          SortOrder: "asc",
-        }
-        const newRes = await searchSuggestionImages(payload)
-        setItems(newRes.data?.items ?? [])
-        setTotalPages(newRes.data?.totalPages || 1)
+        await loadData()
       } else {
         alert("Xóa ảnh thất bại")
       }
     } catch (error) {
       alert("Đã xảy ra lỗi khi xóa ảnh")
     }
+  }
+
+  const handleViewImage = (item: SuggestionImageSummaryItem) => {
+    setSelectedImage(item)
+    setViewDialogOpen(true)
+  }
+
+  const handleUploadSuccess = async () => {
+    setPage(1)
+    await loadData()
   }
 
   return (
@@ -123,8 +129,9 @@ export default function SuggestionImagesPage() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <h1 className="text-xl font-semibold">Quản lý ảnh đề xuất</h1>
-              <Button asChild>
-                <Link href="/admin/images/new">Thêm ảnh mới</Link>
+              <Button onClick={() => setUploadDialogOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Tải ảnh lên
               </Button>
             </div>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -196,89 +203,64 @@ export default function SuggestionImagesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">Ảnh</TableHead>
+                  <TableHead className="w-[80px]">ID</TableHead>
                   <TableHead>Tên</TableHead>
-                  <TableHead>Danh mục</TableHead>
-                  <TableHead className="w-[100px]">Thứ tự</TableHead>
-                  <TableHead className="w-[120px]">Trạng thái</TableHead>
-                  <TableHead className="text-right w-[180px]">Hành động</TableHead>
+                  <TableHead className="text-right w-[150px]">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center">Đang tải...</TableCell>
+                    <TableCell colSpan={3} className="text-center">Đang tải...</TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       Không tìm thấy ảnh nào
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && items.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell>
-                      <div className="w-16 h-16 rounded border overflow-hidden">
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {item.id.slice(0, 8)}...
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{item.name}</div>
-                      {item.description && (
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {item.description}
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded border overflow-hidden flex-shrink-0">
+                          <img 
+                            src={item.imageUrl} 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {item.category ? (
-                        <Badge variant="outline">{item.category}</Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center">{item.displayOrder}</TableCell>
-                    <TableCell>
-                      {item.isActive ? (
-                        <Badge className="bg-green-500">Hoạt động</Badge>
-                      ) : (
-                        <Badge variant="secondary">Không hoạt động</Badge>
-                      )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/admin/images/${item.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link href={`/admin/images/${item.id}/edit`}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleViewImage(item)}
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Bạn có chắc chắn muốn xóa ảnh "{item.name}"? Hành động này không thể hoàn tác.
+                                Bạn có chắc chắn muốn xóa ảnh này không? Hành động này không thể hoàn tác.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Hủy</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(item.id, item.name)}>
+                              <AlertDialogAction onClick={() => handleDelete(item.id)}>
                                 Xóa
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -321,6 +303,51 @@ export default function SuggestionImagesPage() {
             </Pagination>
           )}
         </div>
+
+        {/* Upload Dialog */}
+        <ImageUploadDialog 
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          onSuccess={handleUploadSuccess}
+        />
+
+        {/* View Dialog */}
+        <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Chi tiết ảnh</DialogTitle>
+            </DialogHeader>
+            {selectedImage && (
+              <div className="space-y-4">
+                <div className="rounded-lg border overflow-hidden">
+                  <img 
+                    src={selectedImage.imageUrl} 
+                    className="w-full h-auto"
+                  />
+                </div>
+                <div className="grid gap-3">
+                  <div>
+                    <div className="text-sm font-medium text-muted-foreground">ID</div>
+                    <div className="font-mono text-sm">{selectedImage.id}</div>
+                  </div>
+        
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <div className="text-sm font-medium text-muted-foreground">Trạng thái</div>
+                      <div>
+                        {selectedImage.isActive ? (
+                          <Badge className="bg-green-500">Hoạt động</Badge>
+                        ) : (
+                          <Badge variant="secondary">Không hoạt động</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </SidebarInset>
     </SidebarProvider>
   )
