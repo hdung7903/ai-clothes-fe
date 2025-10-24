@@ -132,6 +132,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       string | undefined
     >(templateIdFromUrl);
     const isSwitchingSideRef = useRef(false);
+    const isCapturingCanvasRef = useRef(false); // Flag to track canvas capture process
   
   const [decorations, setDecorations] = useState<Decoration[]>([]);
     const [sideDecorations, setSideDecorations] = useState<
@@ -367,6 +368,13 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   useEffect(() => {
     const prevSide = prevSideRef.current;
     if (prevSide !== currentSide) {
+        // Skip if we're capturing canvas to prevent corruption
+        if (isCapturingCanvasRef.current) {
+          console.log('⏸️ SKIPPING side switch save - capturing canvas');
+          prevSideRef.current = currentSide;
+          return;
+        }
+        
         console.log('Switching from side:', prevSide, 'to side:', currentSide);
         console.log('Current decorations before switch:', decorations);
         
@@ -1113,13 +1121,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     };
 
     // Function to capture canvas for a specific side with all decorations
-    const captureSideCanvas = async (side: Side): Promise<string | null> => {
+    const captureSideCanvas = async (side: Side, sideDecorationsData?: Record<Side, Decoration[]>): Promise<string | null> => {
       console.log(`🎨 CAPTURING CANVAS FOR SIDE: ${side}`);
+      
+      // Set flag to prevent auto-save during capture
+      isCapturingCanvasRef.current = true;
       
       // Store original state
       const originalSide = currentSide;
       const originalDecorations = decorations;
       const originalShirtImage = shirtImage;
+      
+      // Use provided sideDecorationsData or fallback to current state
+      const decorationsToUse = sideDecorationsData || sideDecorations;
       
       try {
         // Switch to target side
@@ -1127,8 +1141,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         setCurrentSide(side);
         
         // Load decorations for this side
-        const sideDecorationsList = sideDecorations[side] || [];
+        const sideDecorationsList = decorationsToUse[side] || [];
         console.log(`📂 Loading decorations for ${side}:`, sideDecorationsList.length, 'decorations');
+        console.log(`📂 Decorations details:`, sideDecorationsList.map(d => ({ id: d.id, name: d.name })));
         setDecorations(sideDecorationsList);
         
         // Load background image for this side
@@ -1169,6 +1184,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         setCurrentSide(originalSide);
         setDecorations(originalDecorations);
         setShirtImage(originalShirtImage);
+        
+        // Reset flag after capture is complete
+        isCapturingCanvasRef.current = false;
       }
     };
 
@@ -1207,13 +1225,31 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       setSavingDesign(true);
       console.log("💾 STARTING SAVE DESIGN PROCESS");
 
+      // CRITICAL: Save current decorations to current side BEFORE collecting
+      console.log("💾 Saving current decorations to current side before collecting...");
+      console.log("Current side:", currentSide);
+      console.log("Current decorations count:", decorations.length);
+      
+      // Update sideDecorations with current decorations
+      const updatedSideDecorations = {
+        ...sideDecorations,
+        [currentSide]: [...decorations]
+      };
+      
+      console.log("💾 Updated side decorations count:", {
+        front: updatedSideDecorations.front.length,
+        back: updatedSideDecorations.back.length,
+        leftSleeve: updatedSideDecorations.leftSleeve.length,
+        rightSleeve: updatedSideDecorations.rightSleeve.length,
+      });
+
       // Collect all image decorations from all sides for icons
       const allImageDecorations: ImageDecoration[] = [];
       const allSides: Side[] = ["front", "back", "leftSleeve", "rightSleeve"];
       
       console.log("📋 Collecting all image decorations from all sides...");
       allSides.forEach(side => {
-        const sideDecorationsList = sideDecorations[side] || [];
+        const sideDecorationsList = updatedSideDecorations[side] || [];
         const imageDecorations = sideDecorationsList.filter(d => d.type === "image") as ImageDecoration[];
         console.log(`📂 ${side}: ${imageDecorations.length} image decorations`);
         allImageDecorations.push(...imageDecorations);
@@ -1227,9 +1263,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       
       for (const decoration of allImageDecorations) {
         // Find which side this decoration belongs to
-        const decorationSide = Object.keys(sideDecorations).find(side => 
-          sideDecorations[side as Side]?.some(dec => dec.id === decoration.id)
-        ) as Side || "front";
+        const decorationSide = Object.keys(updatedSideDecorations).find(side => 
+          updatedSideDecorations[side as Side]?.some(dec => dec.id === decoration.id)
+        ) as Side || currentSide; // Use currentSide as fallback instead of "front"
+        
+        console.log(`🔍 Decoration "${decoration.name}" (ID: ${decoration.id}) belongs to side: ${decorationSide}`);
         
         // Upload decoration image to storage
         const uploadedUrl = await uploadDecorationImage(decoration.imageUrl, decoration.name);
@@ -1240,13 +1278,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             name: decoration.name,
             side: getSideLabel(decorationSide)
           });
-          console.log(`✅ Icon uploaded for ${decoration.name}: ${uploadedUrl}`);
+          console.log(`✅ Icon uploaded for ${decoration.name} on ${decorationSide}: ${uploadedUrl}`);
         } else {
           console.warn(`⚠️ Failed to upload decoration: ${decoration.name}`);
         }
       }
       
       console.log("🎨 Icons created with storage URLs:", icons);
+
+      // CRITICAL: Update sideDecorations state before capturing canvas
+      setSideDecorations(updatedSideDecorations);
+      
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Capture canvas for all sides that have templates and upload them
       const designTemplates: any[] = [];
@@ -1262,7 +1306,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           const sideTemplateId = getTemplateIdForSide(side);
           console.log(`🔍 Template ID for ${side}:`, sideTemplateId);
           
-          const canvasImageUrl = await captureSideCanvas(side);
+          // Pass updatedSideDecorations to ensure correct decorations are used
+          const canvasImageUrl = await captureSideCanvas(side, updatedSideDecorations);
           
           if (canvasImageUrl) {
             // Create template object for this side with correct templateId
@@ -1282,12 +1327,31 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
       console.log(`📊 Total templates created: ${designTemplates.length}`);
 
+      // Log detailed information about what we're sending
+      console.log("📊 DETAILED PAYLOAD INFORMATION:");
+      console.log("Icons count:", icons.length);
+      icons.forEach((icon, index) => {
+        console.log(`  Icon ${index + 1}:`, {
+          imageUrl: icon.imageUrl.substring(0, 50) + '...',
+          name: icon.name,
+          side: icon.side
+        });
+      });
+      
+      console.log("Templates count:", designTemplates.length);
+      designTemplates.forEach((template, index) => {
+        console.log(`  Template ${index + 1}:`, {
+          templateId: template.templateId,
+          designImageUrl: template.designImageUrl.substring(0, 50) + '...'
+        });
+      });
+
       const payload: CreateOrUpdateProductDesignRequest = {
         productDesignId: null,
         productId: resolvedProductId,
         productOptionValueId: resolvedProductOptionValueId,
         name: designName || `Thiết kế ${getDesignTypeLabel()}`,
-        icons,
+        icons: icons.map(icon => ({ imageUrl: icon.imageUrl })), // Only send imageUrl as per type definition
         templates: designTemplates,
       };
 
@@ -1338,6 +1402,12 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
     // Save decorations whenever decorations change (but not during side switching)
     useEffect(() => {
+      // Skip if we're capturing canvas to prevent corruption
+      if (isCapturingCanvasRef.current) {
+        console.log("⏸️ AUTO SAVE SKIPPED - capturing canvas");
+        return;
+      }
+      
       // Only save if we're not in the middle of switching sides
       if (prevSideRef.current === currentSide && !isSwitchingSideRef.current) {
         console.log("💾 AUTO SAVE DECORATIONS");

@@ -141,11 +141,6 @@ export function Header() {
             </Link>
           )}
 
-          {/* Desktop Design Button */}
-          <Link href="/design">
-            <Button className="hidden md:flex">Bắt Đầu Thiết Kế</Button>
-          </Link>
-
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -268,14 +263,6 @@ export function Header() {
                     </div>
                   )}
 
-                  {/* Mobile Design Button */}
-                  <Link 
-                    href="/design" 
-                    className="block mt-4"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <Button className="w-full">Bắt Đầu Thiết Kế</Button>
-                  </Link>
                 </div>
               </div>
             </SheetContent>

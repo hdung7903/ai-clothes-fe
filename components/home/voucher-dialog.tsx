@@ -310,9 +310,6 @@ export function VoucherDialog() {
 
                     {/* Nội dung */}
                     <div className="flex items-start gap-4">
-                      <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-bold text-lg shrink-0">
-                        {voucher.code.substring(0, 2)}
-                      </div>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2 mb-1">
@@ -356,15 +353,7 @@ export function VoucherDialog() {
                           )}
                         </Button>
                       </div>
-                      
-                      <Button
-                        size="sm"
-                        className="h-9 font-semibold"
-                        onClick={() => handleApply(voucher.code)}
-                        disabled={!available}
-                      >
-                        {available ? 'Áp dụng' : 'Không khả dụng'}
-                      </Button>
+
                     </div>
 
                     {/* Huy hiệu giảm giá */}

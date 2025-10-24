@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Palette, ShoppingCart, Trash2, Search, Plus } from "lucide-react"
 import { searchProductDesigns } from "@/services/productDesignServices"
 import { addItem } from "@/services/cartServices"
@@ -13,6 +14,7 @@ import type { ProductDesignSummaryItem } from "@/types/productDesign"
 import type { AddCartItemRequest } from "@/types/cart"
 import { useAppSelector } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function SavedDesignsPage() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated)
@@ -25,6 +27,13 @@ export default function SavedDesignsPage() {
   const [pageSize] = useState(12)
   const [totalPages, setTotalPages] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  
+  // Dialog states
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [designToDelete, setDesignToDelete] = useState<string | null>(null)
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false)
+  const [errorDialogOpen, setErrorDialogOpen] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -72,16 +81,27 @@ export default function SavedDesignsPage() {
     setPageNumber(1) // Reset to first page when searching
   }
 
-  const handleDeleteDesign = async (designId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa thiết kế này?")) return
+  const handleDeleteDesign = (designId: string) => {
+    setDesignToDelete(designId)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!designToDelete) return
     
     try {
       // TODO: Implement delete functionality
-      console.log("Delete design:", designId)
+      console.log("Delete design:", designToDelete)
+      toast.success("Đã xóa thiết kế thành công!")
+      setDeleteDialogOpen(false)
+      setDesignToDelete(null)
       // After successful deletion, reload the list
       setPageNumber(1)
     } catch (error) {
       console.error("Error deleting design:", error)
+      setErrorMessage("Không thể xóa thiết kế. Vui lòng thử lại.")
+      setErrorDialogOpen(true)
+      setDeleteDialogOpen(false)
     }
   }
 
@@ -89,7 +109,8 @@ export default function SavedDesignsPage() {
     try {
       // Check if design has templates
       if (design.templates.length === 0) {
-        alert("Thiết kế này chưa có template nào để thêm vào giỏ hàng.")
+        setErrorMessage("Thiết kế này chưa có template nào để thêm vào giỏ hàng.")
+        setErrorDialogOpen(true)
         return
       }
 
@@ -105,13 +126,15 @@ export default function SavedDesignsPage() {
       const response = await addItem(cartItem)
       
       if (response.success) {
-        alert("Đã thêm thiết kế vào giỏ hàng thành công!")
+        toast.success("Đã thêm thiết kế vào giỏ hàng thành công!")
       } else {
-        alert("Không thể thêm thiết kế vào giỏ hàng. Vui lòng thử lại.")
+        setErrorMessage("Không thể thêm thiết kế vào giỏ hàng. Vui lòng thử lại.")
+        setErrorDialogOpen(true)
       }
     } catch (error) {
       console.error("Error adding to cart:", error)
-      alert("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.")
+      setErrorMessage("Có lỗi xảy ra khi thêm vào giỏ hàng. Vui lòng thử lại.")
+      setErrorDialogOpen(true)
     }
   }
 
@@ -296,6 +319,45 @@ export default function SavedDesignsPage() {
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa thiết kế</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa thiết kế này? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false)
+                setDesignToDelete(null)
+              }}
+            >
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete}>
+              Xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Error Dialog */}
+      <Dialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Lỗi</DialogTitle>
+            <DialogDescription>{errorMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setErrorDialogOpen(false)}>Đóng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
