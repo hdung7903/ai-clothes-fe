@@ -43,7 +43,22 @@ export default function VoucherViewPage({ params }: VoucherViewPageProps) {
         setIsLoading(true)
         const response = await getVoucherById(params.id)
         if (response.success && response.data) {
-          setVoucher(response.data)
+          // Map response data to Voucher type - use productDetails as products
+          const voucherData: Voucher = {
+            id: response.data.id,
+            code: response.data.code,
+            description: response.data.description,
+            discountType: response.data.discountType,
+            discountValue: response.data.discountValue,
+            startDate: response.data.startDate,
+            endDate: response.data.endDate,
+            usedCount: response.data.usedCount,
+            isActive: response.data.isActive,
+            createdAt: response.data.createdAt,
+            lastModifiedAt: response.data.lastModifiedAt,
+            products: response.data.productDetails, // Use productDetails which has full product info
+          }
+          setVoucher(voucherData)
         } else {
           setError('Không thể tải thông tin voucher')
         }

@@ -48,6 +48,8 @@ export function SampleImageUploadDialog({ open, onOpenChange, onSuccess }: Sampl
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     handleFiles(files)
+    // Reset input value to allow selecting the same file again
+    e.target.value = ""
   }
 
   const handleFiles = (files: File[]) => {
@@ -55,16 +57,18 @@ export function SampleImageUploadDialog({ open, onOpenChange, onSuccess }: Sampl
     
     if (validFiles.length === 0) return
 
-    setSelectedFiles(validFiles)
+    // Append new files to existing ones instead of replacing
+    setSelectedFiles(prev => [...prev, ...validFiles])
     
-    // Create previews
-    const previews: string[] = []
+    // Create previews for new files
+    const newPreviews: string[] = []
     validFiles.forEach((file, index) => {
       const reader = new FileReader()
       reader.onload = (e) => {
-        previews[index] = e.target?.result as string
-        if (previews.length === validFiles.length) {
-          setPreviewUrls([...previews])
+        newPreviews[index] = e.target?.result as string
+        if (newPreviews.filter(p => p).length === validFiles.length) {
+          // Append new previews to existing ones
+          setPreviewUrls(prev => [...prev, ...newPreviews])
         }
       }
       reader.readAsDataURL(file)

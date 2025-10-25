@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/
 import { ShoppingCart, Share, Star, Minus, Plus, ZoomIn, User, Clock } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, use, useCallback, useMemo } from "react"
+import { useEffect, useState, use, useCallback, useMemo, useRef } from "react"
 import { getProductById } from "@/services/productService"
 import { getTemplatesByProduct } from "@/services/templateServices"
 import type { TemplateSummaryItem } from "@/types/template"
@@ -32,6 +32,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [templateCount, setTemplateCount] = useState<number | null>(null)
   const [templates, setTemplates] = useState<TemplateSummaryItem[]>([])
+  const carouselApiRef = useRef<any>(null)
   const [product, setProduct] = useState<{
     id: string
     name: string
@@ -161,11 +162,45 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     if (!product || product.images.length <= 1) return
 
     const interval = setInterval(() => {
-      setCurrentImageIndex((prev) => (prev + 1) % product.images.length)
+      setCurrentImageIndex((prev) => {
+        const newIndex = (prev + 1) % product.images.length
+        // Also scroll carousel to the new index
+        if (carouselApiRef.current) {
+          carouselApiRef.current.scrollTo(newIndex)
+        }
+        return newIndex
+      })
     }, 4000) // Change image every 4 seconds
 
     return () => clearInterval(interval)
   }, [product])
+
+  // Listen to carousel changes and sync currentImageIndex
+  useEffect(() => {
+    if (!carouselApiRef.current) return
+
+    const onSelect = () => {
+      if (carouselApiRef.current) {
+        setCurrentImageIndex(carouselApiRef.current.selectedScrollSnap())
+      }
+    }
+
+    carouselApiRef.current.on('select', onSelect)
+
+    return () => {
+      if (carouselApiRef.current) {
+        carouselApiRef.current.off('select', onSelect)
+      }
+    }
+  }, [carouselApiRef.current])
+
+  // Handle thumbnail click
+  const handleThumbnailClick = (index: number) => {
+    setCurrentImageIndex(index)
+    if (carouselApiRef.current) {
+      carouselApiRef.current.scrollTo(index)
+    }
+  }
 
 
   // Share functionality
@@ -327,6 +362,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 skipSnaps: false,
                 dragFree: true,
               }}
+              setApi={(api) => {
+                carouselApiRef.current = api
+              }}
             >
               <CarouselContent>
                 {product.images.map((image, index) => (
@@ -364,33 +402,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             {product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-2">
                 {product.images.map((image, index) => (
-                  <Dialog key={index}>
-                    <DialogTrigger asChild>
-                      <button
-                        className={`aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
-                          currentImageIndex === index
-                            ? "ring-2 ring-primary ring-offset-2"
-                            : "hover:opacity-80 hover:ring-1 hover:ring-primary/50"
-                        }`}
-                      >
-                        <img
-                          src={image || "/placeholder.svg"}
-                          alt={`${product.name} ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-                      <DialogTitle className="sr-only">
-                        {product.name} - Thumbnail {index + 1}
-                      </DialogTitle>
-                      <img
-                        src={image || "/placeholder.svg"}
-                        alt={`${product.name} ${index + 1}`}
-                        className="w-full h-full object-contain rounded-lg"
-                      />
-                    </DialogContent>
-                  </Dialog>
+                  <button
+                    key={index}
+                    onClick={() => handleThumbnailClick(index)}
+                    className={`aspect-square rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+                      currentImageIndex === index
+                        ? "ring-2 ring-primary ring-offset-2"
+                        : "hover:opacity-80 hover:ring-1 hover:ring-primary/50"
+                    }`}
+                  >
+                    <img
+                      src={image || "/placeholder.svg"}
+                      alt={`${product.name} thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
                 ))}
               </div>
             )}

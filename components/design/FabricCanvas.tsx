@@ -200,9 +200,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const printAreaRef = useRef<PrintArea>({
-      x: 150,
-      y: 200,
-      width: 300,
+      x: 107.5,
+      y: 107.5,
+      width: 400,
       height: 400,
     });
 
@@ -1862,8 +1862,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
     return (
       <div className="w-full h-full bg-gray-50 flex overflow-hidden">
-        <div className="w-64 bg-white border-r overflow-y-auto flex-shrink-0">
-          <div className="p-4">
+        <div className="w-64 bg-white border-r flex-shrink-0 flex flex-col overflow-hidden">
+          <div className="p-4 flex-shrink-0">
           <div className="mb-4">
             <h3 className="font-semibold mb-2 text-sm">Thêm Hình Ảnh</h3>
             <div className="space-y-2">
@@ -1901,45 +1901,11 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
               </button>
             </div>
           </div>
-
-          {/* Image Library - Uploaded Images */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ImageIcon size={16} className="text-blue-600" />
-              <h3 className="font-semibold text-sm">Ảnh của bạn ({uploadedImages.length})</h3>
-            </div>
-            {uploadedImages.length === 0 ? (
-              <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
-                Chưa có ảnh nào được tải lên
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                {uploadedImages.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => addImageDecoration(img.url, img.name)}
-                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-all hover:shadow-md group relative"
-                    title={img.name}
-                  >
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
-                      <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">
-                        Thêm
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Image Library - Suggested Images */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
+          <div className="flex-1 overflow-hidden flex flex-col px-4 pb-4 min-h-0">
+            <div className="flex items-center justify-between mb-2 flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Sparkles size={16} className="text-purple-600" />
                 <h3 className="font-semibold text-sm">
@@ -1972,12 +1938,12 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                 Chưa có ảnh đề xuất
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+              <div className="grid grid-cols-2 gap-2 overflow-y-auto flex-1 min-h-0 content-start">
                 {suggestedImages.map((img, index) => (  
                   <button
                     key={index}
                     onClick={() => addImageDecoration(img.url, img.name, img.id)}
-                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:shadow-md group relative bg-gray-50"
+                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-colors hover:shadow-md group relative bg-gray-50 flex-shrink-0"
                     title={`${img.name} - ${img.url}`}
                   >
                     <img
@@ -2013,7 +1979,6 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             )}
           </div>
         </div>
-      </div>
       
       <div className="flex-1 flex flex-col min-w-0">
         <div className="bg-white border-b p-3 flex items-center justify-between gap-4 flex-shrink-0">
@@ -2114,7 +2079,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           </button>
         </div>
         
-          <div className="flex-1 p-4 overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 min-h-0 relative">
+          <div className="flex-1 p-4 overflow-hidden flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 min-h-0 min-w-0 flex-shrink-0 relative">
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 z-10">
                 <div className="text-center">
@@ -2127,16 +2092,18 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             )}
           <canvas
             ref={canvasRef}
-            width={600}
-            height={750}
-            className="bg-white shadow-2xl rounded max-w-full max-h-full object-contain"
+            width={615}
+            height={615}
+            className="bg-white shadow-2xl rounded flex-shrink-0"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
             style={{ 
               touchAction: "none",
-              cursor: canvasCursor
+              cursor: canvasCursor,
+              width: '615px',
+              height: '615px'
             }}
           />
         </div>

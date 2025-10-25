@@ -1,17 +1,63 @@
+# Dependencies
 node_modules
-.next/cache
-.next/static/chunks/*.map
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 .pnpm-store
+
+# Next.js
+.next/cache
+.next/static/chunks/*.map
+out/
+build
+dist
+
+# Testing
+coverage
+.nyc_output
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# Turbo
 .turbo
+
+# Misc
+.DS_Store
+*.pem
+tmp
+
+# Git
 .git
 .gitignore
-.DS_Store
-*.local
-.env*
-coverage
-tmp
-dist
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# CI/CD
+.github
+Jenkinsfile
+README.md
+CHANGELOG.md
+DEPLOYMENT.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.prod.yml
+.dockerignore
+
+# Scripts
+scripts/
 

@@ -106,6 +106,15 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
     })
   }
 
+  // Function to remove Vietnamese diacritics and special characters
+  const removeVietnameseTones = (str: string): string => {
+    str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D')
+    str = str.replace(/[^a-zA-Z0-9\s]/g, '')
+    str = str.replace(/\s+/g, '_')
+    return str
+  }
+
   // Function to load image as base64
   const loadImageAsBase64 = async (url: string): Promise<string> => {
     try {
@@ -144,7 +153,7 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
       // Page 1: Design Information
       pdf.setFontSize(24)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('THÔNG TIN THIẾT KẾ', pageWidth / 2, 30, { align: 'center' })
+      pdf.text('DESIGN INFORMATION', pageWidth / 2, 30, { align: 'center' })
       
       pdf.setFontSize(12)
       pdf.setFont('helvetica', 'normal')
@@ -153,28 +162,29 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
       
       // Design Name
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Tên thiết kế:', margin, yPos)
+      pdf.text('Design Name:', margin, yPos)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(design.name, margin + 40, yPos)
+      // Remove Vietnamese tones for PDF text
+      pdf.text(removeVietnameseTones(design.name), margin + 40, yPos)
       yPos += 10
       
       // Product Name
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Sản phẩm:', margin, yPos)
+      pdf.text('Product:', margin, yPos)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(design.product.name, margin + 40, yPos)
+      pdf.text(removeVietnameseTones(design.product.name), margin + 40, yPos)
       yPos += 10
       
       // Product Variant
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Biến thể:', margin, yPos)
+      pdf.text('Variant:', margin, yPos)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(`${design.productOptionValueDetail.optionName}: ${design.productOptionValueDetail.value}`, margin + 40, yPos)
+      pdf.text(`${removeVietnameseTones(design.productOptionValueDetail.optionName)}: ${removeVietnameseTones(design.productOptionValueDetail.value)}`, margin + 40, yPos)
       yPos += 10
       
       // Quantity (assuming quantity = 1 for design preview)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Số lượng:', margin, yPos)
+      pdf.text('Quantity:', margin, yPos)
       pdf.setFont('helvetica', 'normal')
       pdf.text('1', margin + 40, yPos)
       yPos += 15
@@ -187,18 +197,18 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
       // Design Details
       pdf.setFontSize(14)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Chi tiết thiết kế:', margin, yPos)
+      pdf.text('Design Details:', margin, yPos)
       yPos += 10
       
       pdf.setFontSize(11)
       pdf.setFont('helvetica', 'normal')
-      pdf.text(`Ngày tạo: ${formatDate(design.createdAt)}`, margin, yPos)
+      pdf.text(`Created: ${formatDate(design.createdAt)}`, margin, yPos)
       yPos += 7
-      pdf.text(`Chỉnh sửa lần cuối: ${formatDate(design.lastModifiedAt)}`, margin, yPos)
+      pdf.text(`Last Modified: ${formatDate(design.lastModifiedAt)}`, margin, yPos)
       yPos += 7
-      pdf.text(`Số vùng in: ${design.templates.length}`, margin, yPos)
+      pdf.text(`Print Areas: ${design.templates.length}`, margin, yPos)
       yPos += 7
-      pdf.text(`Số biểu tượng: ${design.icons.length}`, margin, yPos)
+      pdf.text(`Icons Used: ${design.icons.length}`, margin, yPos)
       yPos += 15
       
       // Add product image if available
@@ -227,7 +237,7 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
         // Template header
         pdf.setFontSize(18)
         pdf.setFont('helvetica', 'bold')
-        pdf.text(`Vùng in: ${template.printAreaName}`, pageWidth / 2, yPos, { align: 'center' })
+        pdf.text(`Print Area: ${removeVietnameseTones(template.printAreaName)}`, pageWidth / 2, yPos, { align: 'center' })
         yPos += 15
         
         // Template info
@@ -244,7 +254,7 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
         // Design image for this area
         pdf.setFontSize(12)
         pdf.setFont('helvetica', 'bold')
-        pdf.text('Thiết kế:', margin, yPos)
+        pdf.text('Design:', margin, yPos)
         yPos += 10
         
         try {
@@ -260,67 +270,77 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
         } catch (error) {
           console.error('Error adding template design image:', error)
           pdf.setFont('helvetica', 'italic')
-          pdf.text('Không thể tải hình ảnh thiết kế', margin, yPos)
+          pdf.text('Unable to load design image', margin, yPos)
           yPos += 10
         }
+      }
+      
+      // Add icons section on a separate page (after all templates)
+      if (design.icons.length > 0) {
+        pdf.addPage()
+        yPos = 30
         
-        // Find icons used in this template
-        const iconsForTemplate = design.icons.filter(icon => 
-          // Assuming icons belong to this template - adjust logic if needed
-          true // For now, show all icons for each template
-        )
+        // Icons header
+        pdf.setFontSize(18)
+        pdf.setFont('helvetica', 'bold')
+        pdf.text('Icons Used in Design', pageWidth / 2, yPos, { align: 'center' })
+        yPos += 15
         
-        if (iconsForTemplate.length > 0) {
-          // Icons section
-          pdf.setFontSize(12)
-          pdf.setFont('helvetica', 'bold')
-          pdf.text(`Biểu tượng đã sử dụng (${iconsForTemplate.length}):`, margin, yPos)
-          yPos += 10
+        pdf.setFontSize(11)
+        pdf.setFont('helvetica', 'normal')
+        pdf.text(`Total Icons: ${design.icons.length}`, margin, yPos)
+        yPos += 15
+        
+        // Separator
+        pdf.setDrawColor(200)
+        pdf.line(margin, yPos, pageWidth - margin, yPos)
+        yPos += 15
+        
+        // Display icons in grid
+        const iconSize = 30
+        const iconSpacing = 10
+        const iconsPerRow = Math.floor(contentWidth / (iconSize + iconSpacing))
+        
+        for (let j = 0; j < design.icons.length; j++) {
+          const icon = design.icons[j]
+          const col = j % iconsPerRow
+          const row = Math.floor(j / iconsPerRow)
           
-          // Display icons in grid
-          const iconSize = 25
-          const iconSpacing = 5
-          const iconsPerRow = Math.floor(contentWidth / (iconSize + iconSpacing))
+          const xPos = margin + (col * (iconSize + iconSpacing))
+          const currentYPos = yPos + (row * (iconSize + iconSpacing))
           
-          for (let j = 0; j < iconsForTemplate.length; j++) {
-            const icon = iconsForTemplate[j]
-            const col = j % iconsPerRow
-            const row = Math.floor(j / iconsPerRow)
+          // Check if we need a new page
+          if (currentYPos + iconSize > pageHeight - margin) {
+            pdf.addPage()
+            yPos = 30
+            // Recalculate position on new page
+            const newRow = Math.floor(j / iconsPerRow) - Math.floor((j - iconsPerRow) / iconsPerRow)
+            const newYPos = yPos + (newRow * (iconSize + iconSpacing))
             
-            const xPos = margin + (col * (iconSize + iconSpacing))
-            const currentYPos = yPos + (row * (iconSize + iconSpacing))
-            
-            // Check if we need a new page
-            if (currentYPos + iconSize > pageHeight - margin) {
-              pdf.addPage()
-              yPos = 30
-              const newRow = 0
-              const newYPos = yPos + (newRow * (iconSize + iconSpacing))
-              
-              try {
-                const iconImgData = await loadImageAsBase64(icon.imageUrl)
-                if (iconImgData) {
-                  pdf.addImage(iconImgData, 'PNG', xPos, newYPos, iconSize, iconSize)
-                }
-              } catch (error) {
-                console.error('Error adding icon image:', error)
+            try {
+              const iconImgData = await loadImageAsBase64(icon.imageUrl)
+              if (iconImgData) {
+                pdf.addImage(iconImgData, 'PNG', xPos, newYPos, iconSize, iconSize)
               }
-            } else {
-              try {
-                const iconImgData = await loadImageAsBase64(icon.imageUrl)
-                if (iconImgData) {
-                  pdf.addImage(iconImgData, 'PNG', xPos, currentYPos, iconSize, iconSize)
-                }
-              } catch (error) {
-                console.error('Error adding icon image:', error)
+            } catch (error) {
+              console.error('Error adding icon image:', error)
+            }
+          } else {
+            try {
+              const iconImgData = await loadImageAsBase64(icon.imageUrl)
+              if (iconImgData) {
+                pdf.addImage(iconImgData, 'PNG', xPos, currentYPos, iconSize, iconSize)
               }
+            } catch (error) {
+              console.error('Error adding icon image:', error)
             }
           }
         }
       }
       
-      // Save PDF
-      const fileName = `Design_${design.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().getTime()}.pdf`
+      // Save PDF with Vietnamese-safe filename
+      const sanitizedName = removeVietnameseTones(design.name)
+      const fileName = `Design_${sanitizedName}_${new Date().getTime()}.pdf`
       pdf.save(fileName)
       
       toast.success('Đã tải xuống file PDF thành công!')

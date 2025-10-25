@@ -408,7 +408,7 @@ export default function CheckoutPage() {
         paymentMethod: paymentMethod,
         orderItems: cartItems.map((item) => ({
           productVariantId: item.productVariantId,
-          designId: null,
+          designId: item.productDesignId ?? null,
           quantity: item.quantity,
         })),
         voucherCodes: [code],
@@ -566,7 +566,7 @@ export default function CheckoutPage() {
         paymentMethod: paymentMethod,
         orderItems: cartItems.map((item) => ({
           productVariantId: item.productVariantId,
-          designId: null, // Default value for designId
+          designId: item.productDesignId ?? null,
           quantity: item.quantity,
         })),
         voucherCodes: voucherCode.trim()
