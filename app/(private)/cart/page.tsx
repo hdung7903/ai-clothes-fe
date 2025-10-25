@@ -28,13 +28,6 @@ export default function CartPage() {
     dispatch(fetchCartItems())
   }, [dispatch])
 
-  // Auto-select all items when cart loads
-  useEffect(() => {
-    if (cartItems.length > 0 && selectedItems.size === 0) {
-      setSelectedItems(new Set(cartItems.map(item => item.id)))
-    }
-  }, [cartItems, selectedItems.size])
-
   // Preserve selected items when cart updates (to prevent estimate reset)
   useEffect(() => {
     if (cartItems.length > 0) {
@@ -75,13 +68,24 @@ export default function CartPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedItems(new Set(cartItems.map(item => item.id)))
+      // Only select items with stock > 0 and quantity > 0
+      const validItems = cartItems
+        .filter(item => item.stock > 0 && item.quantity > 0)
+        .map(item => item.id)
+      setSelectedItems(new Set(validItems))
     } else {
       setSelectedItems(new Set())
     }
   }
 
   const handleSelectItem = (itemId: string, checked: boolean) => {
+    // Check if item has valid stock before allowing selection
+    const item = cartItems.find(i => i.id === itemId)
+    if (checked && item && (item.stock === 0 || item.quantity === 0)) {
+      toast.warning('Không thể chọn sản phẩm hết hàng')
+      return
+    }
+    
     const newSelected = new Set(selectedItems)
     if (checked) {
       newSelected.add(itemId)
@@ -91,7 +95,9 @@ export default function CartPage() {
     setSelectedItems(newSelected)
   }
 
-  const isAllSelected = cartItems.length > 0 && selectedItems.size === cartItems.length
+  // Only consider items with stock > 0 for "select all" logic
+  const validItemsCount = cartItems.filter(item => item.stock > 0 && item.quantity > 0).length
+  const isAllSelected = validItemsCount > 0 && selectedItems.size === validItemsCount
 
   const handleRemoveItem = (cartItemId: string) => {
     dispatch(deleteItemsAsync([cartItemId]))
@@ -160,8 +166,24 @@ export default function CartPage() {
   const handleCheckout = () => {
     if (selectedItems.size === 0) return
     
-    // Convert selected item IDs to query params
-    const selectedIds = Array.from(selectedItems).join(',')
+    // Filter out items with stock = 0 or quantity = 0
+    const validSelectedItems = Array.from(selectedItems).filter(itemId => {
+      const item = cartItems.find(i => i.id === itemId)
+      return item && item.stock > 0 && item.quantity > 0
+    })
+    
+    if (validSelectedItems.length === 0) {
+      toast.error('Không có sản phẩm hợp lệ để thanh toán. Vui lòng kiểm tra lại giỏ hàng.')
+      return
+    }
+    
+    // Show warning if some items were filtered out
+    if (validSelectedItems.length < selectedItems.size) {
+      toast.warning('Một số sản phẩm hết hàng đã được loại bỏ khỏi đơn hàng.')
+    }
+    
+    // Convert valid selected item IDs to query params
+    const selectedIds = validSelectedItems.join(',')
     router.push(`/checkout?items=${selectedIds}`)
   } 
 
@@ -238,8 +260,13 @@ export default function CartPage() {
                   </CardContent>
                 </Card>
 
-                {cartItems.map((item) => (
-                  <Card key={item.id} className={selectedItems.has(item.id) ? 'border-green-500 border-2' : ''}>
+                {cartItems.map((item) => {
+                  const isOutOfStock = item.stock === 0 || item.quantity === 0
+                  return (
+                  <Card 
+                    key={item.id} 
+                    className={`${selectedItems.has(item.id) ? 'border-green-500 border-2' : ''} ${isOutOfStock ? 'opacity-60' : ''}`}
+                  >
                     <CardContent className="p-6">
                       <div className="flex gap-4">
                         <Checkbox
@@ -247,6 +274,7 @@ export default function CartPage() {
                           checked={selectedItems.has(item.id)}
                           onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
                           className="mt-1"
+                          disabled={isOutOfStock}
                         />
                         <img
                           src={item.image || "/placeholder.svg"}
@@ -271,9 +299,15 @@ export default function CartPage() {
                           <p className="text-muted-foreground text-sm">
                             Kích thước: {item.size} • Màu sắc: {item.color}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Còn lại: {item.stock} sản phẩm
-                          </p>
+                          {isOutOfStock ? (
+                            <p className="text-xs text-red-500 font-semibold mt-1">
+                              ⚠️ Sản phẩm này đã hết hàng
+                            </p>
+                          ) : (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Còn lại: {item.stock} sản phẩm
+                            </p>
+                          )}
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center gap-2">
                               <Button
@@ -314,7 +348,8 @@ export default function CartPage() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Order Summary */}

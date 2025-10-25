@@ -10,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
@@ -18,7 +18,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Eye, Upload, RefreshCw, Trash2, Check } from "lucide-react"
+import { Eye, Upload, RefreshCw, Trash2, Check, AlertTriangle } from "lucide-react"
 import * as React from "react"
 import { getSampleImages, deleteSampleImage, type SampleImage } from "@/services/sampleImageService"
 import { SampleImageUploadDialog } from "@/components/admin/sample-image-upload-dialog"
@@ -34,6 +34,8 @@ export default function SampleImagesPage() {
   const [selectedImages, setSelectedImages] = React.useState<string[]>([])
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [selectionMode, setSelectionMode] = React.useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false)
+  const [deleteTarget, setDeleteTarget] = React.useState<{ type: 'single' | 'multiple', imageId?: string } | null>(null)
 
   const loadImages = React.useCallback(async () => {
     setIsLoading(true)
@@ -90,33 +92,54 @@ export default function SampleImagesPage() {
       return
     }
 
-    const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa ${selectedImages.length} ảnh đã chọn?`)
-    if (!confirmDelete) return
+    // Open confirmation dialog
+    setDeleteTarget({ type: 'multiple' })
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleDeleteSingle = (imageId: string) => {
+    setDeleteTarget({ type: 'single', imageId })
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return
 
     setIsDeleting(true)
+    setDeleteConfirmOpen(false)
     
     try {
-      const deletePromises = selectedImages.map(imageId => deleteSampleImage(imageId))
-      const results = await Promise.allSettled(deletePromises)
-      
-      const successful = results.filter(r => r.status === 'fulfilled').length
-      const failed = results.filter(r => r.status === 'rejected').length
-      
-      if (successful > 0) {
-        toast.success(`Đã xóa thành công ${successful} ảnh`)
+      if (deleteTarget.type === 'multiple') {
+        // Delete multiple images
+        const deletePromises = selectedImages.map(imageId => deleteSampleImage(imageId))
+        const results = await Promise.allSettled(deletePromises)
+        
+        const successful = results.filter(r => r.status === 'fulfilled').length
+        const failed = results.filter(r => r.status === 'rejected').length
+        
+        if (successful > 0) {
+          toast.success(`Đã xóa thành công ${successful} ảnh`)
+          await loadImages()
+          setSelectedImages([])
+          setSelectionMode(false)
+        }
+        
+        if (failed > 0) {
+          toast.error(`Không thể xóa ${failed} ảnh`)
+        }
+      } else if (deleteTarget.type === 'single' && deleteTarget.imageId) {
+        // Delete single image
+        await deleteSampleImage(deleteTarget.imageId)
+        toast.success("Đã xóa ảnh thành công")
         await loadImages()
-        setSelectedImages([])
-        setSelectionMode(false)
-      }
-      
-      if (failed > 0) {
-        toast.error(`Không thể xóa ${failed} ảnh`)
+        setViewDialogOpen(false)
       }
     } catch (error) {
       console.error("Error deleting images:", error)
       toast.error("Đã xảy ra lỗi khi xóa ảnh")
     } finally {
       setIsDeleting(false)
+      setDeleteTarget(null)
     }
   }
 
@@ -319,20 +342,7 @@ export default function SampleImagesPage() {
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={async () => {
-                        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa ảnh này?")
-                        if (!confirmDelete) return
-                        
-                        try {
-                          await deleteSampleImage(selectedImage.sampleImageId)
-                          toast.success("Đã xóa ảnh thành công")
-                          await loadImages()
-                          setViewDialogOpen(false)
-                        } catch (error) {
-                          console.error("Error deleting image:", error)
-                          toast.error("Không thể xóa ảnh")
-                        }
-                      }}
+                      onClick={() => handleDeleteSingle(selectedImage.sampleImageId)}
                       disabled={isDeleting}
                     >
                       {isDeleting ? (
@@ -346,6 +356,61 @@ export default function SampleImagesPage() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+                <div>
+                  <DialogTitle className="text-xl">Xác nhận xóa</DialogTitle>
+                  <DialogDescription className="text-sm mt-1">
+                    Hành động này không thể hoàn tác
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="py-4">
+              <p className="text-sm text-muted-foreground">
+                {deleteTarget?.type === 'multiple' 
+                  ? `Bạn có chắc chắn muốn xóa ${selectedImages.length} ảnh đã chọn? Tất cả dữ liệu liên quan sẽ bị xóa vĩnh viễn.`
+                  : 'Bạn có chắc chắn muốn xóa ảnh này? Dữ liệu sẽ bị xóa vĩnh viễn và không thể khôi phục.'
+                }
+              </p>
+            </div>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setDeleteConfirmOpen(false)}
+                disabled={isDeleting}
+                className="flex-1 sm:flex-none"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1 sm:flex-none"
+              >
+                {isDeleting ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Xóa {deleteTarget?.type === 'multiple' ? `${selectedImages.length} ảnh` : 'ảnh'}
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </SidebarInset>

@@ -39,12 +39,12 @@ export function VoucherDialog() {
       const response = await searchVouchers({
         IsActive: true,
         PageNumber: page,
-        PageSize: DISPLAY_CONFIG.PAGE_SIZE
+        PageSize: 20 // Fetch more vouchers to randomly select from
       })
       
       if (response.success && response.data) {
         // Map API response to VoucherSummaryItem format
-        const newVouchers: VoucherSummaryItem[] = response.data.items.map((item: any) => {
+        const allVouchers: VoucherSummaryItem[] = response.data.items.map((item: any) => {
           // Determine discount type based on value and description
           let discountType: 'PERCENT' | 'FIXED_AMOUNT' = 'FIXED_AMOUNT'
           if (item.discountType) {
@@ -72,11 +72,12 @@ export function VoucherDialog() {
             products: item.products || []
           }
         })
-        // Limit to maximum 4 vouchers
-        setVouchers(prev => {
-          const limitedVouchers = append ? [...prev, ...newVouchers].slice(0, 4) : newVouchers.slice(0, 4)
-          return limitedVouchers
-        })
+        
+        // Randomly select 4 vouchers
+        const shuffled = [...allVouchers].sort(() => Math.random() - 0.5)
+        const randomVouchers = shuffled.slice(0, 4)
+        
+        setVouchers(randomVouchers)
         setHasMore(false) // Disable infinite scroll since we only show 4 vouchers
         setPageNumber(page)
       } else {
@@ -269,7 +270,7 @@ export function VoucherDialog() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 overflow-hidden">
+            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 p-2">
               {vouchers.map((voucher, index) => {
                 const category = getCategory(voucher)
                 const available = isAvailable(voucher)
@@ -278,7 +279,7 @@ export function VoucherDialog() {
                 return (
                   <div
                     key={voucher.id || `voucher-${index}`}
-                    className={`group relative flex flex-col gap-3 rounded-xl border-2 p-4 transition-all duration-300 overflow-hidden ${
+                    className={`group relative flex flex-col gap-3 rounded-xl border-2 p-4 pt-6 transition-all duration-300 overflow-visible ${
                       available 
                         ? 'border-orange-200/60 dark:border-orange-900/40 hover:border-orange-400/80 hover:shadow-xl hover:shadow-orange-500/20 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 hover:-translate-y-1'
                         : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-60'
@@ -364,13 +365,13 @@ export function VoucherDialog() {
                     </div>
 
                     {/* Huy hiệu giảm giá - Enhanced */}
-                    <div className="absolute -top-3 -left-3 rotate-[-12deg] z-20">
+                    <div className="absolute -top-2 -left-2 rotate-[-12deg] z-20">
                       <div className="relative">
-                        <Badge className="bg-gradient-to-r from-orange-500 via-pink-500 to-pink-600 text-white font-black px-4 py-2 shadow-2xl shadow-pink-500/50 text-base border-2 border-white dark:border-gray-900">
+                        <Badge className="bg-gradient-to-r from-orange-500 via-pink-500 to-pink-600 text-white font-black px-3 py-1.5 shadow-2xl shadow-pink-500/50 text-sm border-2 border-white dark:border-gray-900 whitespace-nowrap">
                           {formatDiscountText(voucher)}
                         </Badge>
                         {/* Sparkle effect */}
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-300 rounded-full animate-ping" />
+                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-300 rounded-full animate-ping" />
                       </div>
                     </div>
 
