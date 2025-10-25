@@ -7,11 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Palette, ShoppingCart, Trash2, Search, Plus } from "lucide-react"
+import { Palette, Trash2, Search, Plus } from "lucide-react"
 import { searchProductDesigns, deleteProductDesignById } from "@/services/productDesignServices"
-import { addItemByOption } from "@/services/cartServices"
 import type { ProductDesignSummaryItem } from "@/types/productDesign"
-import type { GetCartItemByOptionRequest } from "@/types/cart"
 import { useAppSelector } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -31,7 +29,6 @@ export default function SavedDesignsPage() {
   // Dialog states
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [designToDelete, setDesignToDelete] = useState<string | null>(null)
-  const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -150,53 +147,7 @@ export default function SavedDesignsPage() {
     }
   }
 
-  const handleAddToCart = async (design: ProductDesignSummaryItem) => {
-    try {
-      setAddingToCart(prev => ({ ...prev, [design.id]: true }))
-      
-      // Use the new itemByOption API to add item to cart
-      const cartItemRequest: GetCartItemByOptionRequest = {
-        productId: design.productId,
-        productOptionValueIds: [design.productOptionValueId], // Convert single ID to array
-        productDesignId: design.id,
-        quantity: 1
-      }
 
-      const response = await addItemByOption(cartItemRequest)
-      
-      if (response.success && response.data) {
-        toast.success("Đã thêm thiết kế vào giỏ hàng!", {
-          description: `${design.name} - ${design.productName}`,
-          action: {
-            label: "Xem giỏ hàng",
-            onClick: () => router.push('/cart')
-          }
-        })
-      } else {
-        toast.error("Không thể thêm vào giỏ hàng", {
-          description: "Vui lòng thử lại sau"
-        })
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Có lỗi xảy ra"
-      console.error("Error adding to cart:", error)
-      
-      if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
-        toast.error("Phiên đăng nhập hết hạn", {
-          description: "Vui lòng đăng nhập lại"
-        })
-        setTimeout(() => {
-          router.push('/auth/login?next=/account/designs')
-        }, 1500)
-      } else {
-        toast.error("Lỗi thêm vào giỏ hàng", {
-          description: errorMessage
-        })
-      }
-    } finally {
-      setAddingToCart(prev => ({ ...prev, [design.id]: false }))
-    }
-  }
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
@@ -340,15 +291,6 @@ export default function SavedDesignsPage() {
                             Xem chi tiết
                           </Button>
                         </Link>
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => handleAddToCart(design)}
-                          disabled={addingToCart[design.id]}
-                        >
-                          <ShoppingCart className="h-4 w-4 mr-2" />
-                          {addingToCart[design.id] ? 'Đang thêm...' : 'Thêm vào giỏ'}
-                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"

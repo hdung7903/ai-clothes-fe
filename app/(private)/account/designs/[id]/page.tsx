@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
 import { 
   ArrowLeft, 
   Edit, 
@@ -19,9 +21,12 @@ import {
   Loader2
 } from "lucide-react"
 import { getProductDesignById, deleteProductDesignById } from "@/services/productDesignServices"
-import { addItem } from "@/services/cartServices"
+import { getProductById } from "@/services/productService"
+import { addItemByOption } from "@/services/cartServices"
 import type { ProductDesignDetail } from "@/types/productDesign"
+import type { ProductDetail } from "@/types/product"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
+import { fetchCartItems } from "@/redux/cartSlice"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -34,7 +39,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { formatCurrency } from "@/utils/format"
-import { addItemAsync } from "@/redux/cartSlice"
 
 export default function DesignDetailPage() {
   const params = useParams()
@@ -43,15 +47,25 @@ export default function DesignDetailPage() {
   const isAuthenticated = useAppSelector((s) => s.auth.isAuthenticated)
   
   const [design, setDesign] = useState<ProductDesignDetail | null>(null)
+  const [productDetail, setProductDetail] = useState<ProductDetail | null>(null)
+  const [selectedSize, setSelectedSize] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
   const designId = params.id as string
 
+  // Prevent hydration mismatch by ensuring component is mounted
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!isMounted) return
+    
     if (!isAuthenticated) {
       router.push(`/auth/login?next=/account/designs/${designId}`)
       return
@@ -65,6 +79,20 @@ export default function DesignDetailPage() {
         
         if (res.success && res.data) {
           setDesign(res.data)
+          
+          // Load product details to get available sizes
+          const productRes = await getProductById(res.data.productId)
+          if (productRes.success && productRes.data) {
+            setProductDetail(productRes.data)
+            
+            // Find size option and set default selected size
+            const sizeOption = productRes.data.options.find(option => 
+              option.name.toLowerCase() === 'size' || option.name.toLowerCase() === 'kích thước'
+            )
+            if (sizeOption && sizeOption.values.length > 0) {
+              setSelectedSize(sizeOption.values[0].optionValueId)
+            }
+          }
         } else {
           setError("Không thể tải thông tin thiết kế")
         }
@@ -84,24 +112,31 @@ export default function DesignDetailPage() {
     }
 
     loadDesign()
-  }, [isAuthenticated, designId, router])
+  }, [isMounted, isAuthenticated, designId, router])
 
   const handleAddToCart = async () => {
-    if (!design) return
+    if (!design || !productDetail || !selectedSize) {
+      toast.error("Vui lòng chọn kích thước trước khi thêm vào giỏ hàng")
+      return
+    }
 
     setIsAddingToCart(true)
     try {
-      // Assuming we need to get the product variant ID
-      // For now, we'll use the productOptionValueId as a placeholder
-      // You may need to adjust this based on your actual data structure
-      
-      await dispatch(addItemAsync({
-        productVariantId: design.productOptionValueId, // This might need adjustment
+      // Call the itemByOption API with the required format
+      const response = await addItemByOption({
+        productId: design.productId,
+        productOptionValueIds: [selectedSize, design.productOptionValueId],
         productDesignId: design.id,
         quantity: 1
-      })).unwrap()
+      })
 
-      toast.success("Đã thêm thiết kế vào giỏ hàng!")
+      if (response.success) {
+        toast.success("Đã thêm thiết kế vào giỏ hàng!")
+        // Refresh cart items to update cart state
+        dispatch(fetchCartItems())
+      } else {
+        toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại.")
+      }
     } catch (error) {
       console.error("Add to cart error:", error)
       toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại.")
@@ -139,6 +174,7 @@ export default function DesignDetailPage() {
   }
 
   const formatDate = (dateString: string) => {
+    if (!isMounted) return dateString // Return raw string during SSR to prevent hydration mismatch
     return new Date(dateString).toLocaleDateString('vi-VN', {
       year: 'numeric',
       month: 'long',
@@ -146,6 +182,21 @@ export default function DesignDetailPage() {
       hour: '2-digit',
       minute: '2-digit'
     })
+  }
+
+  // Prevent rendering until component is mounted to avoid hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="container mx-auto px-4 py-8">
+          <Card className="max-w-4xl mx-auto">
+            <CardContent className="flex items-center justify-center py-12">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   if (isLoading) {
@@ -207,23 +258,6 @@ export default function DesignDetailPage() {
                 <p className="text-muted-foreground">
                   Thiết kế cho sản phẩm: {design.product.name}
                 </p>
-              </div>
-              
-              <div className="flex gap-2">               
-                <Button onClick={handleAddToCart} disabled={isAddingToCart}>
-                  {isAddingToCart ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ShoppingCart className="mr-2 h-4 w-4" />
-                  )}
-                  Thêm vào giỏ
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => setDeleteDialogOpen(true)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
@@ -336,7 +370,7 @@ export default function DesignDetailPage() {
                       <Calendar className="mr-2 h-4 w-4" />
                       Ngày tạo
                     </div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-medium" suppressHydrationWarning>
                       {formatDate(design.createdAt)}
                     </p>
                   </div>
@@ -356,11 +390,55 @@ export default function DesignDetailPage() {
                 <CardHeader>
                   <CardTitle>Hành động</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-4">
+                  {/* Size Selection */}
+                  {productDetail && (
+                    <>
+                      {(() => {
+                        const sizeOption = productDetail.options.find(option => 
+                          option.name.toLowerCase() === 'size' || option.name.toLowerCase() === 'kích thước'
+                        )
+                        
+                        if (!sizeOption || sizeOption.values.length === 0) {
+                          return null
+                        }
+                        
+                        return (
+                          <div>
+                            <Label className="text-sm font-medium mb-3 block">
+                              Chọn kích thước
+                            </Label>
+                            <RadioGroup
+                              value={selectedSize || ""}
+                              onValueChange={setSelectedSize}
+                              className="grid grid-cols-2 gap-2"
+                            >
+                              {sizeOption.values.map((sizeValue) => (
+                                <div key={sizeValue.optionValueId} className="flex items-center space-x-2">
+                                  <RadioGroupItem
+                                    value={sizeValue.optionValueId}
+                                    id={sizeValue.optionValueId}
+                                  />
+                                  <Label
+                                    htmlFor={sizeValue.optionValueId}
+                                    className="text-sm cursor-pointer"
+                                  >
+                                    {sizeValue.value}
+                                  </Label>
+                                </div>
+                              ))}
+                            </RadioGroup>
+                          </div>
+                        )
+                      })()}
+                      <Separator />
+                    </>
+                  )}
+                  
                   <Button 
                     className="w-full" 
                     onClick={handleAddToCart}
-                    disabled={isAddingToCart}
+                    disabled={isAddingToCart || !selectedSize}
                   >
                     {isAddingToCart ? (
                       <>

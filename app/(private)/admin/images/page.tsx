@@ -10,7 +10,6 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -19,89 +18,111 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
-import { Eye, Trash2, Upload } from "lucide-react"
+import { Eye, Upload, RefreshCw, Trash2, Check } from "lucide-react"
 import * as React from "react"
-import { searchSuggestionImages, deleteSuggestionImageById } from "@/services/suggestionImageService"
-import type { SearchSuggestionImagesQuery, SuggestionImageSummaryItem } from "@/types/suggestionImage"
-import { ImageUploadDialog } from "@/components/admin/image-upload-dialog"
+import { getSampleImages, deleteSampleImage, type SampleImage } from "@/services/sampleImageService"
+import { SampleImageUploadDialog } from "@/components/admin/sample-image-upload-dialog"
+import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
-export default function SuggestionImagesPage() {
-  const [query, setQuery] = React.useState("")
-  const [categoryFilter, setCategoryFilter] = React.useState<string>("all")
-  const [isActiveFilter, setIsActiveFilter] = React.useState<string>("all")
-  const [pageSize, setPageSize] = React.useState(10)
-  const [page, setPage] = React.useState(1)
-  const [items, setItems] = React.useState<SuggestionImageSummaryItem[]>([])
-  const [totalPages, setTotalPages] = React.useState(1)
+export default function SampleImagesPage() {
+  const [images, setImages] = React.useState<SampleImage[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
   const [uploadDialogOpen, setUploadDialogOpen] = React.useState(false)
   const [viewDialogOpen, setViewDialogOpen] = React.useState(false)
-  const [selectedImage, setSelectedImage] = React.useState<SuggestionImageSummaryItem | null>(null)
+  const [selectedImage, setSelectedImage] = React.useState<SampleImage | null>(null)
+  const [selectedImages, setSelectedImages] = React.useState<string[]>([])
+  const [isDeleting, setIsDeleting] = React.useState(false)
+  const [selectionMode, setSelectionMode] = React.useState(false)
 
-  const currentPage = Math.min(page, totalPages)
-
-  const loadData = React.useCallback(async () => {
+  const loadImages = React.useCallback(async () => {
     setIsLoading(true)
     try {
-      const payload: SearchSuggestionImagesQuery = {
-        PageNumber: currentPage,
-        PageSize: pageSize,
-        SearchTerm: query || undefined,
-        Category: categoryFilter === "all" ? undefined : categoryFilter,
-        IsActive: isActiveFilter === "all" ? undefined : isActiveFilter === "active",
-        SortBy: "displayOrder",
-        SortOrder: "asc",
+      const response = await getSampleImages()
+      if (response.success && response.data) {
+        setImages(response.data)
+      } else {
+        toast.error("Không thể tải danh sách ảnh")
       }
-      const res = await searchSuggestionImages(payload)
-      setItems(res.data?.items ?? [])
-      setTotalPages(res.data?.totalPages || 1)
     } catch (error) {
       console.error("Error loading images:", error)
+      toast.error("Đã xảy ra lỗi khi tải ảnh")
     } finally {
       setIsLoading(false)
     }
-  }, [query, categoryFilter, isActiveFilter, currentPage, pageSize])
+  }, [])
 
   React.useEffect(() => {
-    let ignore = false
-    const run = async () => {
-      if (!ignore) {
-        await loadData()
-      }
-    }
-    run()
-    return () => {
-      ignore = true
-    }
-  }, [loadData])
+    loadImages()
+  }, [loadImages])
 
-  const handleDelete = async (id: string) => {
-    try {
-      const res = await deleteSuggestionImageById(id)
-      if (res.success) {
-        // Reload data
-        setPage(1)
-        await loadData()
-      } else {
-        alert("Xóa ảnh thất bại")
-      }
-    } catch (error) {
-      alert("Đã xảy ra lỗi khi xóa ảnh")
-    }
-  }
-
-  const handleViewImage = (item: SuggestionImageSummaryItem) => {
-    setSelectedImage(item)
+  const handleViewImage = (image: SampleImage) => {
+    setSelectedImage(image)
     setViewDialogOpen(true)
   }
 
   const handleUploadSuccess = async () => {
-    setPage(1)
-    await loadData()
+    await loadImages()
+    toast.success("Ảnh đã được tải lên thành công!")
+  }
+
+  const toggleImageSelection = (imageId: string) => {
+    setSelectedImages(prev => {
+      if (prev.includes(imageId)) {
+        return prev.filter(id => id !== imageId)
+      } else {
+        return [...prev, imageId]
+      }
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedImages.length === images.length) {
+      setSelectedImages([])
+    } else {
+      setSelectedImages(images.map(img => img.sampleImageId))
+    }
+  }
+
+  const handleDeleteSelected = async () => {
+    if (selectedImages.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một ảnh để xóa")
+      return
+    }
+
+    const confirmDelete = confirm(`Bạn có chắc chắn muốn xóa ${selectedImages.length} ảnh đã chọn?`)
+    if (!confirmDelete) return
+
+    setIsDeleting(true)
+    
+    try {
+      const deletePromises = selectedImages.map(imageId => deleteSampleImage(imageId))
+      const results = await Promise.allSettled(deletePromises)
+      
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+      
+      if (successful > 0) {
+        toast.success(`Đã xóa thành công ${successful} ảnh`)
+        await loadImages()
+        setSelectedImages([])
+        setSelectionMode(false)
+      }
+      
+      if (failed > 0) {
+        toast.error(`Không thể xóa ${failed} ảnh`)
+      }
+    } catch (error) {
+      console.error("Error deleting images:", error)
+      toast.error("Đã xảy ra lỗi khi xóa ảnh")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false)
+    setSelectedImages([])
   }
 
   return (
@@ -119,193 +140,147 @@ export default function SuggestionImagesPage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Ảnh đề xuất</BreadcrumbPage>
+                  <BreadcrumbPage>Ảnh mẫu</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <h1 className="text-xl font-semibold">Quản lý ảnh đề xuất</h1>
-              <Button onClick={() => setUploadDialogOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Tải ảnh lên
-              </Button>
-            </div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <Input
-                placeholder="Tìm kiếm theo tên hoặc mô tả"
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value)
-                  setPage(1)
-                }}
-                className="md:max-w-sm"
-              />
-              <div className="flex items-center gap-2">
-                <Select
-                  value={categoryFilter}
-                  onValueChange={(v) => {
-                    setCategoryFilter(v)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả danh mục</SelectItem>
-                    <SelectItem value="Logo">Logo</SelectItem>
-                    <SelectItem value="Pattern">Pattern</SelectItem>
-                    <SelectItem value="Icon">Icon</SelectItem>
-                    <SelectItem value="Text">Text</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={isActiveFilter}
-                  onValueChange={(v) => {
-                    setIsActiveFilter(v)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="active">Đang hoạt động</SelectItem>
-                    <SelectItem value="inactive">Không hoạt động</SelectItem>
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-muted-foreground">Số hàng mỗi trang</span>
-                <Select
-                  value={String(pageSize)}
-                  onValueChange={(v) => {
-                    setPageSize(Number(v))
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger className="w-[90px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="5">5</SelectItem>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-xl font-semibold">Quản lý ảnh mẫu</h1>
+            <div className="flex gap-2">
+              {selectionMode ? (
+                <>
+                  <Button variant="outline" onClick={exitSelectionMode}>
+                    Hủy chọn
+                  </Button>
+                  {selectedImages.length > 0 && (
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleDeleteSelected}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      Xóa đã chọn ({selectedImages.length})
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" onClick={loadImages} disabled={isLoading}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                    Làm mới
+                  </Button>
+                  {images.length > 0 && (
+                    <Button variant="outline" onClick={() => setSelectionMode(true)}>
+                      <Check className="h-4 w-4 mr-2" />
+                      Chọn để xóa
+                    </Button>
+                  )}
+                  <Button onClick={() => setUploadDialogOpen(true)}>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Tải ảnh lên
+                  </Button>
+                </>
+              )}
             </div>
           </div>
-          <div className="rounded-xl border bg-background">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[80px]">ID</TableHead>
-                  <TableHead>Tên</TableHead>
-                  <TableHead className="text-right w-[150px]">Hành động</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center">Đang tải...</TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && items.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      Không tìm thấy ảnh nào
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!isLoading && items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {item.id.slice(0, 8)}...
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded border overflow-hidden flex-shrink-0">
-                          <img 
-                            src={item.imageUrl} 
-                            className="w-full h-full object-cover"
+
+          {/* Images Grid */}
+          <div className="rounded-xl border bg-background p-6">
+            {isLoading && (
+              <div className="text-center py-8">
+                <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Đang tải ảnh...</p>
+              </div>
+            )}
+            
+            {!isLoading && images.length === 0 && (
+              <div className="text-center py-12">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">Chưa có ảnh nào</h3>
+                <p className="text-muted-foreground mb-4">Tải ảnh đầu tiên lên hệ thống</p>
+                <Button onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Tải ảnh lên
+                </Button>
+              </div>
+            )}
+            
+            {!isLoading && images.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm text-muted-foreground">
+                    Tổng cộng: {images.length} ảnh
+                    {selectionMode && selectedImages.length > 0 && (
+                      <span className="ml-2 text-primary">
+                        • Đã chọn: {selectedImages.length}
+                      </span>
+                    )}
+                  </p>
+                  {selectionMode && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={toggleSelectAll}
+                    >
+                      {selectedImages.length === images.length ? "Bỏ chọn tất cả" : "Chọn tất cả"}
+                    </Button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                  {images.map((image, index) => (
+                    <div key={image.sampleImageId} className="relative group">
+                      <div className={`aspect-square rounded-lg border overflow-hidden bg-gray-50 hover:bg-gray-100 transition-colors ${
+                        selectionMode && selectedImages.includes(image.sampleImageId) ? 'ring-2 ring-primary' : ''
+                      }`}>
+                        <img
+                          src={image.imageUrl}
+                          alt={`Sample ${index + 1}`}
+                          className="w-full h-full object-cover cursor-pointer"
+                          onClick={() => selectionMode ? toggleImageSelection(image.sampleImageId) : handleViewImage(image)}
+                        />
+                      </div>
+                      
+                      {/* Selection checkbox */}
+                      {selectionMode && (
+                        <div className="absolute top-2 left-2 z-10">
+                          <Checkbox
+                            checked={selectedImages.includes(image.sampleImageId)}
+                            onCheckedChange={() => toggleImageSelection(image.sampleImageId)}
+                            className="bg-white border-2 border-gray-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleViewImage(item)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Xác nhận xóa</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Bạn có chắc chắn muốn xóa ảnh này không? Hành động này không thể hoàn tác.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Hủy</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(item.id)}>
-                                Xóa
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      )}
+                      
+                      {/* Hover overlay - only show when not in selection mode */}
+                      {!selectionMode && (
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleViewImage(image)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Xem
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-          {totalPages > 1 && (
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <PaginationItem key={p}>
-                    <PaginationLink
-                      onClick={() => setPage(p)}
-                      isActive={currentPage === p}
-                      className="cursor-pointer"
-                    >
-                      {p}
-                    </PaginationLink>
-                  </PaginationItem>
-                ))}
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          )}
         </div>
 
         {/* Upload Dialog */}
-        <ImageUploadDialog 
+        <SampleImageUploadDialog 
           open={uploadDialogOpen}
           onOpenChange={setUploadDialogOpen}
           onSuccess={handleUploadSuccess}
@@ -313,35 +288,60 @@ export default function SuggestionImagesPage() {
 
         {/* View Dialog */}
         <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Chi tiết ảnh</DialogTitle>
+              <DialogTitle>Xem ảnh mẫu</DialogTitle>
             </DialogHeader>
             {selectedImage && (
               <div className="space-y-4">
-                <div className="rounded-lg border overflow-hidden">
+                <div className="rounded-lg border overflow-hidden bg-gray-50">
                   <img 
                     src={selectedImage.imageUrl} 
-                    className="w-full h-auto"
+                    className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+                    alt="Sample image"
                   />
                 </div>
-                <div className="grid gap-3">
-                  <div>
-                    <div className="text-sm font-medium text-muted-foreground">ID</div>
-                    <div className="font-mono text-sm">{selectedImage.id}</div>
-                  </div>
-        
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-muted-foreground">Trạng thái</div>
-                      <div>
-                        {selectedImage.isActive ? (
-                          <Badge className="bg-green-500">Hoạt động</Badge>
-                        ) : (
-                          <Badge variant="secondary">Không hoạt động</Badge>
-                        )}
-                      </div>
+                <div className="space-y-3">
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <div className="break-all">
+                      <span className="font-medium">ID:</span> {selectedImage.sampleImageId}
                     </div>
+                    <div className="break-all">
+                      <span className="font-medium">URL:</span> {selectedImage.imageUrl}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => navigator.clipboard.writeText(selectedImage.imageUrl)}
+                    >
+                      Sao chép URL
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={async () => {
+                        const confirmDelete = confirm("Bạn có chắc chắn muốn xóa ảnh này?")
+                        if (!confirmDelete) return
+                        
+                        try {
+                          await deleteSampleImage(selectedImage.sampleImageId)
+                          toast.success("Đã xóa ảnh thành công")
+                          await loadImages()
+                          setViewDialogOpen(false)
+                        } catch (error) {
+                          console.error("Error deleting image:", error)
+                          toast.error("Không thể xóa ảnh")
+                        }
+                      }}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 mr-2" />
+                      )}
+                      Xóa ảnh
+                    </Button>
                   </div>
                 </div>
               </div>

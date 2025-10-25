@@ -103,8 +103,8 @@ export interface GetVoucherByIdResponse {
     isActive: boolean;
     createdAt: string;
     lastModifiedAt: string;
-    products: VoucherProductDetail[];
-    productDetails: VoucherProductDetail[];
+    products: VoucherProduct[];  // This should be VoucherProduct array with productId
+    productDetails: VoucherProductDetail[];  // This is the full product details array
   };
 }
 

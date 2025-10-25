@@ -79,7 +79,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
               isActive: response.data.isActive,
               startDate: startDateTime.toISOString().split('T')[0],
               endDate: endDateTime.toISOString().split('T')[0],
-              productIds: response.data.products.map(p => p.id),
+              productIds: response.data.products.map(p => p.productId),
             })
             
             // Set time values
@@ -316,7 +316,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
                   <CardContent className="space-y-4">
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <Label htmlFor="code">Mã voucher *</Label>
+                        <Label htmlFor="code" className="mb-2">Mã voucher *</Label>
                         <Input
                           id="code"
                           value={formData.code}
@@ -332,7 +332,7 @@ export function VoucherForm({ voucherId, mode }: VoucherFormProps) {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="description">Mô tả voucher *</Label>
+                      <Label htmlFor="description" className="mb-2">Mô tả voucher *</Label>
                       <Textarea
                         id="description"
                         value={formData.description}

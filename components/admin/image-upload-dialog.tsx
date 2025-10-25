@@ -278,8 +278,8 @@ export function ImageUploadDialog({ open, onOpenChange, onSuccess }: ImageUpload
                     <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900 flex items-center justify-center min-h-[500px] w-full overflow-auto">
                       <ReactCrop
                         crop={crop}
-                        onChange={(c) => setCrop(c)}
-                        onComplete={(c) => setCompletedCrop(c)}
+                        onChange={(c: Crop) => setCrop(c)}
+                        onComplete={(c: PixelCrop) => setCompletedCrop(c)}
                         aspect={getAspectRatio()}
                         className="max-w-full"
                       >

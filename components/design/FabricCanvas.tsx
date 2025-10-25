@@ -13,6 +13,7 @@ import {
   getTemplatesByProduct,
 } from "@/services/templateServices";
 import { uploadImage } from "@/services/storageService";
+import { getSampleImages, type SampleImage } from "@/services/sampleImageService";
 import { toast } from "sonner";
 import {
   Trash2,
@@ -162,12 +163,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   
   // Image library states
   const [uploadedImages, setUploadedImages] = useState<Array<{url: string, name: string}>>([]);
-  const [suggestedImages, setSuggestedImages] = useState<Array<{url: string, name: string}>>([
-    // Mock suggested images - replace with actual API call
-    { url: "https://images.unsplash.com/photo-1604999565976-8913ad2ddb7c?w=200", name: "Logo 1" },
-    { url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200", name: "Logo 2" },
-    { url: "https://images.unsplash.com/photo-1541963463532-d68292c34b19?w=200", name: "Hình 3" },
-  ]);
+  const [suggestedImages, setSuggestedImages] = useState<Array<{url: string, name: string}>>([]);
+  const [loadingSampleImages, setLoadingSampleImages] = useState(false);
   
   // Track which sides actually have template images returned from API
     const [sideHasTemplate, setSideHasTemplate] = useState<
@@ -375,6 +372,31 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         setShirtImage(sideImage);
       }
   }, [currentSide, shirtImageBySide]);
+
+  // Load sample images from server
+  const loadSampleImages = async () => {
+    setLoadingSampleImages(true);
+    try {
+      const response = await getSampleImages();
+      if (response.success && response.data) {
+        const formattedImages = response.data.map((image: SampleImage, index: number) => ({
+          url: image.imageUrl,
+          name: `Ảnh mẫu ${index + 1}`
+        }));
+        setSuggestedImages(formattedImages);
+      }
+    } catch (error) {
+      console.error("Error loading sample images:", error);
+      toast.error("Không thể tải ảnh mẫu từ server");
+    } finally {
+      setLoadingSampleImages(false);
+    }
+  };
+
+  // Load sample images on component mount
+  useEffect(() => {
+    loadSampleImages();
+  }, []);
 
   // Persist decorations per side when switching
   useEffect(() => {
@@ -1582,17 +1604,41 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
           {/* Image Library - Suggested Images */}
           <div className="mb-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles size={16} className="text-purple-600" />
-              <h3 className="font-semibold text-sm">Ảnh Đề Xuất ({suggestedImages.length})</h3>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-purple-600" />
+                <h3 className="font-semibold text-sm">
+                  Ảnh Đề Xuất ({loadingSampleImages ? "..." : suggestedImages.length})
+                </h3>
+                {loadingSampleImages && (
+                  <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                )}
+              </div>
+              <button
+                onClick={loadSampleImages}
+                disabled={loadingSampleImages}
+                className="p-1 text-gray-500 hover:text-purple-600 disabled:opacity-50"
+                title="Làm mới ảnh mẫu"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
             </div>
-            {suggestedImages.length === 0 ? (
+            {loadingSampleImages ? (
+              <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  Đang tải ảnh mẫu...
+                </div>
+              </div>
+            ) : suggestedImages.length === 0 ? (
               <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
                 Chưa có ảnh đề xuất
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                {suggestedImages.map((img, index) => (
+                {suggestedImages.map((img, index) => (  
                   <button
                     key={index}
                     onClick={() => addImageDecoration(img.url, img.name)}
