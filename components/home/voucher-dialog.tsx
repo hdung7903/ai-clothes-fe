@@ -225,7 +225,7 @@ export function VoucherDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="w-[95vw] sm:max-w-[1200px] p-0 overflow-hidden gap-0 mt-20 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
+        className="w-[95vw] sm:max-w-[1200px] p-0 overflow-hidden gap-0 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
         onEscapeKeyDown={(e) => {
           e.preventDefault()
           handleOpenChange(false)

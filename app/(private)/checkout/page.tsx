@@ -30,11 +30,12 @@ import {
 } from "@/services/locationService";
 import { cn } from "@/lib/utils";
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover";
-import { createOrder } from "@/services/orderServices";
+import { createOrder, updateOrderStatusByUser, checkOrderPaymentStatus } from "@/services/orderServices";
 import {
   fetchCartItems,
   updateItemDiscounts,
   clearDiscounts,
+  clearCart,
 } from "@/redux/cartSlice";
 import { logout } from "@/redux/authSlice";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -92,6 +93,8 @@ export default function CheckoutPage() {
   const [paymentResultType, setPaymentResultType] = useState<
     "success" | "failure" | null
   >(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [currentPaymentCode, setCurrentPaymentCode] = useState<string>("SEPAY");
 
   function formatCountdown(ms: number): string {
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -245,7 +248,7 @@ export default function CheckoutPage() {
         setPaymentDeadline(null);
         setPaymentDialogOpen(false);
         toast.error(
-          "Phiên thanh toán đã hết hạn sau 5 phút. Vui lòng thử lại."
+          "Phiên thanh toán đã hết hạn sau 2 phút. Vui lòng thử lại."
         );
       }
     };
@@ -254,28 +257,55 @@ export default function CheckoutPage() {
     return () => clearInterval(id);
   }, [paymentDeadline]);
 
-  function handleMarkPaid() {
-    setPaymentDialogOpen(false);
-    setPaymentResultType("success");
-    setPaymentResultOpen(true);
-  }
+  // Poll payment status when payment dialog is open
+  useEffect(() => {
+    if (!paymentDialogOpen || !currentOrderId) return;
 
-  function handleMarkFailed() {
-    setPaymentDialogOpen(false);
-    setPaymentResultType("failure");
-    setPaymentResultOpen(true);
-  }
+    const pollPaymentStatus = async () => {
+      try {
+        const response = await checkOrderPaymentStatus(currentOrderId);
+        if (response.success && response.data === true) {
+          // Payment successful - complete the order
+          toast.success("Thanh toán thành công! Đơn hàng đã được xác nhận.");
+          
+          // Clear the cart since order is completed
+          dispatch(clearCart());
+          
+          // Close payment dialog
+          setPaymentDialogOpen(false);
+          setPaymentQr(null);
+          setPaymentDeadline(null);
+          setCurrentOrderId(null);
+          setCurrentPaymentCode("SEPAY");
+          
+          // Redirect to orders page
+          router.push("/account/orders");
+        }
+      } catch (error) {
+        console.error("Error checking payment status:", error);
+        // Don't show error to user, just continue polling
+      }
+    };
+
+    // Poll immediately, then every 3 seconds
+    pollPaymentStatus();
+    const interval = setInterval(pollPaymentStatus, 3000);
+
+    return () => clearInterval(interval);
+  }, [paymentDialogOpen, currentOrderId, router]);
+
+
 
   async function handleRetryPayment() {
     if (!paymentQr) {
       try {
         const qrRes = await createQrCode({
           amount: Math.max(0, subtotal - discount),
-          paymentCode: "SEPAY",
+          paymentCode: currentPaymentCode,
         });
         if (qrRes.success) {
           setPaymentQr(qrRes.data ?? null);
-          setPaymentDeadline(Date.now() + 5 * 60 * 1000);
+          setPaymentDeadline(Date.now() + 2 * 60 * 1000);
           setPaymentDialogOpen(true);
           setPaymentResultOpen(false);
         } else {
@@ -297,6 +327,38 @@ export default function CheckoutPage() {
     setPaymentMethod("COD");
     setPaymentResultOpen(false);
     toast.message("Đã chuyển sang phương thức COD");
+  }
+
+  async function handleCancelPayment() {
+    if (!currentOrderId) {
+      toast.error("Không tìm thấy thông tin đơn hàng");
+      return;
+    }
+
+    try {
+      const response = await updateOrderStatusByUser(currentOrderId, {
+        action: 0 // Cancel action
+      });
+
+      if (response.success) {
+        toast.success("Đơn hàng đã được hủy thành công");
+        setPaymentDialogOpen(false);
+        setPaymentQr(null);
+        setPaymentDeadline(null);
+        setCurrentOrderId(null);
+        setCurrentPaymentCode("SEPAY");
+        // Redirect back to cart
+        router.push("/cart");
+      } else {
+        const errorMessage = response.errors
+          ? Object.values(response.errors).flat().join(", ")
+          : "Không thể hủy đơn hàng";
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Cancel payment error:", error);
+      toast.error("Có lỗi xảy ra khi hủy đơn hàng. Vui lòng thử lại.");
+    }
   }
 
   async function validateVoucher() {
@@ -516,19 +578,25 @@ export default function CheckoutPage() {
       const response = await createOrder(orderRequest);
 
       if (response.success && response.data) {
+        // Store the order ID for potential cancellation
+        setCurrentOrderId(response.data.orderId);
+        // Store the payment code from response
+        const orderPaymentCode = response.data.paymentCode || "SEPAY";
+        setCurrentPaymentCode(orderPaymentCode);
+        
         if (paymentMethod === "ONLINE_PAYMENT") {
           // Start 5-minute payment window and request payment info (e.g., QR)
           try {
             const qrRes = await createQrCode({
               amount: Math.max(0, subtotal - discount),
-              paymentCode: "SEPAY",
+              paymentCode: orderPaymentCode,
             });
             if (qrRes.success) {
               setPaymentQr(qrRes.data ?? null);
-              setPaymentDeadline(Date.now() + 5 * 60 * 1000);
+              setPaymentDeadline(Date.now() + 2 * 60 * 1000);
               setPaymentDialogOpen(true);
               toast.success(
-                "Đơn hàng đã tạo. Vui lòng thanh toán online trong 5 phút."
+                "Đơn hàng đã tạo. Vui lòng thanh toán online trong 2 phút."
               );
             } else {
               const payErr = qrRes.errors
@@ -544,7 +612,8 @@ export default function CheckoutPage() {
           // Do not clear cart or redirect yet; wait for payment
         } else {
           toast.success("Đơn hàng đã được tạo thành công!");
-          // Cart will be cleared on server side when order is created
+          // Clear the cart since order is completed
+          dispatch(clearCart());
           router.push(`/account/orders`);
         }
       } else {
@@ -643,7 +712,7 @@ export default function CheckoutPage() {
               Thanh Toán
             </h1>
             <p className="text-muted-foreground">
-              Hoàn tất đơn hàng của bạn {cartItems.length > 0 && `(${cartItems.length} sản phẩm)`}
+              Hoàn tất đơn hàng của bạn {cartItems.length > 0 && `(${cartItems.length} sản phẩm) - ${formatCurrency(total, "VND", "vi-VN")}`}
             </p>
           </div>
 
@@ -679,7 +748,7 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="firstName">Tên</Label>
+                      <Label htmlFor="firstName" className="mb-2">Tên</Label>
                       <Input
                         id="firstName"
                         placeholder="Nhập tên của bạn"
@@ -688,7 +757,7 @@ export default function CheckoutPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Họ</Label>
+                      <Label htmlFor="lastName" className="mb-2">Họ</Label>
                       <Input
                         id="lastName"
                         placeholder="Nhập họ của bạn"
@@ -698,7 +767,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email" className="mb-2">Email</Label>
                     <Input
                       id="email"
                       type="email"
@@ -709,7 +778,7 @@ export default function CheckoutPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone">Số điện thoại</Label>
+                    <Label htmlFor="phone" className="mb-2">Số điện thoại</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -727,7 +796,7 @@ export default function CheckoutPage() {
                   {/* Vietnam Location - Province and Ward */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="province">Tỉnh/Thành phố</Label>
+                      <Label htmlFor="province" className="mb-2">Tỉnh/Thành phố</Label>
                       <Popover
                         open={openProvince}
                         onOpenChange={setOpenProvince}
@@ -780,7 +849,7 @@ export default function CheckoutPage() {
                       </Popover>
                     </div>
                     <div>
-                      <Label htmlFor="ward">Phường/Xã</Label>
+                      <Label htmlFor="ward" className="mb-2">Phường/Xã</Label>
                       <Popover open={openWard} onOpenChange={setOpenWard}>
                         <PopoverTrigger asChild>
                           <Button
@@ -831,7 +900,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div>
-                    <Label htmlFor="address">Địa chỉ chi tiết</Label>
+                    <Label htmlFor="address" className="mb-2">Địa chỉ chi tiết</Label>
                     <Input
                       id="address"
                       placeholder={
@@ -857,7 +926,7 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-2">
-                      <Label htmlFor="voucher">Nhập mã giảm giá</Label>
+                      <Label htmlFor="voucher" className="mb-2">Nhập mã giảm giá</Label>
                       <Input
                         id="voucher"
                         value={voucherCode}
@@ -1023,12 +1092,12 @@ export default function CheckoutPage() {
           )}
         </div>
       </div>
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={paymentDialogOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Quét mã QR để thanh toán</DialogTitle>
             <DialogDescription>
-              Vui lòng hoàn tất thanh toán trong {formatCountdown(countdownMs)}.
+              Vui lòng hoàn tất thanh toán trong {formatCountdown(countdownMs)}
             </DialogDescription>
           </DialogHeader>
           {paymentQr ? (
@@ -1045,11 +1114,10 @@ export default function CheckoutPage() {
             </p>
           )}
           <DialogFooter>
-            <div className="flex w-full justify-between gap-2">
-              <Button variant="secondary" onClick={handleMarkFailed}>
-                Có vấn đề / Thất bại
+            <div className="flex w-full justify-center">
+              <Button variant="destructive" onClick={handleCancelPayment}>
+                Hủy thanh toán
               </Button>
-              <Button onClick={handleMarkPaid}>Tôi đã thanh toán</Button>
             </div>
           </DialogFooter>
         </DialogContent>

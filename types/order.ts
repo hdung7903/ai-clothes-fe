@@ -62,6 +62,7 @@ export interface CreateOrderResponse {
   recipientPhone: string;
   recipientAddress: string;
   paymentMethod: string;
+  paymentCode?: string;
   subTotal: number;
   discountAmount: number;
   totalAmount: number;

@@ -269,3 +269,16 @@ export async function adminUpdatePaymentStatus(
   );
 }
 
+// Check if order is paid
+export async function checkOrderPaymentStatus(
+  orderId: string
+): Promise<ApiEnvelope<boolean>> {
+  return requestJson<never, boolean>(
+    `/api/Order/${orderId}/IsPaid`,
+    {
+      method: 'GET',
+      requireAuth: true,
+    }
+  );
+}
+

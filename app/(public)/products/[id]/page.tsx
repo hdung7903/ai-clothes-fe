@@ -264,6 +264,15 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     )
   }, [product, selectedSize, selectedColor])
 
+  // Reset quantity to 0 when product is out of stock
+  useEffect(() => {
+    if (selectedVariant && selectedVariant.stock <= 0) {
+      setQuantity(0)
+    } else if (selectedVariant && quantity === 0 && selectedVariant.stock > 0) {
+      setQuantity(1) // Reset to 1 when stock becomes available
+    }
+  }, [selectedVariant, quantity])
+
   const addDisabled = useMemo(() => {
     if (!selectedSize || !selectedColor || quantity <= 0) return true
     if (!selectedVariant) return true
@@ -463,17 +472,32 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <div>
               <label className="text-sm font-medium mb-2 block">Số lượng</label>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => setQuantity(Math.max(1, quantity - 1))}>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => {
+                    const minQty = selectedVariant && selectedVariant.stock <= 0 ? 0 : 1
+                    setQuantity(Math.max(minQty, quantity - 1))
+                  }}
+                  disabled={quantity <= 0 || (selectedVariant && selectedVariant.stock <= 0 && quantity === 0)}
+                >
                   <Minus className="h-4 w-4" />
                 </Button>
                 <span className="w-12 text-center">{quantity}</span>
-                <Button variant="outline" size="icon" onClick={() => {
-                  const matchedVariant = product.variants.find(
-                    (v) => v.optionValues["SIZE"] === selectedSize && v.optionValues["COLOR"] === selectedColor
-                  )
-                  const maxQty = matchedVariant?.stock ?? Infinity
-                  setQuantity((prev) => Math.min(prev + 1, Number.isFinite(maxQty) ? maxQty : prev + 1))
-                }}>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => {
+                    const matchedVariant = product.variants.find(
+                      (v) => v.optionValues["SIZE"] === selectedSize && v.optionValues["COLOR"] === selectedColor
+                    )
+                    const maxQty = matchedVariant?.stock ?? 999 // Default max quantity when no variant is matched
+                    if (maxQty > 0) {
+                      setQuantity((prev) => Math.min(prev + 1, maxQty))
+                    }
+                  }}
+                  disabled={!selectedVariant || selectedVariant.stock <= 0 || quantity >= (selectedVariant?.stock ?? 999)}
+                >
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>

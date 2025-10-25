@@ -10,6 +10,7 @@ export interface CartItem {
   name: string;
   price: number; // unit price
   quantity: number;
+  stock: number; // Available stock for this variant
   size?: string;
   color?: string;
   image?: string;
@@ -67,6 +68,10 @@ const cartSlice = createSlice({
         item.voucherDiscountPercent = undefined;
       });
     },
+    clearCart(state) {
+      state.items = [];
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -97,6 +102,20 @@ const cartSlice = createSlice({
       .addCase(addItemAsync.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to add item to cart';
+      })
+      // Update item quantity
+      .addCase(updateItemQuantityAsync.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateItemQuantityAsync.fulfilled, (state) => {
+        state.loading = false;
+        state.error = null;
+        // Cart items will be updated by the fetchCartItems call in the thunk
+      })
+      .addCase(updateItemQuantityAsync.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || 'Failed to update item quantity';
       })
       // Delete items
       .addCase(deleteItemsAsync.pending, (state) => {
@@ -130,6 +149,7 @@ function convertCartItemResponse(response: CartItemResponse): CartItem {
     name: response.productName,
     price: response.unitPrice,
     quantity: response.quantity,
+    stock: response.stock, // Include stock information
     size: size,
     color: color,
     image: response.productImageUrl,
@@ -192,25 +212,40 @@ export const deleteItemsAsync = createAsyncThunk<
 // Update item quantity by deleting and re-adding with new quantity
 export const updateItemQuantityAsync = createAsyncThunk<
   void,
-  { cartItemId: string; productVariantId: string; productDesignId: string | null; quantity: number },
+  { cartItemId: string; productVariantId: string; productDesignId: string | null; quantity: number; originalQuantity: number },
   { state: RootState }
 >(
   'cart/updateItemQuantityAsync',
-  async ({ cartItemId, productVariantId, productDesignId, quantity }, { dispatch, rejectWithValue }) => {
+  async ({ cartItemId, productVariantId, productDesignId, quantity, originalQuantity }, { dispatch, rejectWithValue, getState }) => {
     try {
       // Delete the old item first
       await deleteServerCartItems({ cartItemIds: [cartItemId] });
-      // Add the item back with new quantity
-      await addServerCartItem({ productVariantId, productDesignId, quantity });
-      // Refresh cart to get updated data
+      
+      try {
+        // Add the item back with new quantity
+        await addServerCartItem({ productVariantId, productDesignId, quantity });
+        // Refresh cart to get updated data
+        dispatch(fetchCartItems());
+      } catch (addError) {
+        // If add fails after delete, try to restore original quantity
+        console.error('Failed to add updated item, attempting to restore original:', addError);
+        try {
+          await addServerCartItem({ productVariantId, productDesignId, quantity: originalQuantity });
+          dispatch(fetchCartItems());
+          return rejectWithValue('Unable to update quantity. Item restored to original quantity.');
+        } catch (restoreError) {
+          console.error('Failed to restore item:', restoreError);
+          dispatch(fetchCartItems());
+          return rejectWithValue('Failed to update item and could not restore original quantity.');
+        }
+      }
+    } catch (deleteError) {
+      // If delete fails, just refresh to sync with server
       dispatch(fetchCartItems());
-    } catch (error) {
-      // If update fails, refresh cart to sync with server
-      dispatch(fetchCartItems());
-      return rejectWithValue(error instanceof Error ? error.message : 'Failed to update item quantity');
+      return rejectWithValue(deleteError instanceof Error ? deleteError.message : 'Failed to update item quantity');
     }
   }
 );
 
-export const { clearError, setItems, updateItemQuantity, updateItemDiscounts, clearDiscounts } = cartSlice.actions;
+export const { clearError, setItems, updateItemQuantity, updateItemDiscounts, clearDiscounts, clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

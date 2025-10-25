@@ -257,10 +257,20 @@ export default function DesignToolPage(): ReactElement {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <h1 className="text-2xl font-bold">
-              <span className="text-green-600">TEECRAFT</span>
-              <span className="text-yellow-500">Designer</span>
-            </h1>
+            <Link href="/" className="flex items-center space-x-2">
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+                <img 
+                  src="/branch.png" 
+                  alt="TEECRAFT Logo" 
+                  className="h-8 w-8 object-contain"
+                />
+              </div>
+              <span className="text-xl font-bold">
+                <span className="text-green-600">TEE</span>
+                <span className="text-yellow-500">CRAFT</span>
+              </span>
+            </Link>
+            <span className="text-xl font-bold text-gray-600">Designer</span>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Beta</Badge>

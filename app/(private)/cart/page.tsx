@@ -7,19 +7,21 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, useCallback, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import type { RootState } from "@/redux"
 import { fetchCartItems, deleteItemsAsync, clearError, updateItemQuantityAsync, updateItemQuantity } from "@/redux/cartSlice"
 import { formatCurrency } from "../../../utils/format"
 import { LoginRequiredPopover } from "@/components/ui/login-required-popover"
 import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 export default function CartPage() {
   const dispatch = useAppDispatch()
   const router = useRouter()
   const { items: cartItems, loading, error } = useAppSelector((s: RootState) => s.cart)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Fetch cart items on component mount
   useEffect(() => {
@@ -33,10 +35,41 @@ export default function CartPage() {
     }
   }, [cartItems, selectedItems.size])
 
-  // Clear error when component unmounts
+  // Preserve selected items when cart updates (to prevent estimate reset)
+  useEffect(() => {
+    if (cartItems.length > 0) {
+      // Keep only the selected items that still exist in the cart
+      const validSelectedItems = new Set(
+        Array.from(selectedItems).filter(itemId => 
+          cartItems.some(item => item.id === itemId)
+        )
+      )
+      
+      // If some selected items were removed, update the selection
+      if (validSelectedItems.size !== selectedItems.size) {
+        setSelectedItems(validSelectedItems)
+      }
+    }
+  }, [cartItems])
+
+  // Handle cart errors and show toast notifications
+  useEffect(() => {
+    if (error && error.includes('Unable to update quantity')) {
+      toast.warning('Không thể cập nhật số lượng. Đã khôi phục số lượng gốc.')
+      dispatch(clearError())
+    } else if (error && error.includes('Failed to update item')) {
+      toast.error('Không thể cập nhật giỏ hàng. Vui lòng thử lại.')
+      dispatch(clearError())
+    }
+  }, [error, dispatch])
+
+  // Clear error and timeout when component unmounts
   useEffect(() => {
     return () => {
       dispatch(clearError())
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current)
+      }
     }
   }, [dispatch])
 
@@ -68,24 +101,39 @@ export default function CartPage() {
     setSelectedItems(newSelected)
   }
 
-  const handleUpdateQuantity = (cartItemId: string, newQuantity: number) => {
+  const handleUpdateQuantity = useCallback((cartItemId: string, newQuantity: number) => {
     if (newQuantity < 1) return
     
     // Find the item to get productVariantId and productDesignId
     const item = cartItems.find(item => item.id === cartItemId)
     if (!item) return
     
-    // Optimistic update - update UI immediately
+    // Validate stock limits before attempting update
+    if (newQuantity > item.stock) {
+      // Don't update if trying to exceed stock
+      toast.error(`Chỉ còn ${item.stock} sản phẩm có sẵn!`)
+      return
+    }
+    
+    // Clear any pending timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current)
+    }
+    
+    // Optimistic update for immediate UI feedback
     dispatch(updateItemQuantity({ cartItemId, quantity: newQuantity }))
     
-    // Then update on server
-    dispatch(updateItemQuantityAsync({ 
-      cartItemId, 
-      productVariantId: item.productVariantId,
-      productDesignId: item.productDesignId ?? null,
-      quantity: newQuantity 
-    }))
-  }
+    // Debounced server update to prevent rapid API calls
+    updateTimeoutRef.current = setTimeout(() => {
+      dispatch(updateItemQuantityAsync({ 
+        cartItemId, 
+        productVariantId: item.productVariantId,
+        productDesignId: item.productDesignId ?? null,
+        quantity: newQuantity,
+        originalQuantity: item.quantity // Pass original quantity for recovery
+      }))
+    }, 500) // 500ms debounce
+  }, [cartItems, dispatch])
 
   const subtotal = useMemo(() => {
     return cartItems
@@ -96,6 +144,18 @@ export default function CartPage() {
   const total = subtotal
 
   const selectedItemsCount = selectedItems.size
+  
+  // Calculate total quantity of all items in cart
+  const totalQuantity = useMemo(() => {
+    return cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  }, [cartItems])
+  
+  // Calculate total quantity of selected items
+  const selectedQuantity = useMemo(() => {
+    return cartItems
+      .filter(item => selectedItems.has(item.id))
+      .reduce((sum, item) => sum + item.quantity, 0)
+  }, [cartItems, selectedItems])
 
   const handleCheckout = () => {
     if (selectedItems.size === 0) return
@@ -111,7 +171,14 @@ export default function CartPage() {
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Giỏ Hàng</h1>
-            <p className="text-muted-foreground">{cartItems.length} sản phẩm trong giỏ hàng của bạn</p>
+            <p className="text-muted-foreground">
+              {totalQuantity} sản phẩm trong giỏ hàng của bạn
+              {cartItems.length > 1 && (
+                <span className="text-xs text-muted-foreground/70 ml-1">
+                  ({cartItems.length} loại sản phẩm)
+                </span>
+              )}
+            </p>
           </div>
 
           {loading ? (
@@ -160,11 +227,11 @@ export default function CartPage() {
                         htmlFor="select-all"
                         className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                       >
-                        Chọn tất cả ({cartItems.length} sản phẩm)
+                        Chọn tất cả ({totalQuantity} sản phẩm)
                       </label>
                       {selectedItemsCount > 0 && selectedItemsCount < cartItems.length && (
                         <span className="text-xs text-muted-foreground ml-auto">
-                          Đã chọn {selectedItemsCount}/{cartItems.length}
+                          Đã chọn {selectedQuantity}/{totalQuantity}
                         </span>
                       )}
                     </div>
@@ -191,6 +258,9 @@ export default function CartPage() {
                           <p className="text-muted-foreground text-sm">
                             Kích thước: {item.size} • Màu sắc: {item.color}
                           </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Còn lại: {item.stock} sản phẩm
+                          </p>
                           <div className="flex items-center justify-between mt-4">
                             <div className="flex items-center gap-2">
                               <Button
@@ -207,7 +277,7 @@ export default function CartPage() {
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8"
-                                disabled={loading}
+                                disabled={loading || item.quantity >= item.stock}
                                 onClick={()=>handleUpdateQuantity(item.id, item.quantity + 1)}
                               >
                                 <Plus className="h-4 w-4" />
@@ -242,7 +312,7 @@ export default function CartPage() {
                     <p className="text-sm text-muted-foreground mt-2">
                       {selectedItemsCount > 0 ? (
                         <span className="text-green-600 font-medium">
-                          {selectedItemsCount} sản phẩm đã chọn
+                          {selectedQuantity} sản phẩm đã chọn
                         </span>
                       ) : (
                         <span className="text-orange-600">
@@ -253,7 +323,7 @@ export default function CartPage() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between">
-                      <span>Tạm tính ({selectedItemsCount} sản phẩm)</span>
+                      <span>Tạm tính ({selectedQuantity} sản phẩm)</span>
                       <span>{formatCurrency(subtotal, 'VND', 'vi-VN')}</span>
                     </div>
                     <Separator />
@@ -272,7 +342,7 @@ export default function CartPage() {
                       >
                         {selectedItemsCount === 0 
                           ? 'Vui lòng chọn sản phẩm' 
-                          : `Thanh toán (${selectedItemsCount})`
+                          : `Thanh toán (${selectedQuantity})`
                         }
                       </Button>
                     </LoginRequiredPopover>

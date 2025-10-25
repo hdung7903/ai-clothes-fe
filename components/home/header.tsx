@@ -122,7 +122,11 @@ export function Header() {
               <DropdownMenuTrigger asChild className="hidden md:flex">
                 <Button 
                   variant="ghost" 
-                  className="flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
+                  className="flex items-center gap-2 hover:bg-green-50 dark:hover:bg-green-950 transition-colors border border-green-600 bg-green-50 dark:bg-green-950 dark:border-green-500"
+                  style={{ 
+                    borderColor: 'var(--color-green-700)', 
+                    backgroundColor: 'color-mix(in srgb, var(--color-green-700) 10%, transparent)' 
+                  }}
                   onPointerEnter={() => setIsDropdownOpen(true)}
                   onPointerLeave={(e) => {
                     // Chỉ đóng nếu không hover vào dropdown content
