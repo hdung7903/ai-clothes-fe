@@ -45,3 +45,9 @@ next-env.d.ts
 # documentation (CI/CD setup files)
 *.md
 !README.md
+!DEPLOYMENT.md
+
+# nginx logs and certificates
+nginx/logs/
+nginx/certbot/conf/
+nginx/certbot/www/

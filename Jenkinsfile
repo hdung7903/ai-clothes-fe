@@ -74,20 +74,11 @@ pipeline {
                             ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} '
                                 cd ${SERVER_PATH}
                                 
-                                echo "Building Docker image on server..."
-                                docker build -t ai-clothes-fe:latest .
+                                echo "Stopping old containers..."
+                                docker-compose down || true
                                 
-                                echo "Stopping old container..."
-                                docker stop ai-clothes-fe-prod 2>/dev/null || true
-                                docker rm ai-clothes-fe-prod 2>/dev/null || true
-                                
-                                echo "Starting new container..."
-                                docker run -d \
-                                    --name ai-clothes-fe-prod \
-                                    -p 3000:3000 \
-                                    --restart unless-stopped \
-                                    -e NODE_ENV=production \
-                                    ai-clothes-fe:latest
+                                echo "Building and starting services with docker-compose..."
+                                docker-compose up -d --build nextjs-app nginx
                                 
                                 echo "Cleaning up old images..."
                                 docker image prune -f
