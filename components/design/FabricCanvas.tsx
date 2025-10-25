@@ -74,6 +74,11 @@ interface ResizeState {
   startX: number;
   startY: number;
   startSize: number;
+  handlePosition: 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'top' | 'right' | 'bottom' | 'left';
+  startWidth: number;
+  startHeight: number;
+  startDecorationX: number;
+  startDecorationY: number;
 }
 
 // Interface cho ref methods
@@ -150,6 +155,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState<ResizeState | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [canvasCursor, setCanvasCursor] = useState<string>('default');
   const [imageLoaded, setImageLoaded] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [maintainAspectRatio, setMaintainAspectRatio] = useState(false);
@@ -378,12 +384,17 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     setLoadingSampleImages(true);
     try {
       const response = await getSampleImages();
+      console.log("Sample images API response:", response);
       if (response.success && response.data) {
-        const formattedImages = response.data.map((image: SampleImage, index: number) => ({
-          url: image.imageUrl,
-          name: `Ảnh mẫu ${index + 1}`
-        }));
+        const formattedImages = response.data.map((image: SampleImage, index: number) => {
+          console.log(`Sample image ${index + 1}:`, image.imageUrl);
+          return {
+            url: image.imageUrl,
+            name: `Ảnh mẫu ${index + 1}`
+          };
+        });
         setSuggestedImages(formattedImages);
+        console.log("Formatted sample images:", formattedImages);
       }
     } catch (error) {
       console.error("Error loading sample images:", error);
@@ -649,31 +660,52 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       bounds: Bounds
     ) => {
     const handleSize = 10;
-    const handles = [
-      { x: -bounds.width / 2, y: -bounds.height / 2 },
-      { x: bounds.width / 2, y: -bounds.height / 2 },
-      { x: bounds.width / 2, y: bounds.height / 2 },
-      { x: -bounds.width / 2, y: bounds.height / 2 },
+    
+    // Corner handles for proportional scaling
+    const cornerHandles = [
+      { x: -bounds.width / 2, y: -bounds.height / 2, position: 'top-left' },
+      { x: bounds.width / 2, y: -bounds.height / 2, position: 'top-right' },
+      { x: bounds.width / 2, y: bounds.height / 2, position: 'bottom-right' },
+      { x: -bounds.width / 2, y: bounds.height / 2, position: 'bottom-left' },
+    ];
+    
+    // Edge handles for width/height only scaling
+    const edgeHandles = [
+      { x: 0, y: -bounds.height / 2, position: 'top' },
+      { x: bounds.width / 2, y: 0, position: 'right' },
+      { x: 0, y: bounds.height / 2, position: 'bottom' },
+      { x: -bounds.width / 2, y: 0, position: 'left' },
     ];
     
     ctx.setLineDash([]);
-      ctx.fillStyle = "#ffffff";
-      ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 2;
     
-      handles.forEach((h) => {
-        ctx.fillRect(
-          h.x - handleSize / 2,
-          h.y - handleSize / 2,
-          handleSize,
-          handleSize
-        );
-        ctx.strokeRect(
-          h.x - handleSize / 2,
-          h.y - handleSize / 2,
-          handleSize,
-          handleSize
-        );
+    // Draw corner handles (squares)
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#3b82f6";
+    cornerHandles.forEach((h) => {
+      ctx.fillRect(
+        h.x - handleSize / 2,
+        h.y - handleSize / 2,
+        handleSize,
+        handleSize
+      );
+      ctx.strokeRect(
+        h.x - handleSize / 2,
+        h.y - handleSize / 2,
+        handleSize,
+        handleSize
+      );
+    });
+    
+    // Draw edge handles (circles)
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#10b981";
+    edgeHandles.forEach((h) => {
+      ctx.beginPath();
+      ctx.arc(h.x, h.y, handleSize / 2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
     });
   };
 
@@ -682,6 +714,25 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       return { width: dec.width, height: dec.height };
     }
     return { width: 50, height: 50 };
+  };
+
+  const getCursorForHandle = (position: string): string => {
+    switch (position) {
+      case 'top-left':
+      case 'bottom-right':
+        return 'nw-resize';
+      case 'top-right':
+      case 'bottom-left':
+        return 'ne-resize';
+      case 'top':
+      case 'bottom':
+        return 'n-resize';
+      case 'left':
+      case 'right':
+        return 'e-resize';
+      default:
+        return 'default';
+    }
   };
   
   // Debug function để kiểm tra collision
@@ -750,23 +801,66 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       // Kiểm tra resize handles trước
       const bounds = getDecorationBounds(dec);
       const handleSize = 10;
-      const handles = [
-        { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2 },
-        { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2 },
-        { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2 },
-        { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2 },
+      
+      // Corner handles for proportional scaling
+      const cornerHandles = [
+        { x: dec.x - bounds.width / 2, y: dec.y - bounds.height / 2, position: 'top-left' as const },
+        { x: dec.x + bounds.width / 2, y: dec.y - bounds.height / 2, position: 'top-right' as const },
+        { x: dec.x + bounds.width / 2, y: dec.y + bounds.height / 2, position: 'bottom-right' as const },
+        { x: dec.x - bounds.width / 2, y: dec.y + bounds.height / 2, position: 'bottom-left' as const },
+      ];
+      
+      // Edge handles for width/height only scaling
+      const edgeHandles = [
+        { x: dec.x, y: dec.y - bounds.height / 2, position: 'top' as const },
+        { x: dec.x + bounds.width / 2, y: dec.y, position: 'right' as const },
+        { x: dec.x, y: dec.y + bounds.height / 2, position: 'bottom' as const },
+        { x: dec.x - bounds.width / 2, y: dec.y, position: 'left' as const },
       ];
       
       let isResizeHandle = false;
-      for (const handle of handles) {
+      
+      // Check corner handles first
+      for (const handle of cornerHandles) {
+        if (
+          Math.abs(x - handle.x) <= handleSize &&
+          Math.abs(y - handle.y) <= handleSize
+        ) {
+          setResizing({ 
+            startX: x, 
+            startY: y, 
+            startSize: dec.width,
+            handlePosition: handle.position,
+            startWidth: dec.width,
+            startHeight: dec.height,
+            startDecorationX: dec.x,
+            startDecorationY: dec.y
+          });
+          isResizeHandle = true;
+          break;
+        }
+      }
+      
+      // If no corner handle, check edge handles
+      if (!isResizeHandle) {
+        for (const handle of edgeHandles) {
           if (
             Math.abs(x - handle.x) <= handleSize &&
             Math.abs(y - handle.y) <= handleSize
           ) {
-            const startSize = dec.width;
-          setResizing({ startX: x, startY: y, startSize });
-          isResizeHandle = true;
-          break;
+            setResizing({ 
+              startX: x, 
+              startY: y, 
+              startSize: dec.width,
+              handlePosition: handle.position,
+              startWidth: dec.width,
+              startHeight: dec.height,
+              startDecorationX: dec.x,
+              startDecorationY: dec.y
+            });
+            isResizeHandle = true;
+            break;
+          }
         }
       }
       
@@ -791,38 +885,157 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Update cursor based on hover position when not dragging/resizing
+    if (!dragging && !resizing && selectedId !== null) {
+      const selectedDec = decorations.find(d => d.id === selectedId);
+      if (selectedDec) {
+        const bounds = getDecorationBounds(selectedDec);
+        const handleSize = 10;
+        
+        // Check all handles for cursor update
+        const allHandles = [
+          { x: selectedDec.x - bounds.width / 2, y: selectedDec.y - bounds.height / 2, position: 'top-left' },
+          { x: selectedDec.x + bounds.width / 2, y: selectedDec.y - bounds.height / 2, position: 'top-right' },
+          { x: selectedDec.x + bounds.width / 2, y: selectedDec.y + bounds.height / 2, position: 'bottom-right' },
+          { x: selectedDec.x - bounds.width / 2, y: selectedDec.y + bounds.height / 2, position: 'bottom-left' },
+          { x: selectedDec.x, y: selectedDec.y - bounds.height / 2, position: 'top' },
+          { x: selectedDec.x + bounds.width / 2, y: selectedDec.y, position: 'right' },
+          { x: selectedDec.x, y: selectedDec.y + bounds.height / 2, position: 'bottom' },
+          { x: selectedDec.x - bounds.width / 2, y: selectedDec.y, position: 'left' },
+        ];
+        
+        let newCursor = 'default';
+        for (const handle of allHandles) {
+          if (Math.abs(x - handle.x) <= handleSize && Math.abs(y - handle.y) <= handleSize) {
+            newCursor = getCursorForHandle(handle.position);
+            break;
+          }
+        }
+        
+        // Check if over decoration body for move cursor
+        if (newCursor === 'default') {
+          const dx = x - selectedDec.x;
+          const dy = y - selectedDec.y;
+          if (Math.abs(dx) <= bounds.width / 2 && Math.abs(dy) <= bounds.height / 2) {
+            newCursor = 'move';
+          }
+        }
+        
+        setCanvasCursor(newCursor);
+      }
+    }
     
     if (resizing && selectedId !== null) {
       const dx = x - resizing.startX;
       const dy = y - resizing.startY;
-      const delta = Math.max(dx, dy);
-      const newSize = Math.max(20, resizing.startSize + delta);
       
-      setDecorations((prevDecorations) =>
-        prevDecorations.map((d) => {
-        if (d.id === selectedId) {
-            if (d.type === "image") {
-            if (maintainAspectRatio) {
-              // Use original image aspect ratio, not current dimensions
-              const originalAspectRatio = d.originalAspectRatio;
+      // Use requestAnimationFrame for smooth updates
+      requestAnimationFrame(() => {
+        setDecorations((prevDecorations) =>
+          prevDecorations.map((d) => {
+            if (d.id === selectedId && d.type === "image") {
+              const { handlePosition, startWidth, startHeight, startDecorationX, startDecorationY } = resizing;
+              let newWidth = startWidth;
+              let newHeight = startHeight;
+              let newX = startDecorationX;
+              let newY = startDecorationY;
+              
+              // Calculate new dimensions based on handle position
+              switch (handlePosition) {
+                case 'top-left':
+                  newWidth = Math.max(20, startWidth - dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                  } else {
+                    newHeight = Math.max(20, startHeight - dy);
+                  }
+                  newX = startDecorationX + dx / 2;
+                  newY = startDecorationY + (maintainAspectRatio ? (startHeight - newHeight) / 2 : dy / 2);
+                  break;
+                  
+                case 'top-right':
+                  newWidth = Math.max(20, startWidth + dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                  } else {
+                    newHeight = Math.max(20, startHeight - dy);
+                  }
+                  newX = startDecorationX + dx / 2;
+                  newY = startDecorationY + (maintainAspectRatio ? (startHeight - newHeight) / 2 : dy / 2);
+                  break;
+                  
+                case 'bottom-right':
+                  newWidth = Math.max(20, startWidth + dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                  } else {
+                    newHeight = Math.max(20, startHeight + dy);
+                  }
+                  newX = startDecorationX + dx / 2;
+                  newY = startDecorationY + (maintainAspectRatio ? (newHeight - startHeight) / 2 : dy / 2);
+                  break;
+                  
+                case 'bottom-left':
+                  newWidth = Math.max(20, startWidth - dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                  } else {
+                    newHeight = Math.max(20, startHeight + dy);
+                  }
+                  newX = startDecorationX + dx / 2;
+                  newY = startDecorationY + (maintainAspectRatio ? (newHeight - startHeight) / 2 : dy / 2);
+                  break;
+                  
+                case 'top':
+                  newHeight = Math.max(20, startHeight - dy);
+                  if (maintainAspectRatio) {
+                    newWidth = newHeight * d.originalAspectRatio;
+                    newX = startDecorationX + (newWidth - startWidth) / 2;
+                  }
+                  newY = startDecorationY + dy / 2;
+                  break;
+                  
+                case 'right':
+                  newWidth = Math.max(20, startWidth + dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                    newY = startDecorationY + (newHeight - startHeight) / 2;
+                  }
+                  newX = startDecorationX + dx / 2;
+                  break;
+                  
+                case 'bottom':
+                  newHeight = Math.max(20, startHeight + dy);
+                  if (maintainAspectRatio) {
+                    newWidth = newHeight * d.originalAspectRatio;
+                    newX = startDecorationX + (newWidth - startWidth) / 2;
+                  }
+                  newY = startDecorationY + dy / 2;
+                  break;
+                  
+                case 'left':
+                  newWidth = Math.max(20, startWidth - dx);
+                  if (maintainAspectRatio) {
+                    newHeight = newWidth / d.originalAspectRatio;
+                    newY = startDecorationY + (newHeight - startHeight) / 2;
+                  }
+                  newX = startDecorationX + dx / 2;
+                  break;
+              }
+              
               return { 
                 ...d, 
-                width: newSize, 
-                  height: newSize / originalAspectRatio,
-              };
-            } else {
-              // Free resize - allow independent width/height adjustment
-              return { 
-                ...d, 
-                width: Math.max(20, d.width + dx), 
-                  height: Math.max(20, d.height + dy),
+                width: newWidth,
+                height: newHeight,
+                x: newX,
+                y: newY
               };
             }
-          }
-        }
-        return d;
-        })
-      );
+            return d;
+          })
+        );
+      });
     } else if (dragging && selectedId !== null) {
       const newX = x - dragOffset.x;
       const newY = y - dragOffset.y;
@@ -841,13 +1054,123 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   // Thêm global mouse move listener để đảm bảo drag hoạt động
   useEffect(() => {
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      if (dragging && selectedId !== null) {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      if (resizing && selectedId !== null) {
+        const dx = x - resizing.startX;
+        const dy = y - resizing.startY;
         
+        // Use requestAnimationFrame for smooth updates
+        requestAnimationFrame(() => {
+          setDecorations((prevDecorations) =>
+            prevDecorations.map((d) => {
+              if (d.id === selectedId && d.type === "image") {
+                const { handlePosition, startWidth, startHeight, startDecorationX, startDecorationY } = resizing;
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+                let newX = startDecorationX;
+                let newY = startDecorationY;
+                
+                // Calculate new dimensions based on handle position
+                switch (handlePosition) {
+                  case 'top-left':
+                    newWidth = Math.max(20, startWidth - dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                    } else {
+                      newHeight = Math.max(20, startHeight - dy);
+                    }
+                    newX = startDecorationX + dx / 2;
+                    newY = startDecorationY + (maintainAspectRatio ? (startHeight - newHeight) / 2 : dy / 2);
+                    break;
+                    
+                  case 'top-right':
+                    newWidth = Math.max(20, startWidth + dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                    } else {
+                      newHeight = Math.max(20, startHeight - dy);
+                    }
+                    newX = startDecorationX + dx / 2;
+                    newY = startDecorationY + (maintainAspectRatio ? (startHeight - newHeight) / 2 : dy / 2);
+                    break;
+                    
+                  case 'bottom-right':
+                    newWidth = Math.max(20, startWidth + dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                    } else {
+                      newHeight = Math.max(20, startHeight + dy);
+                    }
+                    newX = startDecorationX + dx / 2;
+                    newY = startDecorationY + (maintainAspectRatio ? (newHeight - startHeight) / 2 : dy / 2);
+                    break;
+                    
+                  case 'bottom-left':
+                    newWidth = Math.max(20, startWidth - dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                    } else {
+                      newHeight = Math.max(20, startHeight + dy);
+                    }
+                    newX = startDecorationX + dx / 2;
+                    newY = startDecorationY + (maintainAspectRatio ? (newHeight - startHeight) / 2 : dy / 2);
+                    break;
+                    
+                  case 'top':
+                    newHeight = Math.max(20, startHeight - dy);
+                    if (maintainAspectRatio) {
+                      newWidth = newHeight * d.originalAspectRatio;
+                      newX = startDecorationX + (newWidth - startWidth) / 2;
+                    }
+                    newY = startDecorationY + dy / 2;
+                    break;
+                    
+                  case 'right':
+                    newWidth = Math.max(20, startWidth + dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                      newY = startDecorationY + (newHeight - startHeight) / 2;
+                    }
+                    newX = startDecorationX + dx / 2;
+                    break;
+                    
+                  case 'bottom':
+                    newHeight = Math.max(20, startHeight + dy);
+                    if (maintainAspectRatio) {
+                      newWidth = newHeight * d.originalAspectRatio;
+                      newX = startDecorationX + (newWidth - startWidth) / 2;
+                    }
+                    newY = startDecorationY + dy / 2;
+                    break;
+                    
+                  case 'left':
+                    newWidth = Math.max(20, startWidth - dx);
+                    if (maintainAspectRatio) {
+                      newHeight = newWidth / d.originalAspectRatio;
+                      newY = startDecorationY + (newHeight - startHeight) / 2;
+                    }
+                    newX = startDecorationX + dx / 2;
+                    break;
+                }
+                
+                return { 
+                  ...d, 
+                  width: newWidth,
+                  height: newHeight,
+                  x: newX,
+                  y: newY
+                };
+              }
+              return d;
+            })
+          );
+        });
+      } else if (dragging && selectedId !== null) {
         const newX = x - dragOffset.x;
         const newY = y - dragOffset.y;
 
@@ -863,13 +1186,13 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     };
 
     const handleGlobalMouseUp = () => {
-      if (dragging) {
+      if (dragging || resizing) {
         setDragging(false);
         setResizing(null);
       }
     };
 
-    if (dragging) {
+    if (dragging || resizing) {
         document.addEventListener("mousemove", handleGlobalMouseMove);
         document.addEventListener("mouseup", handleGlobalMouseUp);
     }
@@ -878,7 +1201,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         document.removeEventListener("mousemove", handleGlobalMouseMove);
         document.removeEventListener("mouseup", handleGlobalMouseUp);
     };
-  }, [dragging, selectedId, dragOffset]);
+  }, [dragging, resizing, selectedId, dragOffset, maintainAspectRatio]);
 
   const handleMouseUp = () => {
     setDragging(false);
@@ -1642,15 +1965,32 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   <button
                     key={index}
                     onClick={() => addImageDecoration(img.url, img.name)}
-                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:shadow-md group relative"
-                    title={img.name}
+                    className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:shadow-md group relative bg-gray-50"
+                    title={`${img.name} - ${img.url}`}
                   >
                     <img
                       src={img.url}
                       alt={img.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error("Failed to load sample image:", img.url);
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        // Show fallback text
+                        const parent = target.parentElement;
+                        if (parent && !parent.querySelector('.fallback-text')) {
+                          const fallback = document.createElement('div');
+                          fallback.className = 'fallback-text absolute inset-0 flex flex-col items-center justify-center text-xs text-gray-500 p-1';
+                          fallback.innerHTML = `<span class="text-center">❌</span><span class="text-center mt-1">${img.name}</span>`;
+                          parent.appendChild(fallback);
+                        }
+                      }}
+                      onLoad={() => {
+                        console.log("Successfully loaded sample image:", img.url);
+                      }}
+                      crossOrigin="anonymous"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
                       <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">
                         Thêm
                       </span>
@@ -1777,12 +2117,15 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             ref={canvasRef}
             width={600}
             height={750}
-            className="bg-white shadow-2xl cursor-crosshair rounded max-w-full max-h-full object-contain"
+            className="bg-white shadow-2xl rounded max-w-full max-h-full object-contain"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
-              style={{ touchAction: "none" }}
+            style={{ 
+              touchAction: "none",
+              cursor: canvasCursor
+            }}
           />
         </div>
       </div>

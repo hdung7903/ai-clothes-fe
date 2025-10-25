@@ -12,8 +12,8 @@ import type { VoucherSummaryItem } from "@/types/voucher"
 const DISPLAY_CONFIG = {
   DELAY_MS: 3000, // 3 seconds delay
   SHOW_ONCE_PER_SESSION: true,
-  PAGE_SIZE: 12,
-  MAX_HEIGHT: "85vh",
+  PAGE_SIZE: 4, // Limit to 4 vouchers
+  MAX_HEIGHT: "60vh", // Make smaller
 }
 
 export function VoucherDialog() {
@@ -72,8 +72,12 @@ export function VoucherDialog() {
             products: item.products || []
           }
         })
-        setVouchers(prev => append ? [...prev, ...newVouchers] : newVouchers)
-        setHasMore(page < response.data.totalPages)
+        // Limit to maximum 4 vouchers
+        setVouchers(prev => {
+          const limitedVouchers = append ? [...prev, ...newVouchers].slice(0, 4) : newVouchers.slice(0, 4)
+          return limitedVouchers
+        })
+        setHasMore(false) // Disable infinite scroll since we only show 4 vouchers
         setPageNumber(page)
       } else {
         setError('Không thể tải danh sách voucher')
@@ -147,26 +151,7 @@ export function VoucherDialog() {
     setTimeout(() => setOpen(false), 500)
   }, [handleCopy])
 
-  // Theo dõi cuộn vô hạn
-  useEffect(() => {
-    if (!open) return
-
-    const sentinel = sentinelRef.current
-    const container = containerRef.current
-    if (!sentinel || !container) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          loadMore()
-        }
-      },
-      { root: container, rootMargin: "100px", threshold: 0.1 }
-    )
-
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [open, loadMore])
+  // Remove infinite scroll since we only show 4 vouchers
 
   // Format discount text
   const formatDiscountText = (voucher: VoucherSummaryItem) => {
@@ -225,7 +210,7 @@ export function VoucherDialog() {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent 
-        className="w-[95vw] sm:max-w-[1200px] p-0 overflow-hidden gap-0 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
+        className="w-[90vw] sm:max-w-[800px] p-0 overflow-hidden gap-0 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"
         onEscapeKeyDown={(e) => {
           e.preventDefault()
           handleOpenChange(false)
@@ -238,14 +223,14 @@ export function VoucherDialog() {
         </div>
 
         {/* Phần đầu */}
-        <DialogHeader className="relative px-8 pt-8 pb-6 space-y-3 border-b border-gray-200/50 dark:border-gray-800/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+        <DialogHeader className="relative px-6 pt-6 pb-4 space-y-2 border-b border-gray-200/50 dark:border-gray-800/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-400 via-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/30 animate-pulse">
-                <Gift className="h-7 w-7 text-white" />
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-400 via-pink-500 to-pink-600 flex items-center justify-center shadow-lg shadow-pink-500/30 animate-pulse">
+                <Gift className="h-6 w-6 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
+                <DialogTitle className="text-xl font-bold bg-gradient-to-r from-orange-600 to-pink-600 bg-clip-text text-transparent">
                   🎉 Ưu đãi đặc biệt dành cho bạn!
                 </DialogTitle>
                 <DialogDescription className="text-sm mt-1 text-gray-600 dark:text-gray-400">
@@ -259,7 +244,7 @@ export function VoucherDialog() {
         {/* Danh sách voucher */}
         <div 
           ref={containerRef}
-          className="relative p-8 overflow-y-auto overflow-x-hidden"
+          className="relative p-6 overflow-y-auto overflow-x-hidden"
           style={{ 
             maxHeight: DISPLAY_CONFIG.MAX_HEIGHT
           }}
@@ -284,7 +269,7 @@ export function VoucherDialog() {
               </div>
             </div>
           ) : (
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2 overflow-hidden">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 overflow-hidden">
               {vouchers.map((voucher, index) => {
                 const category = getCategory(voucher)
                 const available = isAvailable(voucher)
@@ -293,7 +278,7 @@ export function VoucherDialog() {
                 return (
                   <div
                     key={voucher.id || `voucher-${index}`}
-                    className={`group relative flex flex-col gap-4 rounded-2xl border-2 p-6 transition-all duration-300 overflow-hidden ${
+                    className={`group relative flex flex-col gap-3 rounded-xl border-2 p-4 transition-all duration-300 overflow-hidden ${
                       available 
                         ? 'border-orange-200/60 dark:border-orange-900/40 hover:border-orange-400/80 hover:shadow-xl hover:shadow-orange-500/20 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 hover:-translate-y-1'
                         : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-60'
@@ -397,26 +382,21 @@ export function VoucherDialog() {
                 )
               })}
 
-              {/* Đang tải thêm */}
-              {isLoading && (
-                <div className="col-span-full flex items-center justify-center py-12 text-sm text-gray-500">
+              {/* Loading indicator for initial load only */}
+              {isLoading && vouchers.length === 0 && (
+                <div className="col-span-full flex items-center justify-center py-8 text-sm text-gray-500">
                   <div className="flex items-center gap-3 bg-white dark:bg-gray-900 px-6 py-3 rounded-full shadow-lg border border-gray-200 dark:border-gray-800">
-                    <div className="h-5 w-5 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="font-medium">Đang tải thêm voucher...</span>
+                    <div className="h-4 w-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                    <span className="font-medium">Đang tải voucher...</span>
                   </div>
                 </div>
-              )}
-
-              {/* Sentinel for infinite scroll */}
-              {hasMore && !isLoading && (
-                <div ref={sentinelRef} className="col-span-full h-1" />
               )}
             </div>
           )}
         </div>
 
         {/* Chân trang */}
-        <div className="relative px-8 py-5 border-t border-gray-200/50 dark:border-gray-800/50 bg-gradient-to-r from-white via-orange-50/20 to-pink-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 backdrop-blur-sm">
+        <div className="relative px-6 py-4 border-t border-gray-200/50 dark:border-gray-800/50 bg-gradient-to-r from-white via-orange-50/20 to-pink-50/20 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Checkbox
@@ -435,7 +415,7 @@ export function VoucherDialog() {
             
             <div className="flex items-center gap-2 text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full">
               <Gift className="h-3.5 w-3.5" />
-              <span>{vouchers.length} voucher{isLoading ? ' (đang tải...)' : ''}</span>
+              <span>{vouchers.length}/4 voucher</span>
             </div>
           </div>
         </div>

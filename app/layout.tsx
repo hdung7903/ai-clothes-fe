@@ -21,6 +21,7 @@ import { ReduxProvider } from "@/components/providers/redux-provider";
 import { PageLoadingSpinner } from "@/components/ui/loading-spinner";
 import { NavigationLoading } from "@/components/ui/navigation-loading";
 import GlobalFloaters from "@/components/custom/global-floaters";
+import { ClientOnly } from "@/components/ui/client-only";
 
 export const metadata: Metadata = {
   title: "TEECRAFT - Transform Images into Custom Clothing",
@@ -40,18 +41,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <body
         className={`font-sans ${inter.variable} ${jetbrainsMono.variable}`}
         suppressHydrationWarning={true}
       >
         <ReduxProvider>
-          <Toaster />
+          <ClientOnly>
+            <Toaster />
+          </ClientOnly>
           <AppShell>
             <Suspense fallback={<PageLoadingSpinner />}>{children}</Suspense>
           </AppShell>
-          <GlobalFloaters />
-          <NavigationLoading />
+          <ClientOnly>
+            <GlobalFloaters />
+            <NavigationLoading />
+          </ClientOnly>
           <Analytics />
         </ReduxProvider>
       </body>
