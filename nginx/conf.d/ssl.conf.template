@@ -2,7 +2,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name teecraft.com.vn www.teecraft.com.vn;
+    server_name teecraft.com.vn;
     
     # Allow Let's Encrypt verification
     location /.well-known/acme-challenge/ {
@@ -19,7 +19,7 @@ server {
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
-    server_name teecraft.com.vn www.teecraft.com.vn;
+    server_name teecraft.com.vn;
 
     # SSL certificates (will be populated by Certbot)
     ssl_certificate /etc/letsencrypt/live/teecraft.com.vn/fullchain.pem;

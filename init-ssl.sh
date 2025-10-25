@@ -10,7 +10,7 @@ echo -e "${YELLOW}=== SSL Certificate Setup for teecraft.com.vn ===${NC}\n"
 
 # Domain configuration
 DOMAIN="teecraft.com.vn"
-EMAIL="your-email@example.com"  # Change this to your email
+EMAIL="teecraft942025@gmail.com"  # Change this to your email
 
 # Create necessary directories
 echo -e "${GREEN}Creating directories...${NC}"
@@ -28,7 +28,13 @@ sleep 10
 
 # Step 2: Request SSL certificate
 echo -e "\n${GREEN}Step 2: Requesting SSL certificate from Let's Encrypt...${NC}"
+
+# First, let's check if nginx is actually running and accessible
+echo -e "${GREEN}Checking if Nginx is accessible...${NC}"
+curl -I http://localhost/.well-known/acme-challenge/test 2>&1 || echo "Nginx check done"
+
 docker run --rm \
+  --network host \
   -v $(pwd)/nginx/certbot/conf:/etc/letsencrypt \
   -v $(pwd)/nginx/certbot/www:/var/www/certbot \
   certbot/certbot certonly \
@@ -37,8 +43,7 @@ docker run --rm \
   --email $EMAIL \
   --agree-tos \
   --no-eff-email \
-  -d $DOMAIN \
-  -d www.$DOMAIN
+  -d $DOMAIN
 
 # Check if certificate was successfully created
 if [ -d "nginx/certbot/conf/live/$DOMAIN" ]; then
@@ -57,13 +62,9 @@ if [ -d "nginx/certbot/conf/live/$DOMAIN" ]; then
     echo -e "${GREEN}Restarting nginx with SSL...${NC}"
     docker-compose restart nginx
     
-    # Start certbot for auto-renewal
-    docker-compose up -d certbot
-    
     echo -e "\n${GREEN}=== Setup Complete! ===${NC}"
     echo -e "${GREEN}Your site is now available at:${NC}"
     echo -e "  - ${YELLOW}https://$DOMAIN${NC}"
-    echo -e "  - ${YELLOW}https://www.$DOMAIN${NC}"
     echo -e "\n${GREEN}Certificate auto-renewal is enabled.${NC}"
     
 else
