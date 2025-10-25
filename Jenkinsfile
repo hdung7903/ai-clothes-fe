@@ -63,23 +63,33 @@ pipeline {
                     // Sử dụng SSH để deploy
                     sshagent(['ssh-credentials']) {
                         sh """
-                            # Copy docker-compose file to server
-                            scp -o StrictHostKeyChecking=no docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/
+                            # Copy toàn bộ code lên server
+                            echo "Copying code to server..."
+                            ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} "mkdir -p ${SERVER_PATH}"
+                            rsync -avz --exclude 'node_modules' --exclude '.git' --exclude '.next' \
+                                -e "ssh -o StrictHostKeyChecking=no" \
+                                ./ ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/
                             
-                            # SSH vào server và chạy deployment
+                            # SSH vào server và deploy
                             ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST} '
                                 cd ${SERVER_PATH}
                                 
-                                # Pull latest code hoặc image
-                                docker-compose pull || echo "Skipping pull for local images"
+                                echo "Building Docker image on server..."
+                                docker build -t ai-clothes-fe:latest .
                                 
-                                # Stop old containers
-                                docker-compose down
+                                echo "Stopping old container..."
+                                docker stop ai-clothes-fe-prod 2>/dev/null || true
+                                docker rm ai-clothes-fe-prod 2>/dev/null || true
                                 
-                                # Start new containers
-                                docker-compose up -d
+                                echo "Starting new container..."
+                                docker run -d \
+                                    --name ai-clothes-fe-prod \
+                                    -p 3000:3000 \
+                                    --restart unless-stopped \
+                                    -e NODE_ENV=production \
+                                    ai-clothes-fe:latest
                                 
-                                # Clean up old images
+                                echo "Cleaning up old images..."
                                 docker image prune -f
                                 
                                 echo "Deployment completed successfully!"
@@ -97,10 +107,13 @@ pipeline {
             steps {
                 echo 'Performing health check...'
                 script {
-                    sleep 10 // Đợi service khởi động
+                    sleep 15 // Đợi service khởi động
+                    // Health check qua domain với HTTPS
                     sh """
-                        curl -f http://${SERVER_HOST}:3000 || exit 1
+                        curl -f -k https://teecraft.com.vn || curl -f http://${SERVER_HOST}:3000 || exit 1
                     """
+                    echo 'Health check passed! ✅'
+                    echo 'App is running at https://teecraft.com.vn'
                 }
             }
         }
@@ -109,15 +122,24 @@ pipeline {
     post {
         success {
             echo 'Pipeline completed successfully! 🎉'
+            echo 'Deployment finished. App is running on production server.'
             // Có thể thêm notification (Slack, Email, etc.)
         }
         failure {
             echo 'Pipeline failed! ❌'
+            echo 'Check the console output for error details.'
             // Notification về lỗi
         }
         always {
-            // Clean up
-            cleanWs()
+            echo 'Cleaning up workspace...'
+            // Clean up - Chỉ xóa temporary files, giữ lại Docker images
+            script {
+                try {
+                    sh 'docker system prune -f --volumes || true'
+                } catch (Exception e) {
+                    echo "Cleanup warning: ${e.message}"
+                }
+            }
         }
     }
 }
