@@ -54,6 +54,7 @@ interface ImageDecoration extends BaseDecoration {
   height: number;
   originalAspectRatio: number; // Store original image aspect ratio
   imageElement?: HTMLImageElement;
+  sampleImageId?: string; // Store shop photo ID if this is a shop photo
 }
 
 type Decoration = ImageDecoration;
@@ -83,7 +84,7 @@ interface ResizeState {
 
 // Interface cho ref methods
 export interface CanvasRef {
-  addImageDecoration: (imageUrl: string, imageName: string) => void;
+  addImageDecoration: (imageUrl: string, imageName: string, imageId?: string) => void;
 }
 
 interface TShirtDesignerProps {
@@ -169,7 +170,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
   
   // Image library states
   const [uploadedImages, setUploadedImages] = useState<Array<{url: string, name: string}>>([]);
-  const [suggestedImages, setSuggestedImages] = useState<Array<{url: string, name: string}>>([]);
+  const [suggestedImages, setSuggestedImages] = useState<Array<{id?: string, url: string, name: string}>>([]);
   const [loadingSampleImages, setLoadingSampleImages] = useState(false);
   
   // Track which sides actually have template images returned from API
@@ -389,6 +390,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         const formattedImages = response.data.map((image: SampleImage, index: number) => {
           console.log(`Sample image ${index + 1}:`, image.imageUrl);
           return {
+            id: image.sampleImageId, // Preserve the original ID
             url: image.imageUrl,
             name: `Ảnh mẫu ${index + 1}`
           };
@@ -1212,7 +1214,8 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
     const addImageDecoration = (
       imageUrl: string,
-      imageName: string = "Hình Ảnh"
+      imageName: string = "Hình Ảnh",
+      imageId?: string
     ) => {
       console.log("🖼️ ADD IMAGE DECORATION DEBUG");
       console.log("Current side:", currentSide);
@@ -1242,7 +1245,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       }
       
       const newImageDecoration: ImageDecoration = {
-          id: Date.now() + Math.random(),
+          id: imageId ? parseInt(imageId) || Date.now() + Math.random() : Date.now() + Math.random(),
           type: "image",
         imageUrl: imageUrl,
         imageElement: img,
@@ -1257,6 +1260,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         shadow: true,
         opacity: 1,
           name: imageName,
+          sampleImageId: imageId, // Store the shop photo ID if provided
         };
 
         console.log("🎨 New decoration created:", newImageDecoration);
@@ -1630,18 +1634,27 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         
         console.log(`🔍 Decoration "${decoration.name}" (ID: ${decoration.id}) belongs to side: ${decorationSide}`);
         
-        // Upload decoration image to storage
-        const uploadedUrl = await uploadDecorationImage(decoration.imageUrl, decoration.name);
-        
-        if (uploadedUrl) {
+        // Check if this is a shop photo (has sampleImageId)
+        if (decoration.sampleImageId) {
+          // This is a shop photo, use the original URL directly without uploading
+          console.log(`📸 Shop photo detected (sampleImageId: ${decoration.sampleImageId}), using original URL`);
           icons.push({
-            imageUrl: uploadedUrl, // Use storage URL instead of base64
-            name: decoration.name,
-            side: getSideLabel(decorationSide)
+            imageUrl: decoration.imageUrl,
+            sampleImageId: decoration.sampleImageId,
           });
-          console.log(`✅ Icon uploaded for ${decoration.name} on ${decorationSide}: ${uploadedUrl}`);
+          console.log(`✅ Shop photo icon added for ${decoration.name}: ${decoration.imageUrl}`);
         } else {
-          console.warn(`⚠️ Failed to upload decoration: ${decoration.name}`);
+          // This is a user-uploaded image, upload to storage
+          const uploadedUrl = await uploadDecorationImage(decoration.imageUrl, decoration.name);
+          
+          if (uploadedUrl) {
+            icons.push({
+              imageUrl: uploadedUrl, // Use storage URL instead of base64
+            });
+            console.log(`✅ Icon uploaded for ${decoration.name} on ${decorationSide}: ${uploadedUrl}`);
+          } else {
+            console.warn(`⚠️ Failed to upload decoration: ${decoration.name}`);
+          }
         }
       }
       
@@ -1694,8 +1707,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       icons.forEach((icon, index) => {
         console.log(`  Icon ${index + 1}:`, {
           imageUrl: icon.imageUrl.substring(0, 50) + '...',
-          name: icon.name,
-          side: icon.side
+          sampleImageId: icon.sampleImageId || 'N/A (user upload)'
         });
       });
       
@@ -1712,7 +1724,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         productId: resolvedProductId,
         productOptionValueId: resolvedProductOptionValueId,
         name: designName || `Thiết kế ${getDesignTypeLabel()}`,
-        icons: icons.map(icon => ({ imageUrl: icon.imageUrl })), // Only send imageUrl as per type definition
+        icons: icons, // Send icons with imageUrl and optional sampleImageId
         templates: designTemplates,
       };
 
@@ -1891,10 +1903,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           </div>
 
           {/* Image Library - Uploaded Images */}
-          {/* <div className="mb-4">
+          <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <ImageIcon size={16} className="text-blue-600" />
-              <h3 className="font-semibold text-sm">Ảnh Đã Tải ({uploadedImages.length})</h3>
+              <h3 className="font-semibold text-sm">Ảnh của bạn ({uploadedImages.length})</h3>
             </div>
             {uploadedImages.length === 0 ? (
               <div className="text-center py-4 text-gray-400 text-xs bg-gray-50 rounded border border-dashed border-gray-300">
@@ -1914,7 +1926,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                       alt={img.name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                    <div className="absolute inset-0 bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
                       <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">
                         Thêm
                       </span>
@@ -1923,7 +1935,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                 ))}
               </div>
             )}
-          </div> */}
+          </div>
 
           {/* Image Library - Suggested Images */}
           <div className="mb-4">
@@ -1964,7 +1976,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                 {suggestedImages.map((img, index) => (  
                   <button
                     key={index}
-                    onClick={() => addImageDecoration(img.url, img.name)}
+                    onClick={() => addImageDecoration(img.url, img.name, img.id)}
                     className="aspect-square rounded overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all hover:shadow-md group relative bg-gray-50"
                     title={`${img.name} - ${img.url}`}
                   >

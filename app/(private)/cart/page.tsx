@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Minus, Plus, Trash2, ShoppingBag, Loader2 } from "lucide-react"
+import { Minus, Plus, Trash2, ShoppingBag, Loader2, Eye } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useEffect, useState, useCallback, useRef } from "react"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
@@ -254,7 +254,20 @@ export default function CartPage() {
                           className="w-20 h-20 rounded-lg object-cover"
                         />
                         <div className="flex-1">
-                          <h3 className="font-semibold text-lg">{item.name}</h3>
+                          <div className="flex items-center gap-2" style={{ justifyContent: 'space-between' }}>
+                            <h3 className="font-semibold text-lg">{item.name}</h3>
+                            {item.productDesignId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 gap-1"
+                                onClick={() => router.push(`/account/designs/${item.productDesignId}`)}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                <span className="text-xs">Xem thiết kế</span>
+                              </Button>
+                            )}
+                          </div>
                           <p className="text-muted-foreground text-sm">
                             Kích thước: {item.size} • Màu sắc: {item.color}
                           </p>

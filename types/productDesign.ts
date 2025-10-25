@@ -4,6 +4,7 @@ import type { PagedResult } from './product';
 // Create/Update
 export interface ProductDesignIconRequest {
   imageUrl: string;
+  sampleImageId?: string;
 }
 
 export interface ProductDesignTemplateRequest {

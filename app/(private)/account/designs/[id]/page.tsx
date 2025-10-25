@@ -85,12 +85,28 @@ export default function DesignDetailPage() {
           if (productRes.success && productRes.data) {
             setProductDetail(productRes.data)
             
-            // Find size option and set default selected size
+            // Find size option and set default selected size (only if in stock)
             const sizeOption = productRes.data.options.find(option => 
               option.name.toLowerCase() === 'size' || option.name.toLowerCase() === 'kích thước'
             )
             if (sizeOption && sizeOption.values.length > 0) {
-              setSelectedSize(sizeOption.values[0].optionValueId)
+              // Get the color option name and value from the design
+              const colorOptionName = res.data.productOptionValueDetail.optionName
+              const selectedColor = res.data.productOptionValueDetail.value
+              const productData = productRes.data
+              
+              // Find the first size that has stock for the selected color
+              const availableSize = sizeOption.values.find(sizeValue => {
+                const variant = productData.variants.find(v => {
+                  const variantColor = v.optionValues[colorOptionName]
+                  const variantSize = v.optionValues['SIZE'] || v.optionValues['size'] || v.optionValues['Kích thước']
+                  return variantColor === selectedColor && variantSize === sizeValue.value
+                })
+                return variant && variant.stock > 0
+              })
+              
+              // Set the first available size or the first size if none available
+              setSelectedSize(availableSize?.optionValueId || sizeOption.values[0].optionValueId)
             }
           }
         } else {
@@ -403,6 +419,24 @@ export default function DesignDetailPage() {
                           return null
                         }
                         
+                        // Get the color option name from the design
+                        const colorOptionName = design?.productOptionValueDetail.optionName || 'COLOR'
+                        const selectedColor = design?.productOptionValueDetail.value
+                        
+                        // Function to check if a size has stock for the selected color
+                        const isSizeAvailable = (sizeValueId: string) => {
+                          const sizeValue = sizeOption.values.find(v => v.optionValueId === sizeValueId)?.value
+                          
+                          // Find variant that matches both the color and size
+                          const variant = productDetail.variants.find(v => {
+                            const variantColor = v.optionValues[colorOptionName]
+                            const variantSize = v.optionValues['SIZE'] || v.optionValues['size'] || v.optionValues['Kích thước']
+                            return variantColor === selectedColor && variantSize === sizeValue
+                          })
+                          
+                          return variant ? variant.stock > 0 : false
+                        }
+                        
                         return (
                           <div>
                             <Label className="text-sm font-medium mb-3 block">
@@ -413,20 +447,28 @@ export default function DesignDetailPage() {
                               onValueChange={setSelectedSize}
                               className="grid grid-cols-2 gap-2"
                             >
-                              {sizeOption.values.map((sizeValue) => (
-                                <div key={sizeValue.optionValueId} className="flex items-center space-x-2">
-                                  <RadioGroupItem
-                                    value={sizeValue.optionValueId}
-                                    id={sizeValue.optionValueId}
-                                  />
-                                  <Label
-                                    htmlFor={sizeValue.optionValueId}
-                                    className="text-sm cursor-pointer"
-                                  >
-                                    {sizeValue.value}
-                                  </Label>
-                                </div>
-                              ))}
+                              {sizeOption.values.map((sizeValue) => {
+                                const isAvailable = isSizeAvailable(sizeValue.optionValueId)
+                                
+                                return (
+                                  <div key={sizeValue.optionValueId} className="flex items-center space-x-2">
+                                    <RadioGroupItem
+                                      value={sizeValue.optionValueId}
+                                      id={sizeValue.optionValueId}
+                                      disabled={!isAvailable}
+                                    />
+                                    <Label
+                                      htmlFor={sizeValue.optionValueId}
+                                      className={`text-sm ${isAvailable ? 'cursor-pointer' : 'cursor-not-allowed text-muted-foreground'}`}
+                                    >
+                                      {sizeValue.value}
+                                      {!isAvailable && (
+                                        <span className="text-xs ml-1">(Hết hàng)</span>
+                                      )}
+                                    </Label>
+                                  </div>
+                                )
+                              })}
                             </RadioGroup>
                           </div>
                         )
