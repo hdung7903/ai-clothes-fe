@@ -1516,6 +1516,98 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       });
     };
 
+    // Function to capture icon image with cropped size (width x height)
+    // Function to capture icon image with aspect ratio from canvas applied to original image
+    const captureIconAsCroppedImage = async (decoration: ImageDecoration): Promise<File | null> => {
+      try {
+        console.log(`✂️ Capturing icon with aspect ratio applied: ${decoration.name}`);
+        console.log(`  Current size on canvas: ${decoration.width}x${decoration.height}px`);
+        
+        // Load the original image to get its natural dimensions
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        return new Promise((resolve) => {
+          img.onload = () => {
+            // Get original image dimensions
+            const originalWidth = img.naturalWidth;
+            const originalHeight = img.naturalHeight;
+            console.log(`  Original image size: ${originalWidth}x${originalHeight}px`);
+            
+            // Calculate aspect ratio from canvas decoration (current display size)
+            const canvasAspectRatio = decoration.width / decoration.height;
+            console.log(`  Canvas aspect ratio: ${canvasAspectRatio.toFixed(4)} (${decoration.width}:${decoration.height})`);
+            
+            // Calculate aspect ratio of original image
+            const originalAspectRatio = originalWidth / originalHeight;
+            console.log(`  Original aspect ratio: ${originalAspectRatio.toFixed(4)} (${originalWidth}:${originalHeight})`);
+            
+            // Apply canvas aspect ratio to original image dimensions
+            let targetWidth: number;
+            let targetHeight: number;
+            
+            if (canvasAspectRatio > originalAspectRatio) {
+              // Canvas is wider -> keep original width, adjust height
+              targetWidth = originalWidth;
+              targetHeight = Math.round(originalWidth / canvasAspectRatio);
+            } else {
+              // Canvas is taller -> keep original height, adjust width
+              targetHeight = originalHeight;
+              targetWidth = Math.round(originalHeight * canvasAspectRatio);
+            }
+            
+            console.log(`  Target output size: ${targetWidth}x${targetHeight}px`);
+            console.log(`  Output aspect ratio: ${(targetWidth / targetHeight).toFixed(4)}`);
+            
+            // Create a temporary canvas with the calculated dimensions
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = targetWidth;
+            tempCanvas.height = targetHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            if (!tempCtx) {
+              console.error('❌ Failed to get 2D context for temp canvas');
+              resolve(null);
+              return;
+            }
+            
+            // Draw the original image scaled to target size
+            tempCtx.drawImage(img, 0, 0, targetWidth, targetHeight);
+            
+            // Convert canvas to blob
+            tempCanvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const file = new File(
+                    [blob],
+                    `${decoration.name}-scaled-${Date.now()}.png`,
+                    { type: 'image/png' }
+                  );
+                  console.log(`✅ Icon captured with canvas aspect ratio: ${targetWidth}x${targetHeight}px, file size: ${blob.size} bytes`);
+                  resolve(file);
+                } else {
+                  console.error('❌ Failed to create blob from temp canvas');
+                  resolve(null);
+                }
+              },
+              'image/png',
+              0.9
+            );
+          };
+          
+          img.onerror = () => {
+            console.error('❌ Failed to load image for scaling');
+            resolve(null);
+          };
+          
+          img.src = decoration.imageUrl;
+        });
+      } catch (error) {
+        console.error(`❌ Error capturing scaled icon:`, error);
+        return null;
+      }
+    };
+
     // Function to upload decoration image to storage
     const uploadDecorationImage = async (imageUrl: string, imageName: string): Promise<string | null> => {
       try {
@@ -1583,9 +1675,41 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         console.log(`🖼️ Loading background image for ${side}:`, sideImage);
         setShirtImage(sideImage);
         
-        // Wait for state updates and canvas redraw (longer delay to ensure everything is ready)
-        console.log('⏳ Waiting for canvas to redraw...');
-        await new Promise(resolve => setTimeout(resolve, 400));
+        // Wait for state updates to complete
+        console.log('⏳ Waiting for state to update...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // CRITICAL: Wait for background image to load by checking if it's cached or loading it
+        if (sideImage && currentBackgroundUrl.current !== sideImage) {
+          console.log('🖼️ Background image needs loading, waiting...');
+          await new Promise<void>((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              console.log('✅ Background image loaded successfully');
+              backgroundImageCache.current = img;
+              currentBackgroundUrl.current = sideImage;
+              resolve();
+            };
+            img.onerror = () => {
+              console.error('❌ Failed to load background image');
+              resolve(); // Resolve anyway to continue
+            };
+            img.src = sideImage;
+          });
+          
+          // Wait a bit more for React to process and redraw
+          await new Promise(resolve => setTimeout(resolve, 300));
+        } else {
+          console.log('✅ Background image already cached, waiting for redraw...');
+          // Still wait for useEffect to trigger
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+        
+        console.log('✅ Canvas should be ready for capture');
+        console.log('📊 Current state before capture:');
+        console.log(`  - Decorations to use: ${sideDecorationsList.length}`);
+        console.log(`  - Background image: ${sideImage ? 'Set' : 'Not set'}`);
         
         // Capture canvas
         console.log('📸 Capturing canvas now...');
@@ -1615,10 +1739,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       } finally {
         // Restore original state
         console.log(`🔄 Restoring original state...`);
+        console.log(`🔄 Original side: ${originalSide}`);
+        console.log(`🔄 Original decorations count: ${originalDecorations.length}`);
+        console.log(`🔄 Original shirt image: ${originalShirtImage}`);
+        
         setCurrentSide(originalSide);
         setDecorations(originalDecorations);
         setShirtImage(originalShirtImage);
         setSelectedId(originalSelectedId); // Restore selection
+        
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        console.log(`✅ State restored - Side: ${originalSide}, Decorations: ${originalDecorations.length}`);
         
         // Reset flag after capture is complete
         isCapturingCanvasRef.current = false;
@@ -1706,24 +1839,43 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         
         // Check if this is a shop photo (has sampleImageId)
         if (decoration.sampleImageId) {
-          // This is a shop photo, use the original URL directly without uploading
-          console.log(`📸 Shop photo detected (sampleImageId: ${decoration.sampleImageId}), using original URL`);
-          icons.push({
-            imageUrl: decoration.imageUrl,
-            sampleImageId: decoration.sampleImageId,
-          });
-          console.log(`✅ Shop photo icon added for ${decoration.name}: ${decoration.imageUrl}`);
-        } else {
-          // This is a user-uploaded image, upload to storage
-          const uploadedUrl = await uploadDecorationImage(decoration.imageUrl, decoration.name);
+          // This is a shop photo, capture cropped version and upload
+          console.log(`📸 Shop photo detected (sampleImageId: ${decoration.sampleImageId}), capturing cropped version`);
           
-          if (uploadedUrl) {
-            icons.push({
-              imageUrl: uploadedUrl, // Use storage URL instead of base64
-            });
-            console.log(`✅ Icon uploaded for ${decoration.name} on ${decorationSide}: ${uploadedUrl}`);
+          const croppedFile = await captureIconAsCroppedImage(decoration);
+          if (croppedFile) {
+            const uploadedUrl = await uploadImage(croppedFile);
+            
+            if (uploadedUrl.success && uploadedUrl.data) {
+              icons.push({
+                imageUrl: uploadedUrl.data, // Use uploaded cropped image URL
+                sampleImageId: decoration.sampleImageId,
+              });
+              console.log(`✅ Shop photo cropped icon uploaded for ${decoration.name}: ${uploadedUrl.data}`);
+            } else {
+              console.warn(`⚠️ Failed to upload cropped shop photo: ${decoration.name}`);
+            }
           } else {
-            console.warn(`⚠️ Failed to upload decoration: ${decoration.name}`);
+            console.warn(`⚠️ Failed to capture cropped shop photo: ${decoration.name}`);
+          }
+        } else {
+          // This is a user-uploaded image, capture cropped version and upload
+          console.log(`📤 User-uploaded image, capturing cropped version`);
+          
+          const croppedFile = await captureIconAsCroppedImage(decoration);
+          if (croppedFile) {
+            const uploadedUrl = await uploadImage(croppedFile);
+            
+            if (uploadedUrl.success && uploadedUrl.data) {
+              icons.push({
+                imageUrl: uploadedUrl.data, // Use uploaded cropped image URL
+              });
+              console.log(`✅ Cropped icon uploaded for ${decoration.name} on ${decorationSide}: ${uploadedUrl.data}`);
+            } else {
+              console.warn(`⚠️ Failed to upload cropped icon: ${decoration.name}`);
+            }
+          } else {
+            console.warn(`⚠️ Failed to capture cropped icon: ${decoration.name}`);
           }
         }
       }
@@ -1814,6 +1966,12 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     } finally {
       setSavingDesign(false);
       console.log("💾 SAVE DESIGN PROCESS COMPLETED");
+      
+      // Force redraw canvas to ensure decorations are visible
+      console.log("🔄 Force redraw canvas after save...");
+      await new Promise(resolve => setTimeout(resolve, 100));
+      drawCanvas();
+      console.log("✅ Canvas redrawn after save");
     }
   };
 
@@ -2287,41 +2445,43 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
               </div>
             )}
 
-              {/* Debug: Show all sides layer count and background images */}
-              <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
-                <div className="font-semibold mb-1">Tất cả khu vực:</div>
-                {(["front", "back", "leftSleeve", "rightSleeve"] as Side[]).map(
-                  (side) => (
-                    <div key={side} className="flex justify-between">
-                      <span>{getSideLabel(side)}:</span>
-                      <span
-                        className={
-                          side === currentSide ? "font-bold text-blue-600" : ""
-                        }
-                      >
-                        {sideDecorations[side]?.length || 0} layer
-                      </span>
-                    </div>
-                  )
-                )}
-                <div className="mt-2 pt-2 border-t border-gray-300">
-                  <div className="font-semibold mb-1">Ảnh nền:</div>
-                  {(
-                    ["front", "back", "leftSleeve", "rightSleeve"] as Side[]
-                  ).map((side) => (
-                    <div key={side} className="flex justify-between">
-                      <span>{getSideLabel(side)}:</span>
-                      <span
-                        className={
-                          side === currentSide ? "font-bold text-blue-600" : ""
-                        }
-                      >
-                        {shirtImageBySide[side] ? "Có" : "Không"}
-                      </span>
-                    </div>
-                  ))}
+              {/* Debug info - Hidden in production */}
+              {false && (
+                <div className="mt-4 p-2 bg-gray-100 rounded text-xs">
+                  <div className="font-semibold mb-1">Tất cả khu vực:</div>
+                  {(["front", "back", "leftSleeve", "rightSleeve"] as Side[]).map(
+                    (side) => (
+                      <div key={side} className="flex justify-between">
+                        <span>{getSideLabel(side)}:</span>
+                        <span
+                          className={
+                            side === currentSide ? "font-bold text-blue-600" : ""
+                          }
+                        >
+                          {sideDecorations[side]?.length || 0} layer
+                        </span>
+                      </div>
+                    )
+                  )}
+                  <div className="mt-2 pt-2 border-t border-gray-300">
+                    <div className="font-semibold mb-1">Ảnh nền:</div>
+                    {(
+                      ["front", "back", "leftSleeve", "rightSleeve"] as Side[]
+                    ).map((side) => (
+                      <div key={side} className="flex justify-between">
+                        <span>{getSideLabel(side)}:</span>
+                        <span
+                          className={
+                            side === currentSide ? "font-bold text-blue-600" : ""
+                          }
+                        >
+                          {shirtImageBySide[side] ? "Có" : "Không"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
           </div>
           
           {selectedDecoration && (
