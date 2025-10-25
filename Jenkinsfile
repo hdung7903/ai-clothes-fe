@@ -11,9 +11,6 @@ pipeline {
         SERVER_HOST = credentials('server-host') // Thêm credential trong Jenkins
         SERVER_USER = credentials('server-user')
         SERVER_PATH = '/var/www/ai-clothes-fe'
-        
-        // Node version
-        NODE_VERSION = '20'
     }
     
     stages {
@@ -24,34 +21,12 @@ pipeline {
             }
         }
         
-        stage('Install Dependencies') {
-            steps {
-                echo 'Installing dependencies...'
-                script {
-                    // Sử dụng Node.js từ NodeJS plugin
-                    nodejs(nodeJSInstallationName: "NodeJS ${NODE_VERSION}") {
-                        sh 'npm ci --no-audit --no-fund'
-                    }
-                }
-            }
-        }
-        
-        stage('Lint & Type Check') {
-            steps {
-                echo 'Running linter and type checking...'
-                script {
-                    nodejs(nodeJSInstallationName: "NodeJS ${NODE_VERSION}") {
-                        // Thêm lint script nếu có
-                        sh 'npm run build || echo "Build check completed"'
-                    }
-                }
-            }
-        }
-        
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
+                echo 'Docker sẽ tự động install dependencies và build app trong quá trình build image'
                 script {
+                    // Build Docker image - Dockerfile đã bao gồm npm install và build
                     docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
                     docker.build("${DOCKER_IMAGE}:latest")
                 }

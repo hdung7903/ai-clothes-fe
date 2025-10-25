@@ -275,65 +275,76 @@ export default function AdminDesignDetailPage({ params }: PageProps) {
         }
       }
       
-      // Add icons section on a separate page (after all templates)
+      // Add icons section - one icon per page (after all templates)
       if (design.icons.length > 0) {
-        pdf.addPage()
-        yPos = 30
-        
-        // Icons header
-        pdf.setFontSize(18)
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Icons Used in Design', pageWidth / 2, yPos, { align: 'center' })
-        yPos += 15
-        
-        pdf.setFontSize(11)
-        pdf.setFont('helvetica', 'normal')
-        pdf.text(`Total Icons: ${design.icons.length}`, margin, yPos)
-        yPos += 15
-        
-        // Separator
-        pdf.setDrawColor(200)
-        pdf.line(margin, yPos, pageWidth - margin, yPos)
-        yPos += 15
-        
-        // Display icons in grid
-        const iconSize = 30
-        const iconSpacing = 10
-        const iconsPerRow = Math.floor(contentWidth / (iconSize + iconSpacing))
-        
         for (let j = 0; j < design.icons.length; j++) {
           const icon = design.icons[j]
-          const col = j % iconsPerRow
-          const row = Math.floor(j / iconsPerRow)
           
-          const xPos = margin + (col * (iconSize + iconSpacing))
-          const currentYPos = yPos + (row * (iconSize + iconSpacing))
+          // Add new page for each icon
+          pdf.addPage()
+          yPos = 30
           
-          // Check if we need a new page
-          if (currentYPos + iconSize > pageHeight - margin) {
-            pdf.addPage()
-            yPos = 30
-            // Recalculate position on new page
-            const newRow = Math.floor(j / iconsPerRow) - Math.floor((j - iconsPerRow) / iconsPerRow)
-            const newYPos = yPos + (newRow * (iconSize + iconSpacing))
-            
-            try {
-              const iconImgData = await loadImageAsBase64(icon.imageUrl)
-              if (iconImgData) {
-                pdf.addImage(iconImgData, 'PNG', xPos, newYPos, iconSize, iconSize)
+          // Icon header
+          pdf.setFontSize(18)
+          pdf.setFont('helvetica', 'bold')
+          pdf.text(`Icon ${j + 1} of ${design.icons.length}`, pageWidth / 2, yPos, { align: 'center' })
+          yPos += 10
+          
+          pdf.setFontSize(11)
+          pdf.setFont('helvetica', 'normal')
+          pdf.text(`Icon ID: ${icon.id}`, pageWidth / 2, yPos, { align: 'center' })
+          yPos += 15
+          
+          // Separator
+          pdf.setDrawColor(200)
+          pdf.line(margin, yPos, pageWidth - margin, yPos)
+          yPos += 20
+          
+          // Display large icon centered on page
+          try {
+            const iconImgData = await loadImageAsBase64(icon.imageUrl)
+            if (iconImgData) {
+              // Create temp image to get dimensions
+              const tempImg = new Image()
+              tempImg.src = iconImgData
+              
+              await new Promise((resolve) => {
+                tempImg.onload = resolve
+              })
+              
+              const imgWidth = tempImg.width
+              const imgHeight = tempImg.height
+              const aspectRatio = imgWidth / imgHeight
+              
+              // Calculate max size to fit page (leave margins)
+              const maxWidth = contentWidth
+              const maxHeight = pageHeight - yPos - margin - 20 // Leave space for header and bottom margin
+              
+              let finalWidth = maxWidth
+              let finalHeight = finalWidth / aspectRatio
+              
+              // If height is too large, scale based on height instead
+              if (finalHeight > maxHeight) {
+                finalHeight = maxHeight
+                finalWidth = finalHeight * aspectRatio
               }
-            } catch (error) {
-              console.error('Error adding icon image:', error)
+              
+              // Center the image horizontally
+              const xPos = (pageWidth - finalWidth) / 2
+              
+              // Add image with proper aspect ratio (no cropping)
+              pdf.addImage(iconImgData, 'PNG', xPos, yPos, finalWidth, finalHeight)
+              
+              // Add caption below image
+              const captionYPos = yPos + finalHeight + 10
+              pdf.setFontSize(10)
+              pdf.setFont('helvetica', 'italic')
+              pdf.text(`Original size: ${imgWidth}x${imgHeight}px`, pageWidth / 2, captionYPos, { align: 'center' })
             }
-          } else {
-            try {
-              const iconImgData = await loadImageAsBase64(icon.imageUrl)
-              if (iconImgData) {
-                pdf.addImage(iconImgData, 'PNG', xPos, currentYPos, iconSize, iconSize)
-              }
-            } catch (error) {
-              console.error('Error adding icon image:', error)
-            }
+          } catch (error) {
+            console.error('Error adding icon image:', error)
+            pdf.setFont('helvetica', 'italic')
+            pdf.text('Unable to load icon image', pageWidth / 2, yPos + 50, { align: 'center' })
           }
         }
       }

@@ -142,6 +142,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     >(templateIdFromUrl);
     const isSwitchingSideRef = useRef(false);
     const isCapturingCanvasRef = useRef(false); // Flag to track canvas capture process
+    const lastDrawTimeRef = useRef<number>(0); // For throttling canvas redraws
+    const backgroundImageCache = useRef<HTMLImageElement | null>(null); // Cache background image
+    const currentBackgroundUrl = useRef<string>(""); // Track current background URL
   
   const [decorations, setDecorations] = useState<Decoration[]>([]);
     const [sideDecorations, setSideDecorations] = useState<
@@ -167,6 +170,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     } | null>(null);
   const [clickCount, setClickCount] = useState(0);
     const [imageLoading, setImageLoading] = useState(false);
+  
+  // Performance optimization refs
+  const rafIdRef = useRef<number | null>(null); // RequestAnimationFrame ID
+  const isDraggingRef = useRef(false); // Track dragging without triggering re-render
   
   // Image library states
   const [uploadedImages, setUploadedImages] = useState<Array<{url: string, name: string}>>([]);
@@ -385,7 +392,6 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     setLoadingSampleImages(true);
     try {
       const response = await getSampleImages();
-      console.log("Sample images API response:", response);
       if (response.success && response.data) {
         const formattedImages = response.data.map((image: SampleImage, index: number) => {
           console.log(`Sample image ${index + 1}:`, image.imageUrl);
@@ -581,28 +587,52 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       onImageChange,
     ]);
 
-  const drawCanvas = () => {
+  const drawCanvas = (forceSelectedId?: number | null) => {
     const canvas = canvasRef.current;
     if (!canvas || !imageLoaded) return;
     
     // Use the current shirtImage instead of imageRef.current
     if (!shirtImage) return;
     
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { 
+      alpha: false, // Disable alpha for better performance
+      desynchronized: true // Allow async rendering
+    });
     if (!ctx) return;
     
-    // Don't clear canvas immediately to prevent white flicker
-    // Instead, we'll draw the background first, then decorations
+    // Use forced selectedId if provided, otherwise use state
+    const currentSelectedId = forceSelectedId !== undefined ? forceSelectedId : selectedId;
     
-    // Create a new image element for the current shirtImage
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      // Clear canvas only when we're ready to draw
+    // Use cached background image if URL hasn't changed
+    if (currentBackgroundUrl.current !== shirtImage) {
+      // Load new background image
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        backgroundImageCache.current = img;
+        currentBackgroundUrl.current = shirtImage;
+        renderCanvasContent(ctx, canvas, img, currentSelectedId);
+      };
+      img.onerror = () => {
+        console.error("Không thể tải hình ảnh cho canvas:", shirtImage);
+      };
+      img.src = shirtImage;
+    } else if (backgroundImageCache.current) {
+      // Use cached image for instant rendering
+      renderCanvasContent(ctx, canvas, backgroundImageCache.current, currentSelectedId);
+    }
+  };
+  
+  // Separate rendering function for better performance
+  const renderCanvasContent = (
+    ctx: CanvasRenderingContext2D, 
+    canvas: HTMLCanvasElement, 
+    backgroundImg: HTMLImageElement,
+    currentSelectedId: number | null = null
+  ) => {
+    // Clear and draw background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-      // Draw the background image first
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
     
       // Draw decorations on top
       decorations.forEach((dec, index) => {
@@ -630,7 +660,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         );
       }
       
-      if (dec.id === selectedId) {
+      if (dec.id === currentSelectedId) {
           ctx.shadowColor = "transparent";
         ctx.shadowBlur = 0;
           ctx.strokeStyle = "#3b82f6";
@@ -648,13 +678,6 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       
       ctx.restore();
     });
-  };
-
-    img.onerror = () => {
-      console.error("Không thể tải hình ảnh cho canvas:", shirtImage);
-    };
-    
-    img.src = shirtImage;
   };
 
     const drawResizeHandles = (
@@ -754,12 +777,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
   useEffect(() => {
     if (imageLoaded && shirtImage) {
-      // Use requestAnimationFrame to ensure smooth rendering
-      requestAnimationFrame(() => {
+      // Remove requestAnimationFrame - direct call for better performance
       drawCanvas();
-      });
     }
   }, [decorations, selectedId, imageLoaded, shirtImage]);
+  
+  // Cleanup RAF on unmount
+  useEffect(() => {
+    return () => {
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+    };
+  }, []);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -932,16 +962,15 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       const dx = x - resizing.startX;
       const dy = y - resizing.startY;
       
-      // Use requestAnimationFrame for smooth updates
-      requestAnimationFrame(() => {
-        setDecorations((prevDecorations) =>
-          prevDecorations.map((d) => {
-            if (d.id === selectedId && d.type === "image") {
-              const { handlePosition, startWidth, startHeight, startDecorationX, startDecorationY } = resizing;
-              let newWidth = startWidth;
-              let newHeight = startHeight;
-              let newX = startDecorationX;
-              let newY = startDecorationY;
+      // Update directly for better performance - removed requestAnimationFrame
+      setDecorations((prevDecorations) =>
+        prevDecorations.map((d) => {
+          if (d.id === selectedId && d.type === "image") {
+            const { handlePosition, startWidth, startHeight, startDecorationX, startDecorationY } = resizing;
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            let newX = startDecorationX;
+            let newY = startDecorationY;
               
               // Calculate new dimensions based on handle position
               switch (handlePosition) {
@@ -1037,13 +1066,16 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
             return d;
           })
         );
-      });
     } else if (dragging && selectedId !== null) {
       const newX = x - dragOffset.x;
       const newY = y - dragOffset.y;
 
-      // Use requestAnimationFrame to prevent white flicker during drag
-      requestAnimationFrame(() => {
+      // Use RAF to batch updates and prevent excessive re-renders
+      if (rafIdRef.current) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
+      
+      rafIdRef.current = requestAnimationFrame(() => {
         setDecorations((prevDecorations) =>
           prevDecorations.map((d) =>
             d.id === selectedId ? { ...d, x: newX, y: newY } : d
@@ -1235,13 +1267,25 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     
     img.onload = () => {
       const maxSize = 200;
-      let width = img.width;
-      let height = img.height;
+      
+      // Calculate ORIGINAL aspect ratio from the loaded image
+      const originalAspectRatio = img.naturalWidth / img.naturalHeight;
+      
+      // Calculate new dimensions while MAINTAINING aspect ratio
+      let width = img.naturalWidth;
+      let height = img.naturalHeight;
       
       if (width > maxSize || height > maxSize) {
-        const ratio = Math.min(maxSize / width, maxSize / height);
-        width = width * ratio;
-        height = height * ratio;
+        // Scale proportionally - ALWAYS maintain aspect ratio
+        const scaleFactor = Math.min(maxSize / width, maxSize / height);
+        width = width * scaleFactor;
+        height = height * scaleFactor;
+      }
+      
+      // Double check aspect ratio is maintained
+      const calculatedHeight = width / originalAspectRatio;
+      if (Math.abs(calculatedHeight - height) > 0.1) {
+        height = calculatedHeight; // Force correct height
       }
       
       const newImageDecoration: ImageDecoration = {
@@ -1253,7 +1297,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         y: pa.y + pa.height / 2,
         width: width,
         height: height,
-        originalAspectRatio: img.width / img.height, // Store original image aspect ratio
+        originalAspectRatio: originalAspectRatio, // Store CORRECT aspect ratio
         rotation: 0,
         visible: true,
         locked: false,
@@ -1434,6 +1478,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       const canvas = canvasRef.current;
       if (!canvas) return null;
 
+      // Log current state before capture
+      console.log('📸 CAPTURE DEBUG:');
+      console.log('- selectedId:', selectedId);
+      console.log('- decorations count:', decorations.length);
+      console.log('- shirtImage:', shirtImage);
+      
+      // Force canvas redraw with NO selection (pass null explicitly)
+      console.log('🔄 Forcing canvas redraw WITHOUT selection...');
+      drawCanvas(null); // Force selectedId to be null
+      
+      // Add small delay to ensure canvas is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       return new Promise((resolve) => {
         canvas.toBlob(
           (blob) => {
@@ -1446,8 +1503,10 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
                   type: "image/png",
                 }
               );
+              console.log('✅ Canvas blob created, size:', blob.size);
               resolve(file);
             } else {
+              console.error('❌ Failed to create canvas blob');
               resolve(null);
             }
           },
@@ -1496,11 +1555,19 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       const originalSide = currentSide;
       const originalDecorations = decorations;
       const originalShirtImage = shirtImage;
+      const originalSelectedId = selectedId; // Store selected ID
       
       // Use provided sideDecorationsData or fallback to current state
       const decorationsToUse = sideDecorationsData || sideDecorations;
       
       try {
+        // CRITICAL: Clear selection to avoid capturing border
+        console.log('🚫 Clearing selection before capture');
+        setSelectedId(null);
+        
+        // Wait a bit for selection to clear and trigger redraw
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Switch to target side
         console.log(`🔄 Switching to side: ${side}`);
         setCurrentSide(side);
@@ -1516,10 +1583,12 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         console.log(`🖼️ Loading background image for ${side}:`, sideImage);
         setShirtImage(sideImage);
         
-        // Wait for state updates and canvas redraw
-        await new Promise(resolve => setTimeout(resolve, 200));
+        // Wait for state updates and canvas redraw (longer delay to ensure everything is ready)
+        console.log('⏳ Waiting for canvas to redraw...');
+        await new Promise(resolve => setTimeout(resolve, 400));
         
         // Capture canvas
+        console.log('📸 Capturing canvas now...');
         const file = await captureCanvasAsFile(side);
         if (!file) {
           console.error(`❌ Failed to capture canvas for side: ${side}`);
@@ -1549,6 +1618,7 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
         setCurrentSide(originalSide);
         setDecorations(originalDecorations);
         setShirtImage(originalShirtImage);
+        setSelectedId(originalSelectedId); // Restore selection
         
         // Reset flag after capture is complete
         isCapturingCanvasRef.current = false;
@@ -2103,7 +2173,9 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
               touchAction: "none",
               cursor: canvasCursor,
               width: '615px',
-              height: '615px'
+              height: '615px',
+              willChange: 'contents', // Optimize rendering
+              imageRendering: 'auto' // Better image quality
             }}
           />
         </div>
