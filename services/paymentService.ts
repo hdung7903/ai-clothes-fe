@@ -38,7 +38,7 @@ export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayW
 
 export async function getQrCode(amount: number): Promise<QrCodeResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = new URL('/api/Payment/QrCode', baseUrl);
+  const url = new URL('/Payment/QrCode', baseUrl);
   url.searchParams.set('amount', String(amount));
   const res = await fetch(url.toString(), {
     method: 'GET',

@@ -86,7 +86,7 @@ export type DeleteSampleImageResponse = ApiEnvelope<boolean>;
  * Get all sample images
  */
 export async function getSampleImages(): Promise<GetSampleImagesResponse> {
-  return requestJson<never, GetSampleImagesResponse>('/api/SampleImage', { method: 'GET' });
+  return requestJson<never, GetSampleImagesResponse>('/SampleImage', { method: 'GET' });
 }
 
 /**
@@ -97,7 +97,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
   const formData = new FormData();
   formData.append('file', file);
   
-  const uploadResponse = await requestJson<FormData, { success: boolean; data: string }>('/api/File/UploadImage', { 
+  const uploadResponse = await requestJson<FormData, { success: boolean; data: string }>('/File/UploadImage', { 
     method: 'POST', 
     payload: formData,
     isFormData: true 
@@ -110,7 +110,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
   const imageUrl = uploadResponse.data;
 
   // Step 2: Save image URL to sample images
-  const saveResponse = await requestJson<{ imageUrl: string }, UploadSampleImageResponse>('/api/SampleImage', {
+  const saveResponse = await requestJson<{ imageUrl: string }, UploadSampleImageResponse>('/SampleImage', {
     method: 'POST',
     payload: { imageUrl }
   });
