@@ -14,6 +14,7 @@ import type {
   UpdateApiKeyResponse,
   HTTPValidationError,
 } from '@/types/ai';
+import { getAiBaseUrl } from '@/lib/api-config';
 import { store } from '@/redux';
 import type { RootState } from '@/redux';
 
@@ -21,30 +22,6 @@ const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
-
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_AI_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAccessToken(): string | null {
   try {
@@ -78,7 +55,7 @@ async function requestAiJson<TReq, TRes>(
   options: Omit<RequestInit, 'body'> & { payload?: TReq }
 ): Promise<TRes> {
   try {
-    const baseUrl = getBaseUrl();
+    const baseUrl = getAiBaseUrl();
     
     // Construct URL properly
     let url: string;

@@ -1,35 +1,12 @@
 // Admin service for Statistics and Dashboard endpoints
 import type { ApiEnvelope } from '@/types/shared';
 import type { DashboardData } from '@/types/admin';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
   'Accept': 'application/json',
   'Content-Type': 'application/json',
 };
-
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAccessToken(): string | null {
   try {
@@ -56,7 +33,7 @@ export type DashboardDataResponse = ApiEnvelope<DashboardData>;
 
 // API Services
 export async function getDashboardData(): Promise<DashboardDataResponse> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + '/api/Statistics/DashboardData';
   
   const res = await fetch(url, {

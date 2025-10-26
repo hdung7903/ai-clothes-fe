@@ -1,28 +1,5 @@
 import type { UploadImageResponse } from '@/types/file';
-
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
+import { getApiBaseUrl as getBaseUrl } from '@/lib/api-config';
 
 export async function uploadImage(file: File): Promise<UploadImageResponse> {
   const baseUrl = getBaseUrl();

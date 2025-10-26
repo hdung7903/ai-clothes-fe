@@ -1,33 +1,11 @@
 import type { CreateOrUpdateCategoryRequest, CreateOrUpdateCategoryResponse, GetAllCategoriesResponse, GetCategoryByIdResponse, DeleteCategoryByIdResponse } from '@/types/category';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
 
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAccessToken(): string | null {
   try {
@@ -48,7 +26,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 }
 
 async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const res = await fetch(baseUrl + path, {
     method: options.method,
     headers: withAuth(defaultHeaders),

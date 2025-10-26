@@ -1,32 +1,9 @@
 import type { GetProfileResponse } from '@/types/user';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
   'Accept': 'application/json',
 };
-
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAccessToken(): string | null {
   try {
@@ -58,7 +35,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 }
 
 async function requestJson<TRes>(path: string): Promise<TRes> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + path;
   const res = await fetch(url, {
     method: 'GET',
@@ -69,7 +46,7 @@ async function requestJson<TRes>(path: string): Promise<TRes> {
 }
 
 export async function getProfile(jwt?: string): Promise<GetProfileResponse> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + '/api/Account/Profile';
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
@@ -116,7 +93,7 @@ interface GetUsersApiResponse {
 }
 
 export async function getUsers(params: GetUsersParams): Promise<GetProfileResponse[]> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const searchParams = new URLSearchParams();
   
   // Add required parameters
@@ -209,7 +186,7 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
 
 // Ban/Unban user API
 export async function banUser(userId: string, isBanned: boolean, message?: string): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + `/api/Users/${userId}/Ban`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');
@@ -239,7 +216,7 @@ export async function banUser(userId: string, isBanned: boolean, message?: strin
 
 // Change user role API
 export async function changeUserRole(userId: string, role: 'User' | 'Administrator'): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + `/api/Users/${userId}/Role?role=${role}`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
 
@@ -268,7 +245,7 @@ export interface UpdateUserInfoRequest {
 }
 
 export async function updateUserInfo(request: UpdateUserInfoRequest): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = baseUrl + '/api/Users/Info';
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');

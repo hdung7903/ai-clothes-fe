@@ -1,33 +1,11 @@
 import type { AddCartItemRequest, AddCartItemResponse, DeleteCartItemsRequest, DeleteCartItemsResponse, GetCartItemsResponse, GetCartItemByOptionRequest, GetCartItemByOptionResponse } from '@/types/cart';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
 
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAccessToken(): string | null {
   try {
@@ -60,7 +38,7 @@ export function isAuthenticated(): boolean {
 }
 
 async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE' | 'PUT'; payload?: TReq; useBodyForGet?: boolean }): Promise<TRes> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const token = getAccessToken();
   
   // Check if user is authenticated for cart operations

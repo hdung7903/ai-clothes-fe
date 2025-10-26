@@ -1,6 +1,7 @@
 // Auth service for Authentication endpoints
 // Uses fetch with JSON, returns typed responses
 import type { ApiEnvelope } from '@/types/shared';
+import { getApiBaseUrl } from '@/lib/api-config';
 import type {
   RegisterRequest,
   LoginRequest,
@@ -31,32 +32,8 @@ const defaultHeaders: HeadersInit = {
   'Accept': 'application/json',
 };
 
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
-
 async function requestJson<TReq, TRes>(path: string, options: Omit<RequestInit, 'body'> & { payload?: TReq; query?: Record<string, string | number | boolean | undefined>; }): Promise<ApiEnvelope<TRes>> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = new URL(path, baseUrl);
 
   if (options.query) {

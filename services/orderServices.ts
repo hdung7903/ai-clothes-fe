@@ -16,35 +16,13 @@ import type {
   AdminUpdatePaymentStatusRequest,
   AdminUpdatePaymentStatusResponse,
 } from '@/types/order';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
 };
 
-function getBaseUrl(): string {
-  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
-  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
-  // Debug log (remove after testing)
-  if (typeof window !== 'undefined') {
-    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
-  }
-  
-  if (typeof process !== 'undefined' && envUrl) {
-    const cleanedUrl = envUrl.replace(/\/$/, '');
-    if (typeof window !== 'undefined') {
-      console.log('✅ Using API URL:', cleanedUrl);
-    }
-    return cleanedUrl;
-  }
-  
-  // Fallback to /api path for same-origin requests
-  if (typeof window !== 'undefined') {
-    console.log('⚠️ Fallback to /api');
-  }
-  return '/api';
-}
 
 function getAuthHeaders(): HeadersInit | null {
   // Get token from localStorage (same pattern as other services)
@@ -88,7 +66,7 @@ async function requestJson<TReq, TRes>(
     requireAuth?: boolean;
   }
 ): Promise<ApiEnvelope<TRes>> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const url = new URL(path, baseUrl);
 
   if (options.query) {
