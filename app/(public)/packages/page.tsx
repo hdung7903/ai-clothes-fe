@@ -42,7 +42,7 @@ const packages = [
     name: "Gói Pro",
     price: "30,000đ",
     period: "",
-    description: "Nhận ngay 10 ảnh AI bất kỳ",
+    description: "Nhận ngay 10 lượt tạo ảnh AI bất kỳ",
     icon: Zap,
     iconColor: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-950",
@@ -178,7 +178,7 @@ export default function PackagesPage() {
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-green-600 dark:text-green-400 mb-2">
-                10 ảnh AI có thể tạo ảnh gì?
+                10 lượt tạo ảnh AI có thể tạo ảnh gì?
               </h3>
               <p className="text-sm text-muted-foreground">
                 Bạn có thể tạo bất kỳ ảnh nào bạn muốn: logo, hình minh họa, design pattern, mockup, hoặc bất kỳ ý tưởng sáng tạo nào cho sản phẩm của mình.
@@ -197,7 +197,7 @@ export default function PackagesPage() {
                 Gói Pro có thời hạn sử dụng không?
               </h3>
               <p className="text-sm text-muted-foreground">
-                10 ảnh AI của bạn không có thời hạn sử dụng. Bạn có thể sử dụng bất cứ lúc nào sau khi mua gói.
+                10 lượt tạo ảnh AI của bạn không có thời hạn sử dụng. Bạn có thể sử dụng bất cứ lúc nào sau khi mua gói.
               </p>
             </div>
           </div>
