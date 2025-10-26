@@ -601,19 +601,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   <div>
                     <h4 className="font-semibold mb-2">Chất liệu & Bảo quản</h4>
                     <ul className="space-y-1 text-muted-foreground">
-                      <li>• 100% Cotton cao cấp</li>
-                      <li>• Có thể giặt máy</li>
-                      <li>• Vải đã co trước</li>
-                      <li>• Thiết kế không phai màu</li>
+                      <li>• Sử dụng chất liệu chọn lọc, mang lại cảm giác thoải mái khi sử dụng</li>
+                      <li>• Dễ bảo quản</li>
+                      <li>• Được xử lý để giữ form và màu sắc bền lâu</li>
                     </ul>
                   </div>
                   <div>
                     <h4 className="font-semibold mb-2">Kích thước & Vừa vặn</h4>
                     <ul className="space-y-1 text-muted-foreground">
-                      <li>• Đúng kích thước</li>
-                      <li>• Kiểu dáng thoải mái</li>
-                      <li>• Co giãn thoải mái</li>
-                      <li>• Hoàn thiện chuyên nghiệp</li>
+                      <li>• Thiết kế theo form chuẩn, phù hợp với nhiều dáng người</li>
+                      <li>• Dáng thoải mái, dễ vận động</li>
+                      <li>• Hoàn thiện tỉ mỉ, đảm bảo độ bền và tính thẩm mỹ cao</li>
                     </ul>
                   </div>
                 </div>

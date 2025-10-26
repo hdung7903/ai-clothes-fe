@@ -114,7 +114,7 @@ async function requestJson<TReq, TRes>(
  * @returns Promise with order creation response
  */
 export async function createOrder(request: CreateOrderRequest): Promise<ApiEnvelope<CreateOrderResponse>> {
-  return requestJson<CreateOrderRequest, CreateOrderResponse>('/Order', { 
+  return requestJson<CreateOrderRequest, CreateOrderResponse>('/api/Order', { 
     method: 'POST',
     payload: request,
     requireAuth: true
@@ -127,7 +127,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<ApiEnvel
  * @returns Promise with paginated orders response
  */
 export async function getOrders(query: GetOrdersQuery): Promise<ApiEnvelope<GetOrdersResponse>> {
-  return requestJson<undefined, GetOrdersResponse>('/Order', {
+  return requestJson<undefined, GetOrdersResponse>('/api/Order', {
     method: 'GET',
     query: {
       PageNumber: query.pageNumber,
@@ -144,7 +144,7 @@ export async function getOrders(query: GetOrdersQuery): Promise<ApiEnvelope<GetO
  * @returns Promise with order details response
  */
 export async function getOrderById(orderId: string): Promise<ApiEnvelope<GetOrderByIdResponse>> {
-  return requestJson<undefined, GetOrderByIdResponse>(`/Order/${orderId}`, {
+  return requestJson<undefined, GetOrderByIdResponse>(`/api/Order/${orderId}`, {
     method: 'GET',
     requireAuth: true
   });
