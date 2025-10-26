@@ -39,7 +39,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherRequest): Promise<CreateOrUpdateVoucherResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/CreateOrUpdateVoucher', {
+  const res = await fetch(baseUrl + '/Voucher/CreateOrUpdateVoucher', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -85,7 +85,7 @@ export async function deleteVoucherById(voucherId: string): Promise<DeleteVouche
 
 export async function addToProduct(payload: AddToProductRequest): Promise<AddToProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/AddToProduct', {
+  const res = await fetch(baseUrl + '/Voucher/AddToProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -96,7 +96,7 @@ export async function addToProduct(payload: AddToProductRequest): Promise<AddToP
 
 export async function removeFromProduct(payload: RemoveFromProductRequest): Promise<RemoveFromProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/RemoveFromProduct', {
+  const res = await fetch(baseUrl + '/Voucher/RemoveFromProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

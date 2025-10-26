@@ -32,7 +32,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateProduct(payload: CreateOrUpdateProductRequest): Promise<CreateOrUpdateProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Product/CreateOrUpdateProduct', {
+  const res = await fetch(baseUrl + '/Product/CreateOrUpdateProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

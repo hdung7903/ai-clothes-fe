@@ -42,7 +42,7 @@ export interface SearchTemplatesQuery {
 
 export async function createOrUpdateTemplate(payload: CreateOrUpdateTemplateRequest): Promise<CreateOrUpdateTemplateResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Template/CreateOrUpdateTemplate', {
+  const res = await fetch(baseUrl + '/Template/CreateOrUpdateTemplate', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

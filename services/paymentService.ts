@@ -27,7 +27,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayWebhookResponse> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(baseUrl + '/api/Payment/WebHook/Sepay', {
+  const res = await fetch(baseUrl + '/Payment/WebHook/Sepay', {
     method: 'POST',
     headers: withAuth(defaultHeaders),
     credentials: 'include',

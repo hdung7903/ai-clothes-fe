@@ -57,7 +57,7 @@ export interface SearchProductDesignsQuery {
 
 export async function createOrUpdateProductDesign(payload: CreateOrUpdateProductDesignRequest): Promise<CreateOrUpdateProductDesignResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/ProductDesign/CreateOrUpdateProductDesign', {
+  const res = await fetch(baseUrl + '/ProductDesign/CreateOrUpdateProductDesign', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

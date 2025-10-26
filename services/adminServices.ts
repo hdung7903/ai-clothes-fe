@@ -34,7 +34,7 @@ export type DashboardDataResponse = ApiEnvelope<DashboardData>;
 // API Services
 export async function getDashboardData(): Promise<DashboardDataResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + '/api/Statistics/DashboardData';
+  const url = baseUrl + '/Statistics/DashboardData';
   
   const res = await fetch(url, {
     method: 'GET',
