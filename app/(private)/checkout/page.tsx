@@ -418,8 +418,10 @@ export default function CheckoutPage() {
       const response = await createOrder(orderRequest);
 
       if (response.success && response.data) {
+        const discountAmount = response.data.discountAmount || 0;
+        
         // Update discount based on API response
-        setDiscount(response.data.discountAmount || 0);
+        setDiscount(discountAmount);
 
         // Update individual item discounts
         if (response.data.items && response.data.items.length > 0) {
@@ -435,7 +437,13 @@ export default function CheckoutPage() {
         }
 
         setVoucherError("");
-        toast.success("Mã giảm giá đã được áp dụng thành công!");
+        
+        // Chỉ hiển thị thông báo thành công nếu thực sự có giảm giá
+        if (discountAmount > 0) {
+          toast.success(`Mã giảm giá đã được áp dụng! Giảm ${formatCurrency(discountAmount)}`);
+        } else {
+          toast.info("Mã voucher hợp lệ nhưng không áp dụng được giảm giá cho đơn hàng này");
+        }
       } else {
         const errorMessage = response.errors
           ? Object.values(response.errors).flat().join(", ")
