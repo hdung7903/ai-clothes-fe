@@ -1,7 +1,6 @@
 // Auth service for Authentication endpoints
 // Uses fetch with JSON, returns typed responses
 import type { ApiEnvelope } from '@/types/shared';
-import { getApiBaseUrl } from '@/lib/api-config';
 import type {
   RegisterRequest,
   LoginRequest,
@@ -83,11 +82,11 @@ async function requestJson<TReq, TRes>(path: string, options: Omit<RequestInit, 
 
 // Services
 export async function register(request: RegisterRequest): Promise<RegisterResponse> {
-  return requestJson<RegisterRequest, string>('/Authentication/Register', { payload: request });
+  return requestJson<RegisterRequest, string>('/api/Authentication/Register', { payload: request });
 }
 
 export async function login(request: LoginRequest): Promise<LoginResponse> {
-  return requestJson<LoginRequest, TokenPair>('/Authentication/Login', { payload: request });
+  return requestJson<LoginRequest, TokenPair>('/api/Authentication/Login', { payload: request });
 }
 
 export async function refreshToken(request: RefreshTokenRequest, useCookies: boolean = true): Promise<RefreshTokenResponse> {
@@ -100,41 +99,41 @@ export async function refreshToken(request: RefreshTokenRequest, useCookies: boo
 // Convenience: refresh tokens using httpOnly cookies on the server without sending a body
 export async function refreshTokenUsingCookies(request: RefreshTokenRequest): Promise<RefreshTokenResponse> {
   return requestJson<RefreshTokenRequest, TokenPair>(
-    '/Authentication/RefreshToken',
+    '/api/Authentication/RefreshToken',
     { method: 'POST', payload: request, query: { useCookies: true } }
   );
 }
 
 export async function revokeToken(request: RevokeTokenRequest): Promise<RevokeTokenResponse> {
-  return requestJson<RevokeTokenRequest, string>('/Authentication/RevokeToken', { payload: request });
+  return requestJson<RevokeTokenRequest, string>('/api/Authentication/RevokeToken', { payload: request });
 }
 
 export async function logOut(): Promise<LogOutResponse> {
-  return requestJson<undefined, string>('/Authentication/LogOut', { method: 'POST' });
+  return requestJson<undefined, string>('/api/Authentication/LogOut', { method: 'POST' });
 }
 
 export async function requestEmailVerification(request: RequestEmailVerificationRequest): Promise<RequestEmailVerificationResponse> {
-  return requestJson<RequestEmailVerificationRequest, string>('/Authentication/RequestEmailVerification', { payload: request });
+  return requestJson<RequestEmailVerificationRequest, string>('/api/Authentication/RequestEmailVerification', { payload: request });
 }
 
 export async function verifyEmail(request: VerifyEmailRequest): Promise<VerifyEmailResponse> {
-  return requestJson<VerifyEmailRequest, string>('/Authentication/VerifyEmail', { payload: request });
+  return requestJson<VerifyEmailRequest, string>('/api/Authentication/VerifyEmail', { payload: request });
 }
 
 export async function requestPasswordReset(request: RequestPasswordResetRequest): Promise<RequestPasswordResetResponse> {
-  return requestJson<RequestPasswordResetRequest, string>('/Authentication/RequestPasswordReset', { payload: request });
+  return requestJson<RequestPasswordResetRequest, string>('/api/Authentication/RequestPasswordReset', { payload: request });
 }
 
 export async function resetPassword(request: ResetPasswordRequest): Promise<ResetPasswordResponse> {
-  return requestJson<ResetPasswordRequest, string>('/Authentication/ResetPassword', { payload: request });
+  return requestJson<ResetPasswordRequest, string>('/api/Authentication/ResetPassword', { payload: request });
 }
 
 export async function changePassword(request: ChangePasswordRequest): Promise<ChangePasswordResponse> {
-  return requestJson<ChangePasswordRequest, string>('/Authentication/ChangePassword', { payload: request });
+  return requestJson<ChangePasswordRequest, string>('/api/Authentication/ChangePassword', { payload: request });
 }
 
 export async function setPassword(request: SetPasswordRequest): Promise<SetPasswordResponse> {
-  return requestJson<SetPasswordRequest, string>('/Authentication/SetPassword', { payload: request });
+  return requestJson<SetPasswordRequest, string>('/api/Authentication/SetPassword', { payload: request });
 }
 
 
