@@ -50,7 +50,17 @@ export default function VerifyEmailPage() {
     }
   }, [presetEmail, dispatch])
 
-  // No longer auto-send verification email
+  // Auto-send verification email when email is available
+  useEffect(() => {
+    if (email && !emailSent && !isLoading) {
+      // Automatically send verification code on mount
+      dispatch(requestEmailVerificationAction({ email }))
+        .then(() => {
+          setEmailSent(true)
+          setCooldownTime(60)
+        })
+    }
+  }, [email, emailSent, isLoading, dispatch])
 
   // Cooldown timer
   useEffect(() => {
