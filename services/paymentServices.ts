@@ -127,5 +127,20 @@ export async function getTokenPackagePurchaseHistory(
   return res.json() as Promise<TokenPackagePurchaseHistoryResponse>;
 }
 
+/**
+ * Decrease user token (deduct 1 token from user's balance)
+ * POST /api/AiToken/DecreaseUserToken
+ * @returns Promise with updated token count
+ */
+export async function decreaseUserToken(): Promise<ApiEnvelope<number>> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + 'AiToken/DecreaseUserToken', {
+    method: 'POST',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+  });
+  return res.json() as Promise<ApiEnvelope<number>>;
+}
+
 
 

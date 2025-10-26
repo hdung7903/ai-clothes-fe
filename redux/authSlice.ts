@@ -207,6 +207,11 @@ const authSlice = createSlice({
     setBootstrapComplete: (state) => {
       state.isBootstrapping = false;
     },
+    updateTokenCount: (state, action: PayloadAction<number>) => {
+      if (state.user) {
+        state.user.tokenCount = action.payload;
+      }
+    },
     logout: (state) => {
       state.user = null;
       state.tokens = null;
@@ -360,7 +365,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setUser, setTokens, setBootstrapComplete, logout } = authSlice.actions;
+export const { clearError, setUser, setTokens, setBootstrapComplete, updateTokenCount, logout } = authSlice.actions;
 export default authSlice.reducer;
 
 

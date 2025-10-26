@@ -20,8 +20,9 @@ import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download } from 
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
 import { transformImageAi, generateNewImage, askSimpleQuestion } from "@/services/aiServices";
+import { decreaseUserToken } from "@/services/paymentServices";
 import { useAppSelector, useAppDispatch } from "@/redux/hooks";
-import { fetchUserProfile } from "@/redux/authSlice";
+import { updateTokenCount } from "@/redux/authSlice";
 import { base64ToDataUrl } from "@/utils/image";
 
 // Interface cho pending images (chờ lưu vào canvas)
@@ -87,6 +88,11 @@ export default function DesignToolPage(): ReactElement {
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
     
+    // Nếu có input nhưng không có uploaded image, tự động generate thay vì chat
+    if (input.trim() && !uploadedImage) {
+      await handleTransformImage(true);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -148,10 +154,32 @@ export default function DesignToolPage(): ReactElement {
     const base64Payload = uploadedImage ? uploadedImage.split(",")[1] : undefined;
     const uuid = authUserId || crypto.randomUUID();
 
+    // Thêm user message vào chat trước khi gọi AI
+    const action = isGenerate ? "generate" : "transform";
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: isGenerate 
+        ? `Generate ảnh với prompt: "${prompt}"` 
+        : `Transform ảnh với prompt: "${prompt}"`,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
     try {
+      // Trừ token trước khi gọi AI
+      const tokenResponse = await decreaseUserToken();
+      if (!tokenResponse.success) {
+        throw new Error("Không thể trừ token. Vui lòng kiểm tra số dư token của bạn.");
+      }
+      
+      // Cập nhật token count trong Redux store (không reload trang)
+      if (tokenResponse.data !== undefined) {
+        dispatch(updateTokenCount(tokenResponse.data));
+      }
+      
       // Call AI service directly
       let imageUrl = "";
-      const action = isGenerate ? "generate" : "transform";
       if (isGenerate) {
         const res = await generateNewImage({ uuid, prompt, style, quality });
         // Support both AIResponse shape and raw result fields
@@ -259,7 +287,7 @@ export default function DesignToolPage(): ReactElement {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+      <div className="h-screen flex flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100 overflow-hidden">
         {/* Header */}
         <div className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 flex-shrink-0 shadow-sm">
           <div className="flex items-center justify-between">
@@ -300,9 +328,9 @@ export default function DesignToolPage(): ReactElement {
       </div>
 
       {/* Main Content: Chat (30%) + Canvas (70%) */}
-      <div className="flex-1 flex overflow-auto w-full">
+      <div className="flex-1 flex overflow-hidden w-full h-0">
         {/* Chat Section */}
-        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 max-h-full relative">
+        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 h-full relative">
           {/* Overlay khi hết token */}
           {!hasTokens && (
             <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -329,8 +357,8 @@ export default function DesignToolPage(): ReactElement {
             </div>
           )}
           
-          <ScrollArea className="flex-1 p-4 h-0">
-            <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto">
+            <div className="space-y-4 p-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -373,7 +401,7 @@ export default function DesignToolPage(): ReactElement {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Input Area */}
           <div className="p-4 border-t flex-shrink-0 bg-gray-50">
@@ -381,23 +409,23 @@ export default function DesignToolPage(): ReactElement {
             {pendingImages.length > 0 && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg border">
                 <h4 className="font-medium text-sm mb-2 text-blue-800">Ảnh AI sẵn sàng thêm vào thiết kế:</h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex gap-3 overflow-x-auto pb-2">
                   {pendingImages.map((img) => (
-                    <div key={img.id} className="bg-white rounded-lg p-2 shadow-sm border flex flex-col items-center">
+                    <div key={img.id} className="bg-white rounded-lg p-3 shadow-sm border flex flex-col items-center flex-shrink-0">
                       <img 
                         src={img.url} 
                         alt={img.name} 
-                        className="w-16 h-16 rounded object-cover mb-1"
+                        className="w-48 h-48 rounded object-cover mb-2"
                       />
-                      <div className="text-center">
-                        <p className="text-xs text-gray-600 truncate w-16">{img.name}</p>
+                      <div className="text-center w-48">
+                        <p className="text-sm text-gray-600 truncate">{img.name}</p>
                         <Badge variant="outline" className="text-xs mt-1">{img.style}</Badge>
                       </div>
-                      <div className="flex gap-1 mt-1">
+                      <div className="flex gap-1 mt-2">
                         <Button
                           size="sm"
                           onClick={() => handleSaveToCanvas(img.url, img.name)}
-                          className="h-6 px-2 text-xs"
+                          className="h-8 px-3 text-sm"
                         >
                           Lưu vào áo
                         </Button>
@@ -551,8 +579,8 @@ export default function DesignToolPage(): ReactElement {
         </div>
 
         {/* Design Canvas Section */}
-        <div className="flex-1 relative overflow-auto bg-gray-50">
-          <div className="w-full flex items-center justify-center p-4 min-h-full">
+        <div className="flex-1 relative overflow-hidden bg-gray-50">
+          <div className="w-full h-full flex items-center justify-center p-4">
             <TShirtDesigner 
               ref={canvasRef} // ForwardRef để gọi addImageDecoration
               imageUrl={currentImageUrl || undefined}
