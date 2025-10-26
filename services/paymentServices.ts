@@ -52,7 +52,7 @@ export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayW
 // POST /api/TokenPackage/Buy
 export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<TokenPackageBuyResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/TokenPackage/Buy', {
+  const res = await fetch(baseUrl + '/TokenPackage/Buy', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
