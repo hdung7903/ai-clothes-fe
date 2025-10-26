@@ -50,6 +50,14 @@ export interface CheckPaymentStatusData {
 
 export type CheckPaymentStatusResponse = ApiEnvelope<CheckPaymentStatusData>;
 
+// Check Token Package Is Paid Response
+export interface CheckTokenPackageIsPaidData {
+  isPaid: boolean;
+}
+
+export type CheckTokenPackageIsPaidResponse = ApiEnvelope<CheckTokenPackageIsPaidData>;
+
+
 
 
 

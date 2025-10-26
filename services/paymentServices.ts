@@ -1,5 +1,15 @@
 import type { ApiEnvelope } from '@/types/shared';
-import type { QrCodeRequest, QrCodeResponse, SepayWebhookPayload, SepayWebhookResponse, TokenPackageBuyRequest, TokenPackageBuyResponse, CheckPaymentStatusRequest, CheckPaymentStatusResponse } from '@/types/payment';
+import type { 
+  QrCodeRequest, 
+  QrCodeResponse, 
+  SepayWebhookPayload, 
+  SepayWebhookResponse, 
+  TokenPackageBuyRequest, 
+  TokenPackageBuyResponse, 
+  CheckPaymentStatusRequest, 
+  CheckPaymentStatusResponse,
+  CheckTokenPackageIsPaidResponse
+} from '@/types/payment';
 import { getApiBaseUrl as getBaseUrl } from '@/lib/api-config';
 const defaultJsonHeaders: HeadersInit = {
   'Content-Type': 'application/json',
@@ -64,13 +74,32 @@ export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<
 // POST /Payment/CheckStatus
 export async function checkPaymentStatus(payload: CheckPaymentStatusRequest): Promise<CheckPaymentStatusResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Payment/CheckStatus', {
+  const res = await fetch(baseUrl + 'Payment/CheckStatus', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
     body: JSON.stringify(payload),
   });
   return res.json() as Promise<CheckPaymentStatusResponse>;
+}
+
+/**
+ * Check if token package is paid
+ * GET /api/TokenPackage/CheckIsPaid
+ * @param paymentCode - The payment code to check
+ * @returns Promise with isPaid status (true if paid, false if not paid or expired)
+ */
+export async function checkTokenPackageIsPaid(paymentCode: string): Promise<CheckTokenPackageIsPaidResponse> {
+  const baseUrl = getBaseUrl();
+  const url = new URL(baseUrl + 'TokenPackage/CheckIsPaid');
+  url.searchParams.append('paymentCode', paymentCode);
+  
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+  });
+  return res.json() as Promise<CheckTokenPackageIsPaidResponse>;
 }
 
 

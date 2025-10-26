@@ -12,7 +12,9 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState, use, useCallback, useMemo, useRef } from "react"
 import { getProductById } from "@/services/productService"
 import { getTemplatesByProduct } from "@/services/templateServices"
+import { getProductFeedbacks } from "@/services/feedbackServices"
 import type { TemplateSummaryItem } from "@/types/template"
+import type { FeedbackItem } from "@/types/feedback"
 import { formatCurrency } from "../../../../utils/format"
 import { useAppDispatch, useAppSelector } from "@/redux/hooks"
 import { addItemAsync } from "@/redux/cartSlice"
@@ -24,6 +26,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const dispatch = useAppDispatch()
   const router = useRouter()
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated)
+  const cartItems = useAppSelector((state) => state.cart.items)
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState("")
@@ -32,6 +35,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [templateCount, setTemplateCount] = useState<number | null>(null)
   const [templates, setTemplates] = useState<TemplateSummaryItem[]>([])
+  const [feedback, setFeedback] = useState<FeedbackItem[]>([])
+  const [averageRating, setAverageRating] = useState<number>(0)
+  const [feedbackLoading, setFeedbackLoading] = useState(false)
   const carouselApiRef = useRef<any>(null)
   const [product, setProduct] = useState<{
     id: string
@@ -63,38 +69,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       template.productOptionValue?.toLowerCase() === selectedColor.toLowerCase()
     )
   }, [templates, selectedColor])
-
-  // Mock feedback data - in a real app, this would come from an API
-  const [feedback] = useState([
-    {
-      id: "1",
-      user: "Nguyễn Thị Lan",
-      comment: "Thiết kế này thật tuyệt vời! Chất lượng rất tốt và vừa vặn hoàn hảo. Rất khuyến khích!",
-      rating: 5,
-      timestamp: "2024-01-15T10:30:00Z"
-    },
-    {
-      id: "2", 
-      user: "Trần Văn Minh",
-      comment: "Sản phẩm tuyệt vời, giao hàng nhanh. Chất liệu cảm giác cao cấp và thiết kế đúng như hình ảnh.",
-      rating: 5,
-      timestamp: "2024-01-12T14:22:00Z"
-    },
-    {
-      id: "3",
-      user: "Lê Thị Hoa",
-      comment: "Chất lượng tổng thể tốt, mặc dù kích thước hơi nhỏ một chút. Nên đặt size lớn hơn một size.",
-      rating: 4,
-      timestamp: "2024-01-10T09:15:00Z"
-    },
-    {
-      id: "4",
-      user: "Phạm Đức Anh",
-      comment: "Dịch vụ khách hàng xuất sắc và sản phẩm vượt quá mong đợi của tôi. Chắc chắn sẽ đặt hàng lại!",
-      rating: 5,
-      timestamp: "2024-01-08T16:45:00Z"
-    }
-  ])
 
   useEffect(() => {
     const load = async () => {
@@ -147,6 +121,21 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         // Auto-select first size from product
         if (allSizes.length > 0) {
           setSelectedSize(allSizes[0])
+        }
+
+        // Fetch product feedbacks
+        setFeedbackLoading(true)
+        try {
+          const feedbackRes = await getProductFeedbacks(d.productId)
+          if (feedbackRes.success && feedbackRes.data) {
+            setFeedback(feedbackRes.data.feedbacks || [])
+            setAverageRating(feedbackRes.data.averageRating || 0)
+          }
+        } catch {
+          setFeedback([])
+          setAverageRating(0)
+        } finally {
+          setFeedbackLoading(false)
         }
       } catch (e) {
         setError("Không thể tải thông tin sản phẩm.")
@@ -278,14 +267,30 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         return
       }
 
-      // Add to cart using API
-      dispatch(addItemAsync({
+      // Add to cart using API and wait for it to complete
+      await dispatch(addItemAsync({
         productVariantId: matchedVariant.variantId,
         productDesignId: null as string | null, // No design ID for regular products
         quantity: quantity,
-      }))
+      })).unwrap()
 
-      router.push('/checkout')
+      // After successful add, find the item in the updated cart
+      // We need to use a small delay to ensure Redux state has updated
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      // Find the newly added item in cart
+      const newItem = cartItems.find(item => 
+        item.productVariantId === matchedVariant.variantId &&
+        item.productDesignId === null
+      )
+      
+      if (newItem) {
+        // Redirect to checkout with only this item
+        router.push(`/checkout?items=${newItem.id}`)
+      } else {
+        // Fallback: just go to checkout without item filter
+        router.push('/checkout')
+      }
     } catch (error) {
       console.error('Failed to add item to cart:', error)
       toast.error("Không thể thêm sản phẩm vào giỏ hàng")
@@ -627,43 +632,54 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <CardTitle className="flex items-center gap-2">
                 <Star className="h-5 w-5 text-yellow-500" />
                 Đánh giá khách hàng
+                {averageRating > 0 && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({averageRating.toFixed(1)} / 5 - {feedback.length} đánh giá)
+                  </span>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {feedback.map((review) => (
-                  <div key={review.id} className="border-b border-border pb-4 last:border-b-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <User className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{review.user}</p>
-                          <div className="flex items-center gap-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-3 w-3 ${
-                                  i < review.rating
-                                    ? "text-yellow-500 fill-current"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                {feedbackLoading ? (
+                  <p className="text-center text-muted-foreground">Đang tải đánh giá...</p>
+                ) : feedback.length === 0 ? (
+                  <p className="text-center text-muted-foreground">Chưa có đánh giá nào cho sản phẩm này.</p>
+                ) : (
+                  feedback.map((review) => (
+                    <div key={review.id} className="border-b border-border pb-4 last:border-b-0">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{review.userName || 'Người dùng'}</p>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-3 w-3 ${
+                                    i < review.rating
+                                      ? "text-yellow-500 fill-current"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatTimestamp(review.createdAt)}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatTimestamp(review.timestamp)}
-                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {review.feedback}
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {review.comment}
-                    </p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>

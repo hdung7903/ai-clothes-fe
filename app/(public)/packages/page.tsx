@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Sparkles, Zap, X, Clock } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { buyTokenPackage, createQrCode, checkPaymentStatus } from "@/services/paymentServices"
+import { buyTokenPackage, createQrCode, checkPaymentStatus, checkTokenPackageIsPaid } from "@/services/paymentServices"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -69,7 +69,40 @@ export default function PackagesPage() {
   const [timeLeft, setTimeLeft] = useState(120) // 2 phút = 120 giây
   const [isExpired, setIsExpired] = useState(false)
   const [paymentCode, setPaymentCode] = useState<string | null>(null)
-  const [isCheckingPayment, setIsCheckingPayment] = useState(false)
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
+
+  // Kiểm tra xem người dùng đã có gói Pro active chưa khi trang load
+  useEffect(() => {
+    const checkSubscription = async () => {
+      // Kiểm tra localStorage xem có paymentCode từ lần mua trước không
+      const savedPaymentCode = localStorage.getItem('lastPaymentCode')
+      
+      if (!savedPaymentCode) {
+        setIsCheckingSubscription(false)
+        return
+      }
+
+      try {
+        const response = await checkTokenPackageIsPaid(savedPaymentCode)
+        
+        if (response.success && response.data?.isPaid) {
+          setHasActiveSubscription(true)
+        } else {
+          // Nếu hết hạn hoặc chưa thanh toán, xóa paymentCode cũ
+          localStorage.removeItem('lastPaymentCode')
+          setHasActiveSubscription(false)
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error)
+        setHasActiveSubscription(false)
+      } finally {
+        setIsCheckingSubscription(false)
+      }
+    }
+
+    checkSubscription()
+  }, [])
 
   // Countdown timer
   useEffect(() => {
@@ -98,7 +131,6 @@ export default function PackagesPage() {
       setIsExpired(false)
       setQrCodeUrl(null)
       setPaymentCode(null)
-      setIsCheckingPayment(false)
     }
   }, [isQrDialogOpen])
 
@@ -108,17 +140,25 @@ export default function PackagesPage() {
       return
     }
 
+    let isChecking = false
+
     // Kiểm tra ngay lập tức
     const checkStatus = async () => {
-      if (isCheckingPayment) return
+      if (isChecking) return
       
-      setIsCheckingPayment(true)
+      isChecking = true
       try {
         const response = await checkPaymentStatus({ paymentCode })
         
         if (response.success && response.data?.isPaid) {
           // Thanh toán thành công
           setIsQrDialogOpen(false)
+          
+          // Lưu paymentCode vào localStorage để check lần sau
+          localStorage.setItem('lastPaymentCode', paymentCode)
+          
+          // Cập nhật trạng thái subscription
+          setHasActiveSubscription(true)
           
           // Hiển thị thông báo thành công
           alert('Thanh toán thành công! Gói Pro đã được kích hoạt.')
@@ -134,7 +174,7 @@ export default function PackagesPage() {
       } catch (error) {
         console.error('Error checking payment status:', error)
       } finally {
-        setIsCheckingPayment(false)
+        isChecking = false
       }
     }
 
@@ -143,7 +183,7 @@ export default function PackagesPage() {
     checkStatus() // Gọi ngay lần đầu
 
     return () => clearInterval(interval)
-  }, [isQrDialogOpen, paymentCode, isExpired, isLoadingQr, isCheckingPayment, router])
+  }, [isQrDialogOpen, paymentCode, isExpired, isLoadingQr, router])
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60)
@@ -218,6 +258,18 @@ export default function PackagesPage() {
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           Nâng cấp lên gói Pro với chỉ 30,000đ và nhận ngay 10 lượt tạo ảnh AI bất kỳ để thiết kế sáng tạo
         </p>
+        
+        {/* Hiển thị trạng thái subscription */}
+        {isCheckingSubscription ? (
+          <div className="text-sm text-muted-foreground">
+            Đang kiểm tra gói đăng ký...
+          </div>
+        ) : hasActiveSubscription && (
+          <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-4 py-2 rounded-full text-sm font-medium">
+            <Check className="h-4 w-4" />
+            Bạn đang sử dụng Gói Pro
+          </div>
+        )}
       </section>
 
       {/* Pricing Cards */}
@@ -233,6 +285,13 @@ export default function PackagesPage() {
                 {pkg.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
                     Phổ Biến Nhất
+                  </div>
+                )}
+                
+                {/* Badge hiển thị gói đang active */}
+                {pkg.id === 2 && hasActiveSubscription && (
+                  <div className="absolute -top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                    Đang Active
                   </div>
                 )}
                 
@@ -268,14 +327,19 @@ export default function PackagesPage() {
                 <CardFooter className="pt-6">
                   <Button 
                     onClick={() => handleBuyPackage(pkg)}
+                    disabled={pkg.id === 2 && hasActiveSubscription}
                     className={`w-full ${
                       pkg.popular 
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed' 
                         : 'bg-transparent text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700 dark:hover:text-green-300 border border-green-300 dark:border-green-700'
                     } transition-all duration-300`}
                     size="lg"
                   >
-                    {pkg.id === 1 ? 'Bắt Đầu Miễn Phí' : 'Mua Ngay'}
+                    {pkg.id === 1 
+                      ? 'Bắt Đầu Miễn Phí' 
+                      : hasActiveSubscription 
+                        ? 'Đã Kích Hoạt' 
+                        : 'Mua Ngay'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -394,11 +458,9 @@ export default function PackagesPage() {
                   <p className="text-xs text-red-500 font-medium">
                     Mã QR có hiệu lực trong 2 phút
                   </p>
-                  {isCheckingPayment && (
-                    <p className="text-xs text-blue-500 font-medium animate-pulse">
-                      Đang kiểm tra trạng thái thanh toán...
-                    </p>
-                  )}
+                  <p className="text-xs text-blue-500 font-medium animate-pulse">
+                    Đang tự động kiểm tra trạng thái thanh toán...
+                  </p>
                 </div>
               </div>
             ) : (
