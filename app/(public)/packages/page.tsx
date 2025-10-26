@@ -103,7 +103,7 @@ export default function PackagesPage() {
           Mua Gói AI - Tạo Ảnh Ngay
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          Nâng cấp lên gói Pro với chỉ 30,000đ và nhận ngay 10 ảnh AI bất kỳ để thiết kế sáng tạo
+          Nâng cấp lên gói Pro với chỉ 30,000đ và nhận ngay 10 lượt tạo ảnh AI bất kỳ để thiết kế sáng tạo
         </p>
       </section>
 
