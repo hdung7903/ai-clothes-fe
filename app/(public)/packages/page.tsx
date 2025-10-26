@@ -2,8 +2,18 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Sparkles, Zap } from "lucide-react"
+import { Check, Sparkles, Zap, X } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { getQrCode } from "@/services/paymentService"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import Image from "next/image"
 
 const packages = [
   {
@@ -17,11 +27,11 @@ const packages = [
     bgColor: "bg-blue-50 dark:bg-blue-950",
     borderColor: "border-blue-200 dark:border-blue-800",
     features: [
-      "Thiết kế không giới hạn",
-      "Thư viện mẫu cơ bản",
+      "Tạo thiết kế không giới hạn",
+      "Truy cập thư viện mẫu cơ bản",
       "Xuất file chất lượng tiêu chuẩn",
       "Hỗ trợ qua email",
-      "Lưu trữ đám mây",
+      "Chưa bao gồm tính năng tạo ảnh bằng AI",
     ],
     limitations: [
       "Không có AI tạo ảnh",
@@ -39,17 +49,52 @@ const packages = [
     borderColor: "border-green-200 dark:border-green-800",
     popular: true,
     features: [
-      "Tất cả tính năng gói Miễn Phí",
-      "10 ảnh AI tạo bất kỳ",
-      "Toàn bộ thư viện mẫu premium",
-      "Xuất file chất lượng cao",
-      "Xóa logo watermark",
-      "Hỗ trợ ưu tiên",
+      "Bao gồm toàn bộ tính năng của gói Miễn Phí",
+      "Mở khóa toàn bộ thư viện mẫu cao cấp",
+      "Hỗ trợ ưu tiên và phản hồi nhanh",
+      "Dùng hết lượt tạo ảnh AI sẽ tự động chuyển về gói miễn phí",
     ],
   },
 ]
 
 export default function PackagesPage() {
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
+  const [isLoadingQr, setIsLoadingQr] = useState(false)
+  const [selectedPackage, setSelectedPackage] = useState<typeof packages[0] | null>(null)
+
+  const handleBuyPackage = async (pkg: typeof packages[0]) => {
+    if (pkg.id === 1) {
+      // Gói miễn phí - điều hướng đến đăng ký
+      window.location.href = "/auth/register"
+      return
+    }
+
+    // Gói Pro - hiển thị QR code
+    setSelectedPackage(pkg)
+    setIsQrDialogOpen(true)
+    setIsLoadingQr(true)
+    
+    try {
+      const amount = 30000 // 30,000 VND
+      const response = await getQrCode(amount)
+      
+      if (response.data) {
+        setQrCodeUrl(response.data)
+      } else {
+        console.error('Failed to get QR code')
+        alert('Không thể tạo mã QR. Vui lòng thử lại sau.')
+        setIsQrDialogOpen(false)
+      }
+    } catch (error) {
+      console.error('Error fetching QR code:', error)
+      alert('Đã xảy ra lỗi khi tạo mã QR. Vui lòng thử lại sau.')
+      setIsQrDialogOpen(false)
+    } finally {
+      setIsLoadingQr(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
@@ -108,18 +153,17 @@ export default function PackagesPage() {
                 </CardContent>
 
                 <CardFooter className="pt-6">
-                  <Link href={pkg.id === 1 ? "/auth/register" : "/checkout"} className="w-full">
-                    <Button 
-                      className={`w-full ${
-                        pkg.popular 
-                          ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
-                          : 'bg-transparent text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700 dark:hover:text-green-300 border border-green-300 dark:border-green-700'
-                      } transition-all duration-300`}
-                      size="lg"
-                    >
-                      {pkg.id === 1 ? 'Bắt Đầu Miễn Phí' : 'Mua Ngay'}
-                    </Button>
-                  </Link>
+                  <Button 
+                    onClick={() => handleBuyPackage(pkg)}
+                    className={`w-full ${
+                      pkg.popular 
+                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg' 
+                        : 'bg-transparent text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950 hover:text-green-700 dark:hover:text-green-300 border border-green-300 dark:border-green-700'
+                    } transition-all duration-300`}
+                    size="lg"
+                  >
+                    {pkg.id === 1 ? 'Bắt Đầu Miễn Phí' : 'Mua Ngay'}
+                  </Button>
                 </CardFooter>
               </Card>
             )
@@ -159,6 +203,63 @@ export default function PackagesPage() {
           </div>
         </div>
       </section>
+
+      {/* QR Code Payment Dialog */}
+      <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
+              Thanh Toán Gói Pro
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              Quét mã QR để thanh toán {selectedPackage?.price}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center gap-4 py-4">
+            {isLoadingQr ? (
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-64 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Đang tạo mã QR...</p>
+                </div>
+              </div>
+            ) : qrCodeUrl ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="relative h-64 w-64 bg-white p-4 rounded-lg shadow-lg">
+                  <Image
+                    src={qrCodeUrl}
+                    alt="QR Code Payment"
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    Quét mã QR bằng ứng dụng ngân hàng
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sau khi thanh toán thành công, gói Pro sẽ được kích hoạt tự động
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-red-500">
+                Không thể tải mã QR
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              onClick={() => setIsQrDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Đóng
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
