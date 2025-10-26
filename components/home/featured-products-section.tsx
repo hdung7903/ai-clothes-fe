@@ -100,7 +100,7 @@ export function FeaturedProductsSection() {
               <CardFooter className="pt-0">
                 <div className="flex gap-3 w-full">
                   <Link href={`/products/${product.id}`} className="flex-1">
-                    <Button variant="outline" className="w-full">Xem chi tiết</Button>
+                    <Button className="w-full bg-green-600 hover:bg-green-700">Xem chi tiết</Button>
                   </Link>
                 </div>
               </CardFooter>

@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -80,6 +87,7 @@ export default function DesignToolPage(): ReactElement {
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
+  const [showTokenDialog, setShowTokenDialog] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
@@ -143,6 +151,12 @@ export default function DesignToolPage(): ReactElement {
   // Transform/Generate AI Image
   const handleTransformImage = async (isGenerate: boolean = false) => {
     if (isLoading) return; 
+    
+    // Check token trước khi thực hiện
+    if (!hasTokens) {
+      setShowTokenDialog(true);
+      return;
+    }
     
     if (!input.trim() && !uploadedImage) {
       alert("Vui lòng nhập prompt hoặc upload ảnh.");
@@ -331,31 +345,6 @@ export default function DesignToolPage(): ReactElement {
       <div className="flex-1 flex overflow-hidden w-full h-0">
         {/* Chat Section */}
         <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 h-full relative">
-          {/* Overlay khi hết token */}
-          {!hasTokens && (
-            <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
-              <div className="bg-white rounded-lg p-6 m-4 max-w-sm text-center shadow-xl">
-                <div className="mb-4">
-                  <Sparkles className="h-12 w-12 mx-auto text-yellow-500" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">Bạn đã hết token AI</h3>
-                <p className="text-gray-600 mb-4">
-                  Bạn cần mua thêm token để sử dụng tính năng AI tạo ảnh và chat với trợ lý thiết kế.
-                </p>
-                <div className="space-y-2">
-                  <Link href="/packages">
-                    <Button className="w-full bg-green-600 hover:bg-green-700">
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      Mua Token Ngay
-                    </Button>
-                  </Link>
-                  <p className="text-xs text-gray-500">
-                    Token hiện tại: {tokenCount}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
           
           <div className="flex-1 overflow-y-auto">
             <div className="space-y-4 p-4">
@@ -449,7 +438,7 @@ export default function DesignToolPage(): ReactElement {
                       handleSendMessage();
                     }
                   }}
-                  disabled={isLoading || !hasTokens}
+                  disabled={isLoading}
                 />
               </div>
               <Tooltip>
@@ -457,7 +446,7 @@ export default function DesignToolPage(): ReactElement {
                   <span>
                     <Button
                       onClick={handleSendMessage}
-                      disabled={!input.trim() || isLoading || !hasTokens}
+                      disabled={!input.trim() || isLoading}
                       size="icon"
                       className="shrink-0"
                     >
@@ -465,11 +454,6 @@ export default function DesignToolPage(): ReactElement {
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {!hasTokens && (
-                  <TooltipContent>
-                    <p>Bạn cần mua token để sử dụng AI Chat</p>
-                  </TooltipContent>
-                )}
               </Tooltip>
             </div>
 
@@ -495,21 +479,20 @@ export default function DesignToolPage(): ReactElement {
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
-              disabled={!hasTokens}
             />
             <Button
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               className="w-full mb-2 flex items-center gap-2"
-              disabled={isLoading || !hasTokens}
+              disabled={isLoading}
             >
               <Upload className="h-4 w-4" />
               Upload Ảnh Để Transform
             </Button>
 
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <Select value={style} onValueChange={setStyle} disabled={isLoading || !hasTokens}>
+              <Select value={style} onValueChange={setStyle} disabled={isLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Style" />
                 </SelectTrigger>
@@ -522,7 +505,7 @@ export default function DesignToolPage(): ReactElement {
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={quality} onValueChange={setQuality} disabled={isLoading || !hasTokens}>
+              <Select value={quality} onValueChange={setQuality} disabled={isLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>
@@ -539,7 +522,7 @@ export default function DesignToolPage(): ReactElement {
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(false)}
-                      disabled={isLoading || !uploadedImage || !hasTokens}
+                      disabled={isLoading || !uploadedImage}
                       className="w-full"
                       variant="default"
                     >
@@ -548,18 +531,13 @@ export default function DesignToolPage(): ReactElement {
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {!hasTokens && (
-                  <TooltipContent>
-                    <p>Bạn cần mua token để sử dụng AI Transform</p>
-                  </TooltipContent>
-                )}
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(true)}
-                      disabled={isLoading || !input.trim() || !hasTokens}
+                      disabled={isLoading || !input.trim()}
                       className="w-full"
                       variant="secondary"
                     >
@@ -568,11 +546,6 @@ export default function DesignToolPage(): ReactElement {
                     </Button>
                   </span>
                 </TooltipTrigger>
-                {!hasTokens && (
-                  <TooltipContent>
-                    <p>Bạn cần mua token để sử dụng AI Generate</p>
-                  </TooltipContent>
-                )}
               </Tooltip>
             </div>
           </div>
@@ -597,6 +570,39 @@ export default function DesignToolPage(): ReactElement {
           </div>
         </div>
       </div>
+
+      {/* Dialog mua token - chỉ hiện khi user cố gắng dùng AI mà hết token */}
+      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+              <Sparkles className="h-12 w-12 text-yellow-500" />
+            </div>
+            <DialogTitle className="text-center text-xl">Bạn đã hết token AI</DialogTitle>
+            <DialogDescription className="text-center">
+              Bạn cần mua thêm token để sử dụng tính năng AI tạo ảnh và chat với trợ lý thiết kế.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            <Link href="/packages" className="block">
+              <Button className="w-full bg-green-600 hover:bg-green-700">
+                <Sparkles className="h-4 w-4 mr-2" />
+                Mua Token Ngay
+              </Button>
+            </Link>
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => setShowTokenDialog(false)}
+            >
+              Đóng
+            </Button>
+            <p className="text-xs text-center text-gray-500">
+              Token hiện tại: {tokenCount}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
       </div>
     </TooltipProvider>
   );

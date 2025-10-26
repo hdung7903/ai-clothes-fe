@@ -440,7 +440,7 @@ export default function CheckoutPage() {
         
         // Chỉ hiển thị thông báo thành công nếu thực sự có giảm giá
         if (discountAmount > 0) {
-          toast.success(`Mã giảm giá đã được áp dụng! Giảm ${formatCurrency(discountAmount)}`);
+          toast.success(`Mã giảm giá đã được áp dụng! Giảm {formatCurrency(discountAmount)}` + "đ");
         } else {
           toast.info("Mã voucher hợp lệ nhưng không áp dụng được giảm giá cho đơn hàng này");
         }
