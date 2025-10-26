@@ -53,7 +53,7 @@ async function requestJson<TRes>(path: string): Promise<TRes> {
 
 export async function getProfile(jwt?: string): Promise<GetProfileResponse> {
   const baseUrl = getBaseUrl();
-  const url = baseUrl + '/api/Account/Profile';
+  const url = baseUrl + '/Account/Profile';
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
 
