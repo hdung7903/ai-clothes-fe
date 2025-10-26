@@ -5,6 +5,10 @@ import { MessageCircle, Send, X, Bot, User2, Loader2, AlertCircle, RefreshCw, Tr
 import { useRouter } from "next/navigation"
 import { useSelector } from "react-redux"
 import { askSimpleQuestion } from "@/services/aiServices"
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import '@/styles/chatMarkdown.css'
 
 type ChatMessage = {
   id: string
@@ -293,9 +297,20 @@ export default function ChatDialog({
                             : "bg-white border text-gray-900"
                         }`}
                       >
-                        <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                          {m.text}
-                        </div>
+                        {m.from === "bot" ? (
+                          <div className="chat-markdown">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                            >
+                              {m.text}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                            {m.text}
+                          </div>
+                        )}
                       </div>
                       
                       {/* Timestamp and status */}
