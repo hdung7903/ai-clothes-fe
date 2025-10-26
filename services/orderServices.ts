@@ -279,13 +279,23 @@ export async function checkOrderPaymentStatus(
 // Convenience functions for common admin order status updates
 
 /**
+ * Admin: Update order to ACCEPTED status
+ */
+export async function adminAcceptOrder(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 2, notes });
+}
+
+/**
  * Admin: Update order to PROCESSING status
  */
 export async function adminSetOrderProcessing(
   orderId: string,
   notes?: string
 ): Promise<ApiEnvelope<string>> {
-  return adminUpdateOrderStatus(orderId, { status: 2, notes });
+  return adminUpdateOrderStatus(orderId, { status: 3, notes });
 }
 
 /**
@@ -295,17 +305,17 @@ export async function adminSetOrderShipped(
   orderId: string,
   notes?: string
 ): Promise<ApiEnvelope<string>> {
-  return adminUpdateOrderStatus(orderId, { status: 3, notes });
+  return adminUpdateOrderStatus(orderId, { status: 4, notes });
 }
 
 /**
- * Admin: Update order to DELIVERED status
+ * Admin: Update order to CONFIRM_RECEIVED status
  */
-export async function adminSetOrderDelivered(
+export async function adminConfirmOrderReceived(
   orderId: string,
   notes?: string
 ): Promise<ApiEnvelope<string>> {
-  return adminUpdateOrderStatus(orderId, { status: 4, notes });
+  return adminUpdateOrderStatus(orderId, { status: 5, notes });
 }
 
 /**
@@ -319,13 +329,23 @@ export async function adminCancelOrder(
 }
 
 /**
+ * Admin: Update order to EXPIRED status
+ */
+export async function adminSetOrderExpired(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 7, notes });
+}
+
+/**
  * Admin: Update order to RETURNED status
  */
 export async function adminSetOrderReturned(
   orderId: string,
   notes?: string
 ): Promise<ApiEnvelope<string>> {
-  return adminUpdateOrderStatus(orderId, { status: 7, notes });
+  return adminUpdateOrderStatus(orderId, { status: 8, notes });
 }
 
 /**
@@ -336,16 +356,6 @@ export async function adminRejectOrder(
   notes?: string
 ): Promise<ApiEnvelope<string>> {
   return adminUpdateOrderStatus(orderId, { status: 1, notes });
-}
-
-/**
- * Admin: Update order to EXPIRED status
- */
-export async function adminSetOrderExpired(
-  orderId: string,
-  notes?: string
-): Promise<ApiEnvelope<string>> {
-  return adminUpdateOrderStatus(orderId, { status: 8, notes });
 }
 
 // Convenience functions for user order actions

@@ -245,35 +245,53 @@ export default function OrdersPage() {
 
     setSubmittingFeedback(true)
     try {
+      console.log('📝 Submitting feedback:', {
+        orderId: selectedOrderId,
+        rating,
+        feedbackLength: feedbackText.trim().length
+      })
+
       const response = await createFeedback({
         orderId: selectedOrderId,
         feedback: feedbackText.trim(),
         rating: rating
       })
 
+      console.log('📝 Feedback response:', response)
+
       if (response.success) {
         toast.success("Cảm ơn bạn đã đánh giá!")
         setFeedbackDialogOpen(false)
+        setFeedbackText("")
+        setRating(5)
         // Reload orders list
         const res = await getUserOrders(pageNumber, pageSize)
         if (res.success && res.data) {
           setOrders(res.data.items)
         }
         // Reload detail if open
-        if (detailOpen) {
+        if (detailOpen && selectedOrderId) {
           const detailRes = await getOrderById(selectedOrderId)
           if (detailRes.success && detailRes.data) {
             setOrderDetail(detailRes.data)
           }
         }
       } else {
-        const errorMsg = response.errors 
-          ? Object.values(response.errors).flat().join(", ")
-          : "Không thể gửi đánh giá"
-        toast.error(errorMsg)
+        // Check for authentication error specifically
+        if (response.errors?.auth) {
+          console.error('❌ Authentication error:', response.errors.auth)
+          toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+          // Optionally redirect to login
+          // router.push('/auth/login')
+        } else {
+          const errorMsg = response.errors 
+            ? Object.values(response.errors).flat().join(", ")
+            : "Không thể gửi đánh giá"
+          toast.error(errorMsg)
+        }
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error)
+      console.error("❌ Error submitting feedback:", error)
       toast.error("Có lỗi xảy ra khi gửi đánh giá")
     } finally {
       setSubmittingFeedback(false)

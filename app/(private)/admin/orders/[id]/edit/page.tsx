@@ -35,26 +35,25 @@ import Link from "next/link"
 const STATUS_STRING_TO_CODE: Record<string, number> = {
   PENDING: 0,
   REJECTED: 1,
-  ACCEPTED: 2,      // Alias for PROCESSING
-  PROCESSING: 2,
-  SHIPPED: 3,
-  DELIVERED: 4,
+  ACCEPTED: 2,
+  PROCESSING: 3,
+  SHIPPED: 4,
   CONFIRM_RECEIVED: 5,
   CANCELLED: 6,
-  RETURNED: 7,
-  EXPIRED: 8,
+  EXPIRED: 7,
+  RETURNED: 8,
 }
 
 const STATUS_CODE_TO_LABEL: Record<number, string> = {
   0: 'Chờ xử lý',
   1: 'Từ chối',
-  2: 'Đang xử lý',
-  3: 'Đã gửi hàng',
-  4: 'Đã giao hàng',
+  2: 'Đã duyệt',
+  3: 'Đang xử lý',
+  4: 'Đã gửi hàng',
   5: 'Xác nhận đã nhận',
   6: 'Đã hủy',
-  7: 'Trả hàng',
-  8: 'Hết hạn',
+  7: 'Hết hạn',
+  8: 'Trả hàng',
 }
 
 function normalizeStatusKey(input: string): string {
@@ -80,10 +79,10 @@ function getStatusLabelFromCode(code: number | null): string {
 
 // Allowed transitions and labels for UI
 const ALLOWED_TARGETS: Record<string, string[]> = {
-  PENDING: ['PROCESSING', 'REJECTED', 'CANCELLED', 'EXPIRED'],
-  PROCESSING: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['DELIVERED', 'RETURNED'],
-  DELIVERED: ['CONFIRM_RECEIVED', 'RETURNED'],
+  PENDING: ['ACCEPTED', 'REJECTED'],
+  ACCEPTED: ['PROCESSING', 'REJECTED'],
+  PROCESSING: ['SHIPPED', 'REJECTED'],
+  SHIPPED: ['RETURNED'],
   CONFIRM_RECEIVED: [],  // Final state
   REJECTED: [],          // Final state
   CANCELLED: [],         // Final state
@@ -94,13 +93,13 @@ const ALLOWED_TARGETS: Record<string, string[]> = {
 const STATUS_KEY_TO_VN_LABEL: Record<string, string> = {
   PENDING: 'Chờ xử lý',
   REJECTED: 'Từ chối',
+  ACCEPTED: 'Đã duyệt',
   PROCESSING: 'Đang xử lý',
   SHIPPED: 'Đã gửi hàng',
-  DELIVERED: 'Đã giao hàng',
   CONFIRM_RECEIVED: 'Xác nhận đã nhận',
   CANCELLED: 'Đã hủy',
-  RETURNED: 'Trả hàng',
   EXPIRED: 'Hết hạn',
+  RETURNED: 'Trả hàng',
 }
 
 // (deduped above)
@@ -112,6 +111,7 @@ const PAYMENT_STRING_TO_CODE: Record<string, number> = {
   COD: 2,
   REFUNDING: 3,
   REFUNDED: 4,
+  EXPIRED: 5,
 }
 
 const PAYMENT_CODE_TO_LABEL: Record<number, string> = {
@@ -120,6 +120,7 @@ const PAYMENT_CODE_TO_LABEL: Record<number, string> = {
   2: 'Thanh toán khi nhận hàng (COD)',
   3: 'Đang hoàn tiền',
   4: 'Đã hoàn tiền',
+  5: 'Hết hạn',
 }
 
 // Allowed payment status transitions

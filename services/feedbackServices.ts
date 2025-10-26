@@ -18,7 +18,16 @@ function getAuthHeaders(): HeadersInit | null {
   let token: string | null = null;
   
   if (typeof window !== 'undefined') {
-    token = localStorage.getItem('token');
+    try {
+      const raw = localStorage.getItem('auth.tokens');
+      if (raw) {
+        const parsed = JSON.parse(raw) as { accessToken?: string };
+        token = parsed?.accessToken ?? null;
+      }
+    } catch (error) {
+      console.warn('Failed to parse auth tokens from localStorage:', error);
+      token = null;
+    }
   }
   
   if (!token) {

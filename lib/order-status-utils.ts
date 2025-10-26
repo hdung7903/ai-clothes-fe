@@ -7,15 +7,15 @@ import { OrderStatus, ORDER_STATUS_LABELS, PaymentStatus, PAYMENT_STATUS_LABELS 
 
 // Order Status Flow Diagram
 export const ORDER_STATUS_FLOW = {
-  PENDING: ['PROCESSING', 'REJECTED', 'CANCELLED', 'EXPIRED'],
-  PROCESSING: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['DELIVERED', 'RETURNED'],
-  DELIVERED: ['CONFIRM_RECEIVED', 'RETURNED'],
+  PENDING: ['ACCEPTED', 'REJECTED'],
+  ACCEPTED: ['PROCESSING', 'REJECTED'],
+  PROCESSING: ['SHIPPED', 'REJECTED'],
+  SHIPPED: ['RETURNED'],
   CONFIRM_RECEIVED: [], // Final state
   REJECTED: [],         // Final state
   CANCELLED: [],        // Final state
-  RETURNED: [],         // Final state
   EXPIRED: [],          // Final state
+  RETURNED: [],         // Final state
 }
 
 // Payment Status Flow
@@ -25,6 +25,7 @@ export const PAYMENT_STATUS_FLOW: Record<PaymentStatus, PaymentStatus[]> = {
   [PaymentStatus.COD]: [],
   [PaymentStatus.REFUNDING]: [PaymentStatus.REFUNDED],
   [PaymentStatus.REFUNDED]: [],
+  [PaymentStatus.EXPIRED]: [],
 }
 
 /**
@@ -49,8 +50,9 @@ export function getOrderStatusColor(status: string | OrderStatus): string {
   
   switch (statusKey) {
     case 'CONFIRM_RECEIVED':
-    case 'DELIVERED':
       return 'bg-green-100 text-green-800 border-green-200'
+    case 'ACCEPTED':
+      return 'bg-cyan-100 text-cyan-800 border-cyan-200'
     case 'SHIPPED':
       return 'bg-blue-100 text-blue-800 border-blue-200'
     case 'PROCESSING':
@@ -141,14 +143,13 @@ export function parseOrderStatus(status: string): OrderStatus {
   switch (normalized) {
     case 'PENDING': return OrderStatus.PENDING
     case 'REJECTED': return OrderStatus.REJECTED
-    case 'PROCESSING':
-    case 'ACCEPTED': return OrderStatus.PROCESSING
+    case 'ACCEPTED': return OrderStatus.ACCEPTED
+    case 'PROCESSING': return OrderStatus.PROCESSING
     case 'SHIPPED': return OrderStatus.SHIPPED
-    case 'DELIVERED': return OrderStatus.DELIVERED
     case 'CONFIRM_RECEIVED': return OrderStatus.CONFIRM_RECEIVED
     case 'CANCELLED': return OrderStatus.CANCELLED
-    case 'RETURNED': return OrderStatus.RETURNED
     case 'EXPIRED': return OrderStatus.EXPIRED
+    case 'RETURNED': return OrderStatus.RETURNED
     default: return OrderStatus.PENDING
   }
 }
@@ -167,6 +168,7 @@ export function parsePaymentStatus(status: string): PaymentStatus {
     case 'CASH_ON_DELIVERY': return PaymentStatus.COD
     case 'REFUNDING': return PaymentStatus.REFUNDING
     case 'REFUNDED': return PaymentStatus.REFUNDED
+    case 'EXPIRED': return PaymentStatus.EXPIRED
     default: return PaymentStatus.ONLINE_PAYMENT_AWAITING
   }
 }

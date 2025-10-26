@@ -158,25 +158,25 @@ export type AdminUpdatePaymentStatusResponse = string;
 export enum OrderStatus {
   PENDING = 0,
   REJECTED = 1,
-  PROCESSING = 2,
-  SHIPPED = 3,
-  DELIVERED = 4,
+  ACCEPTED = 2,
+  PROCESSING = 3,
+  SHIPPED = 4,
   CONFIRM_RECEIVED = 5,
   CANCELLED = 6,
-  RETURNED = 7,
-  EXPIRED = 8,
+  EXPIRED = 7,
+  RETURNED = 8,
 }
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]: 'Chờ xử lý',
   [OrderStatus.REJECTED]: 'Từ chối',
+  [OrderStatus.ACCEPTED]: 'Đã duyệt',
   [OrderStatus.PROCESSING]: 'Đang xử lý',
   [OrderStatus.SHIPPED]: 'Đã gửi hàng',
-  [OrderStatus.DELIVERED]: 'Đã giao hàng',
   [OrderStatus.CONFIRM_RECEIVED]: 'Xác nhận đã nhận',
   [OrderStatus.CANCELLED]: 'Đã hủy',
-  [OrderStatus.RETURNED]: 'Trả hàng',
   [OrderStatus.EXPIRED]: 'Hết hạn',
+  [OrderStatus.RETURNED]: 'Trả hàng',
 }
 
 // Payment Status Constants
@@ -186,6 +186,7 @@ export enum PaymentStatus {
   COD = 2,
   REFUNDING = 3,
   REFUNDED = 4,
+  EXPIRED = 5,
 }
 
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
@@ -194,6 +195,7 @@ export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   [PaymentStatus.COD]: 'Thanh toán khi nhận',
   [PaymentStatus.REFUNDING]: 'Đang hoàn tiền',
   [PaymentStatus.REFUNDED]: 'Đã hoàn tiền',
+  [PaymentStatus.EXPIRED]: 'Hết hạn',
 }
 
 // User Actions for Order Status Update
