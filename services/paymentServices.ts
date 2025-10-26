@@ -85,6 +85,22 @@ export async function checkPaymentStatus(payload: CheckPaymentStatusRequest): Pr
 }
 
 /**
+ * Check if order is paid
+ * GET /api/Order/{orderId}/IsPaid
+ * @param orderId - The order ID (GUID) to check
+ * @returns Promise with isPaid boolean (true if paid, false if not paid)
+ */
+export async function checkOrderIsPaid(orderId: string): Promise<ApiEnvelope<boolean>> {
+  const baseUrl = getBaseUrl();
+  const res = await fetch(baseUrl + `Order/${orderId}/IsPaid`, {
+    method: 'GET',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+  });
+  return res.json() as Promise<ApiEnvelope<boolean>>;
+}
+
+/**
  * Check if token package is paid
  * GET /api/TokenPackage/CheckIsPaid
  * @param paymentCode - The payment code to check

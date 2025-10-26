@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, Zap, X, Clock, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { buyTokenPackage, createQrCode, checkPaymentStatus, checkTokenPackageIsPaid } from "@/services/paymentServices"
+import { buyTokenPackage, createQrCode, checkOrderIsPaid, checkTokenPackageIsPaid } from "@/services/paymentServices"
 import { useRouter } from "next/navigation"
 import {
   Dialog,
@@ -174,9 +174,9 @@ export default function PackagesPage() {
       
       isChecking = true
       try {
-        const response = await checkPaymentStatus({ paymentCode })
+        const response = await checkOrderIsPaid(paymentCode)
         
-        if (response.success && response.data?.isPaid) {
+        if (response.success && response.data === true) {
           // Thanh toán thành công
           setIsQrDialogOpen(false)
           
