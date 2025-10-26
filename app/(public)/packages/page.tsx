@@ -106,7 +106,7 @@ export default function PackagesPage() {
         
         if (!isMounted) return; // Don't update state if unmounted
         
-        if (response.success && response.data?.isPaid) {
+        if (response.success && response.data === true) {
           setHasActiveSubscription(true)
           toast.success('Bạn đang sử dụng Gói Pro', { duration: 2000 })
         } else {
