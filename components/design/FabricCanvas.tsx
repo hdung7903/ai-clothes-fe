@@ -2016,36 +2016,15 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
     useEffect(() => {
       // Skip if we're capturing canvas to prevent corruption
       if (isCapturingCanvasRef.current) {
-        console.log("⏸️ AUTO SAVE SKIPPED - capturing canvas");
         return;
       }
       
       // Only save if we're not in the middle of switching sides
       if (prevSideRef.current === currentSide && !isSwitchingSideRef.current) {
-        console.log("💾 AUTO SAVE DECORATIONS");
-        console.log("Current side:", currentSide);
-        console.log("Current decorations count:", decorations.length);
-        decorations.forEach(d => console.log(`  - ${d.name} (ID: ${d.id})`));
-
         // Update sideDecorations to keep it in sync - ONLY for current side
         setSideDecorations((prev) => {
-          const updated = { ...prev, [currentSide]: [...decorations] }; // Use spread to create new array
-          console.log("💾 Updated sideDecorations for", currentSide);
-          console.log("💾 Side decorations count:", {
-            front: updated.front.length,
-            back: updated.back.length,
-            leftSleeve: updated.leftSleeve.length,
-            rightSleeve: updated.rightSleeve.length,
-          });
+          const updated = { ...prev, [currentSide]: [...decorations] };
           return updated;
-        });
-      } else if (isSwitchingSideRef.current) {
-        console.log("⏸️ AUTO SAVE SKIPPED - switching sides");
-      } else {
-        console.log("⏸️ AUTO SAVE SKIPPED - side mismatch:", {
-          prevSide: prevSideRef.current,
-          currentSide: currentSide,
-          isSwitching: isSwitchingSideRef.current,
         });
       }
     }, [decorations, currentSide]);
@@ -2068,35 +2047,17 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
     // Thay thế effect hook restore background image hiện tại bằng version này:
     useEffect(() => {
-      console.log("🔄 BACKGROUND RESTORE EFFECT TRIGGERED");
-      console.log("Current side:", currentSide);
-      console.log("Current shirtImage:", shirtImage);
-      console.log("Side's background image:", shirtImageBySide[currentSide]);
-      
       const sideImage = shirtImageBySide[currentSide];
       
       // Always ensure the correct background image is displayed
       if (sideImage && sideImage !== shirtImage) {
-        console.log("🔄 BACKGROUND RESTORE - Restoring background image");
-        console.log("From:", shirtImage);
-        console.log("To:", sideImage);
         setShirtImage(sideImage);
-      } else if (sideImage === shirtImage) {
-        console.log("✅ Background image already correct");
-      } else if (!sideImage) {
-        console.log("⚠️ No background image for this side");
       }
-      
-      console.log("🔄 END BACKGROUND RESTORE EFFECT");
     }, [currentSide, shirtImageBySide]); // Removed decorations dependency
 
     // Thêm một effect riêng để log khi decorations thay đổi
     useEffect(() => {
-      console.log("📝 DECORATIONS CHANGED");
-      console.log("Current side:", currentSide);
-      console.log("Decorations count:", decorations.length);
-      console.log("Current shirtImage:", shirtImage);
-      console.log("Expected background:", shirtImageBySide[currentSide]);
+      // Silent effect - no logs to prevent console spam
     }, [decorations]);
 
     return (

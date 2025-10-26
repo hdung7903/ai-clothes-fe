@@ -35,23 +35,6 @@ export function HeroSection() {
               {"Khám phá các bộ sưu tập được tuyển chọn, những món đồ thiết yếu hàng ngày và những món đồ nổi bật được thiết kế cho sự thoải mái, chất lượng và phong cách dễ dàng."}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-6 bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/30"
-              >
-                {"Mua Sắm Hàng Mới"}
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="text-lg px-8 py-6 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50"
-              >
-                {"Xem Bán Chạy"}
-              </Button>
-            </div>
-
             <div className="flex items-center space-x-8 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-green-600 rounded-full"></div>

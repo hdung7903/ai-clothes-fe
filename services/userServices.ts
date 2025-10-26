@@ -9,12 +9,10 @@ function getAccessToken(): string | null {
   try {
     const raw = typeof window !== 'undefined' ? localStorage.getItem('auth.tokens') : null;
     if (!raw) {
-      console.log('No auth.tokens found in localStorage');
       return null;
     }
     const parsed = JSON.parse(raw) as { accessToken?: string };
     const token = parsed?.accessToken ?? null;
-    console.log('Access token found:', token ? 'Yes' : 'No');
     return token;
   } catch (error) {
     console.error('Error parsing auth tokens:', error);
@@ -27,9 +25,6 @@ function withAuth(headers: HeadersInit): HeadersInit {
   const token = getAccessToken();
   if (token) {
     h.set('Authorization', `Bearer ${token}`);
-    console.log('Authorization header set with token');
-  } else {
-    console.log('No token available, request will be unauthorized');
   }
   return h;
 }
@@ -47,7 +42,7 @@ async function requestJson<TRes>(path: string): Promise<TRes> {
 
 export async function getProfile(jwt?: string): Promise<GetProfileResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + '/Account/Profile';
+  const url = baseUrl + 'Account/Profile';
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
 

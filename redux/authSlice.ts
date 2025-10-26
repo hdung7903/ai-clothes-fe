@@ -343,17 +343,10 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserProfile.fulfilled, (state, action: PayloadAction<UserProfile>) => {
-        console.log('✅ User profile fetched successfully:', action.payload);
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
         state.error = null;
-        console.log('✅ Auth state updated with user:', { 
-          hasTokens: !!state.tokens, 
-          isAuthenticated: state.isAuthenticated,
-          hasUser: !!state.user,
-          userRoles: state.user?.roles
-        });
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         console.warn('❌ Failed to fetch user profile:', action.payload);

@@ -58,7 +58,8 @@ export default function DesignToolPage(): ReactElement {
   const dispatch = useAppDispatch();
   const authUserId = useAppSelector((s) => s.auth.user?.id);
   const user = useAppSelector((s) => s.auth.user);
-  const tokens = useAppSelector((s) => s.auth.tokens);
+  
+  // Lấy tokenCount từ Redux (đã được fetch bởi Redux Provider)
   const tokenCount = user?.tokenCount ?? 0;
   const hasTokens = tokenCount > 0;
   
@@ -76,51 +77,16 @@ export default function DesignToolPage(): ReactElement {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null); // Chỉ preview upload
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]); // Ảnh AI chờ lưu
   const [isLoading, setIsLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
 
-  // Fetch latest user profile on mount to get updated token count
-  useEffect(() => {
-    setMounted(true);
-    
-    // Refresh user profile to get latest token count
-    if (tokens?.accessToken) {
-      dispatch(fetchUserProfile(tokens.accessToken));
-    }
-  }, [dispatch, tokens?.accessToken]);
-
-  // Refresh profile after AI operations to update token count
-  const refreshUserProfile = async () => {
-    if (tokens?.accessToken) {
-      try {
-        await dispatch(fetchUserProfile(tokens.accessToken)).unwrap();
-      } catch (error) {
-        console.error('Failed to refresh user profile:', error);
-      }
-    }
-  };
-
-  
-
   // Gửi message chat - Call AI service directly
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
     
-    // Check if user has tokens
-    if (!hasTokens) {
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        role: "assistant",
-        content: "⚠️ Bạn đã hết token! Vui lòng mua gói token để tiếp tục sử dụng tính năng AI Chat. Truy cập trang Packages để mua thêm token.",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-      return;
-    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -154,8 +120,6 @@ export default function DesignToolPage(): ReactElement {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // Refresh profile to update token count after AI usage
-      await refreshUserProfile();
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
@@ -172,13 +136,7 @@ export default function DesignToolPage(): ReactElement {
 
   // Transform/Generate AI Image
   const handleTransformImage = async (isGenerate: boolean = false) => {
-    if (isLoading) return;
-    
-    // Check if user has tokens
-    if (!hasTokens) {
-      alert("⚠️ Bạn đã hết token! Vui lòng mua gói token để tiếp tục sử dụng tính năng AI Transform/Generate. Truy cập trang Packages để mua thêm token.");
-      return;
-    }
+    if (isLoading) return; 
     
     if (!input.trim() && !uploadedImage) {
       alert("Vui lòng nhập prompt hoặc upload ảnh.");
@@ -251,8 +209,6 @@ export default function DesignToolPage(): ReactElement {
       setInput("");
       if (!isGenerate) setUploadedImage(null); // Clear upload preview
       
-      // Refresh profile to update token count after AI usage
-      await refreshUserProfile();
     } catch (error) {
       console.error(`Error ${isGenerate ? "generating" : "transforming"} image:`, error);
       const errorMessage: Message = {
@@ -346,7 +302,33 @@ export default function DesignToolPage(): ReactElement {
       {/* Main Content: Chat (30%) + Canvas (70%) */}
       <div className="flex-1 flex overflow-auto w-full">
         {/* Chat Section */}
-        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 max-h-full">
+        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 max-h-full relative">
+          {/* Overlay khi hết token */}
+          {!hasTokens && (
+            <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center">
+              <div className="bg-white rounded-lg p-6 m-4 max-w-sm text-center shadow-xl">
+                <div className="mb-4">
+                  <Sparkles className="h-12 w-12 mx-auto text-yellow-500" />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Bạn đã hết token AI</h3>
+                <p className="text-gray-600 mb-4">
+                  Bạn cần mua thêm token để sử dụng tính năng AI tạo ảnh và chat với trợ lý thiết kế.
+                </p>
+                <div className="space-y-2">
+                  <Link href="/packages">
+                    <Button className="w-full bg-green-600 hover:bg-green-700">
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Mua Token Ngay
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-gray-500">
+                    Token hiện tại: {tokenCount}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <ScrollArea className="flex-1 p-4 h-0">
             <div className="space-y-4">
               {messages.map((message) => (
@@ -376,11 +358,9 @@ export default function DesignToolPage(): ReactElement {
                       </Badge>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    {mounted && (
-                      <p className="text-xs opacity-70 mt-1">
-                        {formatTimestamp(message.timestamp)}
-                      </p>
-                    )}
+                    <p className="text-xs opacity-70 mt-1">
+                      {formatTimestamp(message.timestamp)}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -441,7 +421,7 @@ export default function DesignToolPage(): ReactElement {
                       handleSendMessage();
                     }
                   }}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasTokens}
                 />
               </div>
               <Tooltip>
@@ -487,20 +467,21 @@ export default function DesignToolPage(): ReactElement {
               accept="image/*"
               onChange={handleImageUpload}
               className="hidden"
+              disabled={!hasTokens}
             />
             <Button
               variant="outline"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               className="w-full mb-2 flex items-center gap-2"
-              disabled={isLoading}
+              disabled={isLoading || !hasTokens}
             >
               <Upload className="h-4 w-4" />
               Upload Ảnh Để Transform
             </Button>
 
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <Select value={style} onValueChange={setStyle} disabled={isLoading}>
+              <Select value={style} onValueChange={setStyle} disabled={isLoading || !hasTokens}>
                 <SelectTrigger>
                   <SelectValue placeholder="Style" />
                 </SelectTrigger>
@@ -513,7 +494,7 @@ export default function DesignToolPage(): ReactElement {
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={quality} onValueChange={setQuality} disabled={isLoading}>
+              <Select value={quality} onValueChange={setQuality} disabled={isLoading || !hasTokens}>
                 <SelectTrigger>
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>

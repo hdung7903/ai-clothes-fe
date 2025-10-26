@@ -72,44 +72,63 @@ export default function PackagesPage() {
   const [isExpired, setIsExpired] = useState(false)
   const [paymentCode, setPaymentCode] = useState<string | null>(null)
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
-  const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(false) // Start as false
 
   // Kiểm tra xem người dùng đã có gói Pro active chưa khi trang load
   useEffect(() => {
+    let isMounted = true; // Prevent state updates after unmount
+    
     const checkSubscription = async () => {
       // Kiểm tra localStorage xem có paymentCode từ lần mua trước không
       const savedPaymentCode = localStorage.getItem('lastPaymentCode')
       
       if (!savedPaymentCode) {
-        setIsCheckingSubscription(false)
+        // Không có paymentCode -> không cần check
         return
       }
 
+      // Bắt đầu hiển thị loading chỉ khi có paymentCode
+      if (isMounted) setIsCheckingSubscription(true)
+
+      // Set timeout 5 giây - nếu API không trả về thì cũng ẩn loading
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          console.log('⏱️ Subscription check timeout - hiding loader')
+          setIsCheckingSubscription(false)
+        }
+      }, 5000)
+
       try {
-        console.log('🔍 Checking subscription with paymentCode:', savedPaymentCode)
         const response = await checkTokenPackageIsPaid(savedPaymentCode)
-        console.log('📦 Subscription check response:', response)
+        
+        // Clear timeout nếu API trả về trước 5 giây
+        clearTimeout(timeoutId)
+        
+        if (!isMounted) return; // Don't update state if unmounted
         
         if (response.success && response.data?.isPaid) {
-          console.log('✅ Active subscription found')
           setHasActiveSubscription(true)
-          toast.success('Bạn đang sử dụng Gói Pro')
+          toast.success('Bạn đang sử dụng Gói Pro', { duration: 2000 })
         } else {
-          console.log('⚠️ No active subscription or expired')
           // Nếu hết hạn hoặc chưa thanh toán, xóa paymentCode cũ
           localStorage.removeItem('lastPaymentCode')
           setHasActiveSubscription(false)
         }
       } catch (error) {
         console.error('❌ Error checking subscription:', error)
-        setHasActiveSubscription(false)
+        if (isMounted) setHasActiveSubscription(false)
+        clearTimeout(timeoutId)
       } finally {
-        setIsCheckingSubscription(false)
+        if (isMounted) setIsCheckingSubscription(false)
       }
     }
 
     checkSubscription()
-  }, [])
+    
+    return () => {
+      isMounted = false; // Cleanup
+    }
+  }, []) // ✅ Only run once on mount
 
   // Countdown timer
   useEffect(() => {
