@@ -51,7 +51,7 @@ export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherReques
 
 export async function searchVouchers(query: SearchVouchersQuery): Promise<SearchVouchersResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/Voucher/Search', baseUrl);
+  const url = new URL('/api/Voucher/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
