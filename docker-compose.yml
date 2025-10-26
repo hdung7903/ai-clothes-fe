@@ -5,13 +5,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=https://teecraft.com.vn/api/
+        - NEXT_PUBLIC_AI_BASE_URL=https://teecraft.com.vn/aiapi/
     container_name: ai-clothes-fe-nextjs
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - NEXT_PUBLIC_API_BASE_URL=https://teecraft.com.vn/api/
+      - NEXT_PUBLIC_AI_BASE_URL=https://teecraft.com.vn/aiapi/
     ports:
       - "3000:3000"
 

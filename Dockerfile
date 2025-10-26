@@ -11,7 +11,16 @@ RUN npm ci --no-audit --no-fund
 # Build the application
 FROM deps AS build
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
+
+# Accept build arguments for environment variables
+ARG NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_AI_BASE_URL
+
+# Set environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    NEXT_PUBLIC_AI_BASE_URL=${NEXT_PUBLIC_AI_BASE_URL}
+
 RUN npm run build
 
 # Production runner image
