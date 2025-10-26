@@ -12,13 +12,18 @@ export interface CreateFeedbackResponse {
 
 export interface FeedbackItem {
   id: string;
-  orderId: string;
-  userId: string;
+  orderId?: string;
+  userId?: string;
   userName?: string;
   userAvatar?: string;
   productId: string;
   feedback: string;
   rating: number;
+  createdBy?: {
+    userId: string;
+    name: string;
+    email: string | null;
+  };
   createdAt: string;
   updatedAt?: string;
 }

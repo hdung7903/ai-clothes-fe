@@ -654,7 +654,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                             <User className="h-4 w-4 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium text-sm">{review.userName || 'Người dùng'}</p>
+                            <p className="font-medium text-sm">
+                              {review.createdBy?.name || review.userName || 'Người dùng'}
+                            </p>
                             <div className="flex items-center gap-1">
                               {[...Array(5)].map((_, i) => (
                                 <Star
