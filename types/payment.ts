@@ -24,6 +24,32 @@ export interface QrCodeRequest {
   paymentCode: string;
 }
 
+// Token Package Buy Request
+export interface TokenPackageBuyRequest {
+  tokenPackageId: string;
+}
+
+// Token Package Buy Response Data
+export interface TokenPackageBuyData {
+  paymentCode: string;
+  amount: number;
+}
+
+export type TokenPackageBuyResponse = ApiEnvelope<TokenPackageBuyData>;
+
+// Check Payment Status Request
+export interface CheckPaymentStatusRequest {
+  paymentCode: string;
+}
+
+// Check Payment Status Response Data
+export interface CheckPaymentStatusData {
+  isPaid: boolean;
+  transactionDate?: string;
+}
+
+export type CheckPaymentStatusResponse = ApiEnvelope<CheckPaymentStatusData>;
+
 
 
 

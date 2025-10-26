@@ -2,10 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Sparkles, Zap, X } from "lucide-react"
+import { Check, Sparkles, Zap, X, Clock } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
-import { getQrCode } from "@/services/paymentService"
+import { useState, useEffect } from "react"
+import { buyTokenPackage, createQrCode, checkPaymentStatus } from "@/services/paymentServices"
+import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ const packages = [
     iconColor: "text-blue-600",
     bgColor: "bg-blue-50 dark:bg-blue-950",
     borderColor: "border-blue-200 dark:border-blue-800",
+    tokenPackageId: null, // Không có token package ID cho gói miễn phí
     features: [
       "Tạo thiết kế không giới hạn",
       "Truy cập thư viện mẫu cơ bản",
@@ -47,6 +49,7 @@ const packages = [
     iconColor: "text-green-600",
     bgColor: "bg-green-50 dark:bg-green-950",
     borderColor: "border-green-200 dark:border-green-800",
+    tokenPackageId: "11111111-1111-1111-1111-111111111111", // ID của gói token
     popular: true,
     features: [
       "Bao gồm toàn bộ tính năng của gói Miễn Phí",
@@ -58,10 +61,95 @@ const packages = [
 ]
 
 export default function PackagesPage() {
+  const router = useRouter()
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
   const [isLoadingQr, setIsLoadingQr] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState<typeof packages[0] | null>(null)
+  const [timeLeft, setTimeLeft] = useState(120) // 2 phút = 120 giây
+  const [isExpired, setIsExpired] = useState(false)
+  const [paymentCode, setPaymentCode] = useState<string | null>(null)
+  const [isCheckingPayment, setIsCheckingPayment] = useState(false)
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isQrDialogOpen || isLoadingQr || !qrCodeUrl) {
+      return
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          setIsExpired(true)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [isQrDialogOpen, isLoadingQr, qrCodeUrl])
+
+  // Reset timer khi đóng dialog
+  useEffect(() => {
+    if (!isQrDialogOpen) {
+      setTimeLeft(120)
+      setIsExpired(false)
+      setQrCodeUrl(null)
+      setPaymentCode(null)
+      setIsCheckingPayment(false)
+    }
+  }, [isQrDialogOpen])
+
+  // Kiểm tra trạng thái thanh toán định kỳ
+  useEffect(() => {
+    if (!isQrDialogOpen || !paymentCode || isExpired || isLoadingQr) {
+      return
+    }
+
+    // Kiểm tra ngay lập tức
+    const checkStatus = async () => {
+      if (isCheckingPayment) return
+      
+      setIsCheckingPayment(true)
+      try {
+        const response = await checkPaymentStatus({ paymentCode })
+        
+        if (response.success && response.data?.isPaid) {
+          // Thanh toán thành công
+          setIsQrDialogOpen(false)
+          
+          // Hiển thị thông báo thành công
+          alert('Thanh toán thành công! Gói Pro đã được kích hoạt.')
+          
+          // Reload trang để cập nhật dữ liệu
+          window.location.reload()
+          
+          // Điều hướng về trang chủ sau khi reload
+          setTimeout(() => {
+            router.push('/')
+          }, 100)
+        }
+      } catch (error) {
+        console.error('Error checking payment status:', error)
+      } finally {
+        setIsCheckingPayment(false)
+      }
+    }
+
+    // Kiểm tra mỗi 3 giây
+    const interval = setInterval(checkStatus, 3000)
+    checkStatus() // Gọi ngay lần đầu
+
+    return () => clearInterval(interval)
+  }, [isQrDialogOpen, paymentCode, isExpired, isLoadingQr, isCheckingPayment, router])
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   const handleBuyPackage = async (pkg: typeof packages[0]) => {
     if (pkg.id === 1) {
@@ -70,25 +158,50 @@ export default function PackagesPage() {
       return
     }
 
-    // Gói Pro - hiển thị QR code
+    // Gói Pro - mua gói token và hiển thị QR code
+    if (!pkg.tokenPackageId) {
+      alert('Thông tin gói không hợp lệ')
+      return
+    }
+
     setSelectedPackage(pkg)
     setIsQrDialogOpen(true)
     setIsLoadingQr(true)
     
     try {
-      const amount = 30000 // 30,000 VND
-      const response = await getQrCode(amount)
+      // Bước 1: Gọi API mua gói token
+      const buyResponse = await buyTokenPackage({
+        tokenPackageId: pkg.tokenPackageId
+      })
       
-      if (response.data) {
-        setQrCodeUrl(response.data)
+      if (!buyResponse.success || !buyResponse.data) {
+        console.error('Failed to buy token package:', buyResponse.errors)
+        alert('Không thể mua gói. Vui lòng thử lại sau.')
+        setIsQrDialogOpen(false)
+        return
+      }
+
+      const { paymentCode, amount } = buyResponse.data
+
+      // Lưu paymentCode để kiểm tra trạng thái
+      setPaymentCode(paymentCode)
+
+      // Bước 2: Gọi API tạo mã QR với paymentCode và amount
+      const qrResponse = await createQrCode({
+        paymentCode,
+        amount
+      })
+      
+      if (qrResponse.success && qrResponse.data) {
+        setQrCodeUrl(qrResponse.data)
       } else {
-        console.error('Failed to get QR code')
+        console.error('Failed to get QR code:', qrResponse.errors)
         alert('Không thể tạo mã QR. Vui lòng thử lại sau.')
         setIsQrDialogOpen(false)
       }
     } catch (error) {
-      console.error('Error fetching QR code:', error)
-      alert('Đã xảy ra lỗi khi tạo mã QR. Vui lòng thử lại sau.')
+      console.error('Error in payment process:', error)
+      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.')
       setIsQrDialogOpen(false)
     } finally {
       setIsLoadingQr(false)
@@ -223,6 +336,31 @@ export default function PackagesPage() {
                   <p className="text-sm text-muted-foreground">Đang tạo mã QR...</p>
                 </div>
               </div>
+            ) : isExpired ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="h-64 w-64 bg-red-50 dark:bg-red-950 rounded-lg flex items-center justify-center">
+                  <div className="text-center space-y-2">
+                    <Clock className="h-12 w-12 text-red-500 mx-auto" />
+                    <p className="text-lg font-semibold text-red-600 dark:text-red-400">
+                      Mã QR đã hết hạn
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Vui lòng thử lại
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => {
+                    setIsQrDialogOpen(false)
+                    if (selectedPackage) {
+                      setTimeout(() => handleBuyPackage(selectedPackage), 300)
+                    }
+                  }}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                >
+                  Tạo mã QR mới
+                </Button>
+              </div>
             ) : qrCodeUrl ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="relative h-64 w-64 bg-white p-4 rounded-lg shadow-lg">
@@ -233,6 +371,19 @@ export default function PackagesPage() {
                     className="object-contain"
                   />
                 </div>
+                
+                {/* Countdown Timer */}
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                  timeLeft <= 30 
+                    ? 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400' 
+                    : 'bg-green-100 dark:bg-green-950 text-green-600 dark:text-green-400'
+                }`}>
+                  <Clock className="h-4 w-4" />
+                  <span className="font-mono font-semibold">
+                    {formatTime(timeLeft)}
+                  </span>
+                </div>
+
                 <div className="text-center space-y-2">
                   <p className="text-sm font-semibold text-green-600 dark:text-green-400">
                     Quét mã QR bằng ứng dụng ngân hàng
@@ -240,6 +391,14 @@ export default function PackagesPage() {
                   <p className="text-xs text-muted-foreground">
                     Sau khi thanh toán thành công, gói Pro sẽ được kích hoạt tự động
                   </p>
+                  <p className="text-xs text-red-500 font-medium">
+                    Mã QR có hiệu lực trong 2 phút
+                  </p>
+                  {isCheckingPayment && (
+                    <p className="text-xs text-blue-500 font-medium animate-pulse">
+                      Đang kiểm tra trạng thái thanh toán...
+                    </p>
+                  )}
                 </div>
               </div>
             ) : (
