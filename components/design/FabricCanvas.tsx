@@ -428,29 +428,38 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           return;
         }
         
-        console.log('Switching from side:', prevSide, 'to side:', currentSide);
-        console.log('Current decorations before switch:', decorations);
+        console.log('🔄 SIDE SWITCH: Switching from side:', prevSide, 'to side:', currentSide);
+        console.log('📊 Current decorations before switch:', decorations.length, 'decorations');
+        decorations.forEach(d => console.log(`  - ${d.name} (ID: ${d.id})`));
         
-        // Save current decorations to previous side
+        // Save current decorations to previous side ONLY
         setSideDecorations(prev => {
-          const updated = { ...prev, [prevSide]: decorations };
-          console.log('Updated sideDecorations:', updated);
+          const updated = { ...prev, [prevSide]: [...decorations] }; // Use spread to create new array
+          console.log('💾 Saved decorations to', prevSide, ':', updated[prevSide].length, 'decorations');
+          console.log('📊 Side decorations summary after save:', {
+            front: updated.front.length,
+            back: updated.back.length,
+            leftSleeve: updated.leftSleeve.length,
+            rightSleeve: updated.rightSleeve.length,
+          });
           return updated;
         });
         
         // Load decorations for new side
         const newSideDecorations = sideDecorations[currentSide] || [];
-        console.log('Loading decorations for new side:', currentSide, newSideDecorations);
+        console.log('📂 Loading decorations for new side:', currentSide, '-', newSideDecorations.length, 'decorations');
+        newSideDecorations.forEach(d => console.log(`  - ${d.name} (ID: ${d.id})`));
         setDecorations(newSideDecorations);
       setSelectedId(null);
         
         // CRITICAL FIX: Always update base image when switching sides
         const sideImage = shirtImageBySide[currentSide];
-        console.log('Force updating base image for new side:', currentSide, 'to:', sideImage);
+        console.log('🖼️ Force updating base image for new side:', currentSide, 'to:', sideImage ? sideImage.substring(0, 50) + '...' : 'EMPTY');
         // Set immediately without condition to ensure proper update
         setShirtImage(sideImage);
         
       prevSideRef.current = currentSide;
+        console.log('✅ SIDE SWITCH COMPLETE');
     }
   }, [currentSide]);
   // If templateId is provided, fetch template detail to resolve product context and base image
@@ -1307,37 +1316,42 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
           sampleImageId: imageId, // Store the shop photo ID if provided
         };
 
-        console.log("🎨 New decoration created:", newImageDecoration);
-        console.log("Adding to current side:", currentSide);
+        console.log("🎨 NEW DECORATION CREATED");
+        console.log("  - ID:", newImageDecoration.id);
+        console.log("  - Name:", newImageDecoration.name);
+        console.log("  - Adding to ONLY current side:", currentSide);
+        console.log("  - Current decorations count before add:", decorations.length);
 
-        // IMPORTANT: Lưu lại background image của khu vực hiện tại
+        // IMPORTANT: Lưu lại background image của side hiện tại
         const currentSideBackground = shirtImageBySide[currentSide];
-        console.log("💾 Preserving background image:", currentSideBackground);
+        console.log("💾 Preserving background image for", currentSide, ":", currentSideBackground ? currentSideBackground.substring(0, 50) + '...' : 'EMPTY');
 
-        // Add decoration to current side's decorations
+        // Add decoration ONLY to current side's decorations in state
         setDecorations((prev) => {
           const newDecorations = [...prev, newImageDecoration];
-          console.log(
-            "📝 Updated decorations for current side:",
-            newDecorations
-          );
+          console.log("📝 Updated decorations array for", currentSide, "- New count:", newDecorations.length);
           return newDecorations;
         });
 
-        // Also update sideDecorations to ensure consistency
+        // Also update sideDecorations to ensure consistency - ONLY for current side
         setSideDecorations((prev) => {
           const currentSideDecorations = prev[currentSide] || [];
           const updatedSideDecorations = [
             ...currentSideDecorations,
             newImageDecoration,
           ];
-          const updated = { ...prev, [currentSide]: updatedSideDecorations };
-          console.log(
-            "💾 Updated sideDecorations for side:",
-            currentSide,
-            "Decorations:",
-            updatedSideDecorations
-          );
+          // CRITICAL: Only update the current side, keep all other sides unchanged
+          const updated = { 
+            ...prev, 
+            [currentSide]: updatedSideDecorations 
+          };
+          console.log("💾 Updated sideDecorations - ONLY for", currentSide);
+          console.log("📊 Side decorations summary:", {
+            front: updated.front.length,
+            back: updated.back.length,
+            leftSleeve: updated.leftSleeve.length,
+            rightSleeve: updated.rightSleeve.length,
+          });
           return updated;
         });
 
@@ -1346,17 +1360,14 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
 
         // CRITICAL FIX: Đảm bảo background image được restore ngay lập tức
         if (currentSideBackground && currentSideBackground !== shirtImage) {
-          console.log(
-            "🔄 Immediately restoring background image:",
-            currentSideBackground
-          );
+          console.log("🔄 Immediately restoring background image for", currentSide);
           // Force immediate update
           setTimeout(() => {
             setShirtImage(currentSideBackground);
           }, 0);
         }
 
-        console.log("✅ Image decoration added successfully");
+        console.log("✅ Image decoration added successfully to", currentSide);
         console.log("🖼️ END ADD IMAGE DECORATION DEBUG");
     };
     
@@ -2013,13 +2024,13 @@ const TShirtDesigner = forwardRef<CanvasRef, TShirtDesignerProps>(
       if (prevSideRef.current === currentSide && !isSwitchingSideRef.current) {
         console.log("💾 AUTO SAVE DECORATIONS");
         console.log("Current side:", currentSide);
-        console.log("Current decorations:", decorations);
-        console.log("Current decorations length:", decorations.length);
+        console.log("Current decorations count:", decorations.length);
+        decorations.forEach(d => console.log(`  - ${d.name} (ID: ${d.id})`));
 
-        // Update sideDecorations to keep it in sync
+        // Update sideDecorations to keep it in sync - ONLY for current side
         setSideDecorations((prev) => {
-          const updated = { ...prev, [currentSide]: [...decorations] };
-          console.log("💾 Updated sideDecorations:", updated);
+          const updated = { ...prev, [currentSide]: [...decorations] }; // Use spread to create new array
+          console.log("💾 Updated sideDecorations for", currentSide);
           console.log("💾 Side decorations count:", {
             front: updated.front.length,
             back: updated.back.length,

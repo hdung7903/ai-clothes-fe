@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
-import { transformImageAi, generateNewImage } from "@/services/aiServices";
+import { transformImageAi, generateNewImage, askSimpleQuestion } from "@/services/aiServices";
 import { useAppSelector } from "@/redux/hooks";
 import { base64ToDataUrl } from "@/utils/image";
 
@@ -76,7 +76,7 @@ export default function DesignToolPage(): ReactElement {
 
   
 
-  // Gửi message chat (giữ nguyên, chỉ text)
+  // Gửi message chat - Call AI service directly
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -87,28 +87,28 @@ export default function DesignToolPage(): ReactElement {
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMessage]);
+    const userInput = input;
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await fetch("/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input,
-          history: messages.slice(-5).map(m => ({ role: m.role, content: m.content })),
-        }),
-      });
+      // Call AI service directly instead of Next.js API route
+      const response = await askSimpleQuestion(userInput);
+      
+      // Extract answer from AI response
+      let answerText = "";
+      if (typeof response === "string") {
+        answerText = response;
+      } else if (response && typeof response === "object") {
+        const anyRes: any = response;
+        answerText = anyRes.answer || anyRes.data?.answer || anyRes.message || JSON.stringify(response);
+      }
 
-      if (!response.ok) throw new Error("Failed to get response");
-
-      const data = await response.json();
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: data.message || "Đây là ý tưởng thiết kế dựa trên mô tả của bạn!",
+        content: answerText || "Xin lỗi, tôi không thể trả lời câu hỏi này lúc này.",
         timestamp: new Date(),
-        designImage: data.designImage, // Nếu AI chat trả ảnh
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -116,7 +116,7 @@ export default function DesignToolPage(): ReactElement {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "Xin lỗi, tôi gặp lỗi. Vui lòng thử lại.",
+        content: error instanceof Error ? error.message : "Xin lỗi, tôi gặp lỗi. Vui lòng thử lại.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -355,14 +355,6 @@ export default function DesignToolPage(): ReactElement {
                           className="h-6 px-2 text-xs"
                         >
                           Lưu vào áo
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemovePending(img.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Download className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>

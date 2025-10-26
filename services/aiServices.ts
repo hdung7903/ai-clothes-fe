@@ -56,19 +56,9 @@ async function requestAiJson<TReq, TRes>(
 ): Promise<TRes> {
   try {
     const baseUrl = getAiBaseUrl();
-    
-    // Construct URL properly
-    let url: string;
-    if (baseUrl.startsWith('http')) {
-      // Full URL provided
-      url = `${baseUrl}${path}`;
-    } else {
-      // Relative URL - construct with current origin
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      url = `${origin}${baseUrl}${path}`;
-    }
+    const fullUrl = `${baseUrl}${path}`;
 
-    console.log('Making AI API request to:', url);
+    console.log('Making AI API request to:', fullUrl);
 
     const init: RequestInit = {
       method: options.method ?? 'POST',
@@ -82,7 +72,7 @@ async function requestAiJson<TReq, TRes>(
       init.body = JSON.stringify(options.payload);
     }
 
-    const res = await fetch(url, init);
+    const res = await fetch(fullUrl, init);
     
     if (!res.ok) {
       if (res.status === 422) {
