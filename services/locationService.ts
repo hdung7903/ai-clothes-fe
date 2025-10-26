@@ -13,7 +13,7 @@ type ProvincesApiResponse = {
 	data: ProvinceData[];
 };
 
-const ENDPOINT = 'https://vietnamlabs.com/vietnamprovince';
+const ENDPOINT = 'https://vietnamlabs.com/api/vietnamprovince';
 
 export async function fetchVietnamProvinces(): Promise<ProvinceData[]> {
 	const res = await fetch(ENDPOINT, {
