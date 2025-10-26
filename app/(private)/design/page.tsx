@@ -91,7 +91,7 @@ export default function DesignToolPage(): ReactElement {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/ai-chat", {
+      const response = await fetch("/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
