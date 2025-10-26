@@ -190,7 +190,7 @@ export async function updateOrderStatusByUser(
   payload: UpdateOrderStatusByUserRequest
 ): Promise<ApiEnvelope<UpdateOrderStatusByUserResponse>> {
   return requestJson<UpdateOrderStatusByUserRequest, UpdateOrderStatusByUserResponse>(
-    `/Order/${orderId}/status`,
+    `/api/Order/${orderId}/status`,
     {
       method: 'PUT',
       payload,
@@ -204,7 +204,7 @@ export async function adminGetAllOrders(
   query: AdminGetOrdersQuery
 ): Promise<ApiEnvelope<AdminGetOrdersResponse>> {
   return requestJson<undefined, AdminGetOrdersResponse>(
-    '/Order/admin/all',
+    '/api/Order/admin/all',
     {
       method: 'GET',
       query: {
@@ -225,7 +225,7 @@ export async function adminGetOrderById(
   orderId: string
 ): Promise<ApiEnvelope<GetOrderByIdResponse>> {
   return requestJson<undefined, GetOrderByIdResponse>(
-    `/Order/admin/${orderId}`,
+    `/api/Order/admin/${orderId}`,
     {
       method: 'GET',
       requireAuth: true,
@@ -239,7 +239,7 @@ export async function adminUpdateOrderStatus(
   payload: AdminUpdateOrderStatusRequest
 ): Promise<ApiEnvelope<AdminUpdateOrderStatusResponse>> {
   return requestJson<AdminUpdateOrderStatusRequest, AdminUpdateOrderStatusResponse>(
-    `/Order/admin/${orderId}/Status`,
+    `/api/Order/admin/${orderId}/Status`,
     {
       method: 'PUT',
       payload,
@@ -254,7 +254,7 @@ export async function adminUpdatePaymentStatus(
   payload: AdminUpdatePaymentStatusRequest
 ): Promise<ApiEnvelope<AdminUpdatePaymentStatusResponse>> {
   return requestJson<AdminUpdatePaymentStatusRequest, AdminUpdatePaymentStatusResponse>(
-    `/Order/admin/${orderId}/PaymentStatus`,
+    `/api/Order/admin/${orderId}/PaymentStatus`,
     {
       method: 'PUT',
       payload,
@@ -268,7 +268,7 @@ export async function checkOrderPaymentStatus(
   orderId: string
 ): Promise<ApiEnvelope<boolean>> {
   return requestJson<never, boolean>(
-    `/Order/${orderId}/IsPaid`,
+    `/api/Order/${orderId}/IsPaid`,
     {
       method: 'GET',
       requireAuth: true,
