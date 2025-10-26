@@ -26,8 +26,8 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    // Add these for production stability
-    unoptimized: false,
+    // Temporarily disable optimization for debugging
+    unoptimized: true,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
