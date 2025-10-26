@@ -19,22 +19,9 @@ export function CTASection() {
             </h2>
 
             <p className="text-xl text-white/90 text-pretty max-w-2xl mx-auto">
-              {"Phong cách mới vừa ra mắt. Miễn phí vận chuyển trên 1.500.000đ và đổi trả dễ dàng trong 30 ngày."}
+              {"Khám phá phong cách mới toanh! Nhận ngay hàng loạt voucher và tận hưởng đổi trả dễ dàng trong 30 ngày."}
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" className="text-lg px-8 py-6">
-                {"Mua Sắm Hàng Mới"}
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="text-lg px-8 py-6 border-white text-white hover:bg-white hover:text-primary bg-transparent"
-              >
-                {"Xem Bán Chạy"}
-              </Button>
-            </div>
           </div>
 
           <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-accent/90"></div>
