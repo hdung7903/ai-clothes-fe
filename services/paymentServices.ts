@@ -8,7 +8,6 @@ import type {
   TokenPackageBuyResponse, 
   CheckPaymentStatusRequest, 
   CheckPaymentStatusResponse,
-  CheckTokenPackageIsPaidResponse,
   TokenPackagePurchaseHistoryResponse
 } from '@/types/payment';
 import { getApiBaseUrl as getBaseUrl } from '@/lib/api-config';
@@ -104,9 +103,9 @@ export async function checkOrderIsPaid(orderId: string): Promise<ApiEnvelope<boo
  * Check if token package is paid
  * GET /api/TokenPackage/CheckIsPaid
  * @param paymentCode - The payment code to check
- * @returns Promise with isPaid status (true if paid, false if not paid or expired)
+ * @returns Promise with isPaid boolean (true if paid, false if not paid or expired)
  */
-export async function checkTokenPackageIsPaid(paymentCode: string): Promise<CheckTokenPackageIsPaidResponse> {
+export async function checkTokenPackageIsPaid(paymentCode: string): Promise<ApiEnvelope<boolean>> {
   const baseUrl = getBaseUrl();
   const url = new URL(baseUrl + 'TokenPackage/CheckIsPaid');
   url.searchParams.append('paymentCode', paymentCode);
@@ -116,7 +115,7 @@ export async function checkTokenPackageIsPaid(paymentCode: string): Promise<Chec
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
   });
-  return res.json() as Promise<CheckTokenPackageIsPaidResponse>;
+  return res.json() as Promise<ApiEnvelope<boolean>>;
 }
 
 /**
