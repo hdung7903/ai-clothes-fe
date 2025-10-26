@@ -40,7 +40,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherRequest): Promise<CreateOrUpdateVoucherResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Voucher/CreateOrUpdateVoucher', {
+  const res = await fetch(baseUrl + 'Voucher/CreateOrUpdateVoucher', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
