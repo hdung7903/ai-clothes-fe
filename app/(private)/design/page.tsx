@@ -10,11 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download } from "lucide-react";
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
 import { transformImageAi, generateNewImage, askSimpleQuestion } from "@/services/aiServices";
-import { useAppSelector } from "@/redux/hooks";
+import { useAppSelector, useAppDispatch } from "@/redux/hooks";
+import { fetchUserProfile } from "@/redux/authSlice";
 import { base64ToDataUrl } from "@/utils/image";
 
 // Interface cho pending images (chờ lưu vào canvas)
@@ -48,7 +55,13 @@ function formatTimestamp(date: Date): string {
 // Interface cho canvas ref
 
 export default function DesignToolPage(): ReactElement {
+  const dispatch = useAppDispatch();
   const authUserId = useAppSelector((s) => s.auth.user?.id);
+  const user = useAppSelector((s) => s.auth.user);
+  const tokens = useAppSelector((s) => s.auth.tokens);
+  const tokenCount = user?.tokenCount ?? 0;
+  const hasTokens = tokenCount > 0;
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -70,15 +83,44 @@ export default function DesignToolPage(): ReactElement {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
 
+  // Fetch latest user profile on mount to get updated token count
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    // Refresh user profile to get latest token count
+    if (tokens?.accessToken) {
+      dispatch(fetchUserProfile(tokens.accessToken));
+    }
+  }, [dispatch, tokens?.accessToken]);
+
+  // Refresh profile after AI operations to update token count
+  const refreshUserProfile = async () => {
+    if (tokens?.accessToken) {
+      try {
+        await dispatch(fetchUserProfile(tokens.accessToken)).unwrap();
+      } catch (error) {
+        console.error('Failed to refresh user profile:', error);
+      }
+    }
+  };
 
   
 
   // Gửi message chat - Call AI service directly
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    
+    // Check if user has tokens
+    if (!hasTokens) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "⚠️ Bạn đã hết token! Vui lòng mua gói token để tiếp tục sử dụng tính năng AI Chat. Truy cập trang Packages để mua thêm token.",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -111,6 +153,9 @@ export default function DesignToolPage(): ReactElement {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+      
+      // Refresh profile to update token count after AI usage
+      await refreshUserProfile();
     } catch (error) {
       console.error("Error sending message:", error);
       const errorMessage: Message = {
@@ -128,6 +173,13 @@ export default function DesignToolPage(): ReactElement {
   // Transform/Generate AI Image
   const handleTransformImage = async (isGenerate: boolean = false) => {
     if (isLoading) return;
+    
+    // Check if user has tokens
+    if (!hasTokens) {
+      alert("⚠️ Bạn đã hết token! Vui lòng mua gói token để tiếp tục sử dụng tính năng AI Transform/Generate. Truy cập trang Packages để mua thêm token.");
+      return;
+    }
+    
     if (!input.trim() && !uploadedImage) {
       alert("Vui lòng nhập prompt hoặc upload ảnh.");
       return;
@@ -198,6 +250,9 @@ export default function DesignToolPage(): ReactElement {
 
       setInput("");
       if (!isGenerate) setUploadedImage(null); // Clear upload preview
+      
+      // Refresh profile to update token count after AI usage
+      await refreshUserProfile();
     } catch (error) {
       console.error(`Error ${isGenerate ? "generating" : "transforming"} image:`, error);
       const errorMessage: Message = {
@@ -247,32 +302,42 @@ export default function DesignToolPage(): ReactElement {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 flex-shrink-0 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Button variant="ghost" size="icon">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/" className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg flex items-center justify-center">
-                <img 
-                  src="/branch.png" 
-                  alt="TEECRAFT Logo" 
-                  className="h-8 w-8 object-contain"
-                />
-              </div>
-              <span className="text-xl font-bold">
-                <span className="text-green-600">TEE</span>
-                <span className="text-yellow-500">CRAFT</span>
-              </span>
+    <TooltipProvider>
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-100">
+        {/* Header */}
+        <div className="border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 p-4 flex-shrink-0 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="ghost" size="icon">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+                  <img 
+                    src="/branch.png" 
+                    alt="TEECRAFT Logo" 
+                    className="h-8 w-8 object-contain"
+                  />
+                </div>
+                <span className="text-xl font-bold">
+                  <span className="text-green-600">TEE</span>
+                  <span className="text-yellow-500">CRAFT</span>
+                </span>
             </Link>
             <span className="text-xl font-bold text-gray-600">Designer</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/packages">
+              <Badge 
+                variant={hasTokens ? "default" : "destructive"} 
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <Sparkles className="h-3 w-3 mr-1" />
+                {tokenCount} Tokens
+              </Badge>
+            </Link>
             <Badge variant="secondary">Beta</Badge>
           </div>
         </div>
@@ -379,14 +444,25 @@ export default function DesignToolPage(): ReactElement {
                   disabled={isLoading}
                 />
               </div>
-              <Button
-                onClick={handleSendMessage}
-                disabled={!input.trim() || isLoading}
-                size="icon"
-                className="shrink-0"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      onClick={handleSendMessage}
+                      disabled={!input.trim() || isLoading || !hasTokens}
+                      size="icon"
+                      className="shrink-0"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!hasTokens && (
+                  <TooltipContent>
+                    <p>Bạn cần mua token để sử dụng AI Chat</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </div>
 
             {/* Upload Preview (chỉ ở đây, không vào chat) */}
@@ -449,24 +525,46 @@ export default function DesignToolPage(): ReactElement {
             </div>
 
             <div className="flex gap-2">
-              <Button
-                onClick={() => handleTransformImage(false)}
-                disabled={isLoading || !uploadedImage}
-                className="flex-1"
-                variant="default"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
-                Transform
-              </Button>
-              <Button
-                onClick={() => handleTransformImage(true)}
-                disabled={isLoading || !input.trim()}
-                className="flex-1"
-                variant="secondary"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                Generate
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex-1">
+                    <Button
+                      onClick={() => handleTransformImage(false)}
+                      disabled={isLoading || !uploadedImage || !hasTokens}
+                      className="w-full"
+                      variant="default"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ImageIcon className="h-4 w-4 mr-2" />}
+                      Transform
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!hasTokens && (
+                  <TooltipContent>
+                    <p>Bạn cần mua token để sử dụng AI Transform</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex-1">
+                    <Button
+                      onClick={() => handleTransformImage(true)}
+                      disabled={isLoading || !input.trim() || !hasTokens}
+                      className="w-full"
+                      variant="secondary"
+                    >
+                      {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                      Generate
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {!hasTokens && (
+                  <TooltipContent>
+                    <p>Bạn cần mua token để sử dụng AI Generate</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </div>
           </div>
         </div>
@@ -490,6 +588,7 @@ export default function DesignToolPage(): ReactElement {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
