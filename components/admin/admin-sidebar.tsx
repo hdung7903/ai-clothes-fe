@@ -86,6 +86,11 @@ export function AdminSidebar({
         icon: ImageIcon,
       },
       {
+        title: "Quản lý thanh toán",
+        url: "/admin/payments",
+        icon: ShoppingCart,
+      },
+      {
         title: "Cài đặt API",
         url: "/admin/api-settings",
         icon: Settings,

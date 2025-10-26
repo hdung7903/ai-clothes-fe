@@ -8,7 +8,8 @@ import type {
   TokenPackageBuyResponse, 
   CheckPaymentStatusRequest, 
   CheckPaymentStatusResponse,
-  CheckTokenPackageIsPaidResponse
+  CheckTokenPackageIsPaidResponse,
+  TokenPackagePurchaseHistoryResponse
 } from '@/types/payment';
 import { getApiBaseUrl as getBaseUrl } from '@/lib/api-config';
 const defaultJsonHeaders: HeadersInit = {
@@ -100,6 +101,30 @@ export async function checkTokenPackageIsPaid(paymentCode: string): Promise<Chec
     credentials: 'include',
   });
   return res.json() as Promise<CheckTokenPackageIsPaidResponse>;
+}
+
+/**
+ * Get token package purchase history (Admin only)
+ * GET /api/TokenPackage/Admin/History
+ * @param pageNumber - Page number for pagination
+ * @param pageSize - Number of items per page
+ * @returns Promise with paginated purchase history including buyer info, price, tokens, and purchase time
+ */
+export async function getTokenPackagePurchaseHistory(
+  pageNumber: number = 1,
+  pageSize: number = 10
+): Promise<TokenPackagePurchaseHistoryResponse> {
+  const baseUrl = getBaseUrl();
+  const url = new URL(baseUrl + 'TokenPackage/Admin/History');
+  url.searchParams.append('PageNumber', pageNumber.toString());
+  url.searchParams.append('PageSize', pageSize.toString());
+  
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth(defaultJsonHeaders),
+    credentials: 'include',
+  });
+  return res.json() as Promise<TokenPackagePurchaseHistoryResponse>;
 }
 
 

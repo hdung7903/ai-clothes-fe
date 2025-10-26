@@ -57,6 +57,34 @@ export interface CheckTokenPackageIsPaidData {
 
 export type CheckTokenPackageIsPaidResponse = ApiEnvelope<CheckTokenPackageIsPaidData>;
 
+// Token Package Purchase History Item
+export interface TokenPackagePurchaseHistoryItem {
+  id: string;
+  paymentCode: string;
+  price: number;
+  tokenAmount: number;
+  createdByDto: {
+    userId: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+}
+
+// Paginated Response for Token Package Purchase History
+export interface TokenPackagePurchaseHistoryData {
+  items: TokenPackagePurchaseHistoryItem[];
+  pageNumber: number;
+  totalPages: number;
+  totalCount: number;
+  pageSize: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export type TokenPackagePurchaseHistoryResponse = ApiEnvelope<TokenPackagePurchaseHistoryData>;
+
+
 
 
 
