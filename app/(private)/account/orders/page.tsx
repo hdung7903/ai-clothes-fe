@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { getOrderById, getUserOrders, updateOrderStatusByUser } from "@/services/orderServices"
+import { getOrderById, getUserOrders, userConfirmOrderReceived } from "@/services/orderServices"
 import { createFeedback } from "@/services/feedbackServices"
 import type { GetOrderByIdResponse, GetOrdersResponse, OrderItemResponse } from "@/types/order"
 import { formatCurrency } from "@/utils/format"
@@ -198,9 +198,7 @@ export default function OrdersPage() {
   const handleConfirmOrder = async (orderId: string) => {
     setConfirmingOrder(true)
     try {
-      const response = await updateOrderStatusByUser(orderId, {
-        action: 1 // Confirm received action
-      })
+      const response = await userConfirmOrderReceived(orderId)
       
       if (response.success) {
         toast.success("Đã xác nhận nhận hàng thành công!")

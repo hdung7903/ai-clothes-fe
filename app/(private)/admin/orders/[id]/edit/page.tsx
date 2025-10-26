@@ -35,11 +35,14 @@ import Link from "next/link"
 const STATUS_STRING_TO_CODE: Record<string, number> = {
   PENDING: 0,
   REJECTED: 1,
+  ACCEPTED: 2,      // Alias for PROCESSING
   PROCESSING: 2,
   SHIPPED: 3,
   DELIVERED: 4,
   CONFIRM_RECEIVED: 5,
   CANCELLED: 6,
+  RETURNED: 7,
+  EXPIRED: 8,
 }
 
 const STATUS_CODE_TO_LABEL: Record<number, string> = {
@@ -50,6 +53,8 @@ const STATUS_CODE_TO_LABEL: Record<number, string> = {
   4: 'Đã giao hàng',
   5: 'Xác nhận đã nhận',
   6: 'Đã hủy',
+  7: 'Trả hàng',
+  8: 'Hết hạn',
 }
 
 function normalizeStatusKey(input: string): string {
@@ -75,22 +80,27 @@ function getStatusLabelFromCode(code: number | null): string {
 
 // Allowed transitions and labels for UI
 const ALLOWED_TARGETS: Record<string, string[]> = {
-  PENDING: ['ACCEPTED', 'REJECTED'],
-  ACCEPTED: ['PROCESSING', 'REJECTED'],
-  PROCESSING: ['SHIPPED', 'REJECTED'],
-  SHIPPED: ['RETURNED'],
+  PENDING: ['PROCESSING', 'REJECTED', 'CANCELLED', 'EXPIRED'],
+  PROCESSING: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['DELIVERED', 'RETURNED'],
+  DELIVERED: ['CONFIRM_RECEIVED', 'RETURNED'],
+  CONFIRM_RECEIVED: [],  // Final state
+  REJECTED: [],          // Final state
+  CANCELLED: [],         // Final state
+  RETURNED: [],          // Final state
+  EXPIRED: [],           // Final state
 }
 
 const STATUS_KEY_TO_VN_LABEL: Record<string, string> = {
   PENDING: 'Chờ xử lý',
-  ACCEPTED: 'Đã duyệt',
   REJECTED: 'Từ chối',
   PROCESSING: 'Đang xử lý',
   SHIPPED: 'Đã gửi hàng',
-  RETURNED: 'Trả hàng',
   DELIVERED: 'Đã giao hàng',
   CONFIRM_RECEIVED: 'Xác nhận đã nhận',
   CANCELLED: 'Đã hủy',
+  RETURNED: 'Trả hàng',
+  EXPIRED: 'Hết hạn',
 }
 
 // (deduped above)

@@ -276,3 +276,94 @@ export async function checkOrderPaymentStatus(
   );
 }
 
+// Convenience functions for common admin order status updates
+
+/**
+ * Admin: Update order to PROCESSING status
+ */
+export async function adminSetOrderProcessing(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 2, notes });
+}
+
+/**
+ * Admin: Update order to SHIPPED status
+ */
+export async function adminSetOrderShipped(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 3, notes });
+}
+
+/**
+ * Admin: Update order to DELIVERED status
+ */
+export async function adminSetOrderDelivered(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 4, notes });
+}
+
+/**
+ * Admin: Update order to CANCELLED status
+ */
+export async function adminCancelOrder(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 6, notes });
+}
+
+/**
+ * Admin: Update order to RETURNED status
+ */
+export async function adminSetOrderReturned(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 7, notes });
+}
+
+/**
+ * Admin: Update order to REJECTED status
+ */
+export async function adminRejectOrder(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 1, notes });
+}
+
+/**
+ * Admin: Update order to EXPIRED status
+ */
+export async function adminSetOrderExpired(
+  orderId: string,
+  notes?: string
+): Promise<ApiEnvelope<string>> {
+  return adminUpdateOrderStatus(orderId, { status: 8, notes });
+}
+
+// Convenience functions for user order actions
+
+/**
+ * User: Confirm order received (SHIPPED -> CONFIRM_RECEIVED)
+ */
+export async function userConfirmOrderReceived(
+  orderId: string
+): Promise<ApiEnvelope<string>> {
+  return updateOrderStatusByUser(orderId, { action: 1 });
+}
+
+/**
+ * User: Cancel order (if allowed)
+ */
+export async function userCancelOrder(
+  orderId: string
+): Promise<ApiEnvelope<string>> {
+  return updateOrderStatusByUser(orderId, { action: 2 });
+}

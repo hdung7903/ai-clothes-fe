@@ -154,3 +154,50 @@ export interface AdminUpdatePaymentStatusRequest {
 
 export type AdminUpdatePaymentStatusResponse = string;
 
+// Order Status Constants
+export enum OrderStatus {
+  PENDING = 0,
+  REJECTED = 1,
+  PROCESSING = 2,
+  SHIPPED = 3,
+  DELIVERED = 4,
+  CONFIRM_RECEIVED = 5,
+  CANCELLED = 6,
+  RETURNED = 7,
+  EXPIRED = 8,
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  [OrderStatus.PENDING]: 'Chờ xử lý',
+  [OrderStatus.REJECTED]: 'Từ chối',
+  [OrderStatus.PROCESSING]: 'Đang xử lý',
+  [OrderStatus.SHIPPED]: 'Đã gửi hàng',
+  [OrderStatus.DELIVERED]: 'Đã giao hàng',
+  [OrderStatus.CONFIRM_RECEIVED]: 'Xác nhận đã nhận',
+  [OrderStatus.CANCELLED]: 'Đã hủy',
+  [OrderStatus.RETURNED]: 'Trả hàng',
+  [OrderStatus.EXPIRED]: 'Hết hạn',
+}
+
+// Payment Status Constants
+export enum PaymentStatus {
+  ONLINE_PAYMENT_AWAITING = 0,
+  ONLINE_PAYMENT_PAID = 1,
+  COD = 2,
+  REFUNDING = 3,
+  REFUNDED = 4,
+}
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  [PaymentStatus.ONLINE_PAYMENT_AWAITING]: 'Chờ thanh toán',
+  [PaymentStatus.ONLINE_PAYMENT_PAID]: 'Đã thanh toán',
+  [PaymentStatus.COD]: 'Thanh toán khi nhận',
+  [PaymentStatus.REFUNDING]: 'Đang hoàn tiền',
+  [PaymentStatus.REFUNDED]: 'Đã hoàn tiền',
+}
+
+// User Actions for Order Status Update
+export enum UserOrderAction {
+  CONFIRM_RECEIVED = 1,
+  CANCEL_ORDER = 2,
+}
