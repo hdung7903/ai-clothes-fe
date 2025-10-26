@@ -87,7 +87,7 @@ export function AdminSidebar({
       },
       {
         title: "Quản lý thanh toán",
-        url: "/admin/payments",
+        url: "/admin/packages",
         icon: ShoppingCart,
       },
       {
