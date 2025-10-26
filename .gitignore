@@ -44,6 +44,8 @@ next-env.d.ts
 
 # documentation (CI/CD setup files)
 *.md
+**/.md
+**.md
 !README.md
 !DEPLOYMENT.md
 
