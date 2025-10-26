@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Check, Sparkles, Zap, X, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Check, Sparkles, Zap, X, Clock, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { buyTokenPackage, createQrCode, checkPaymentStatus, checkTokenPackageIsPaid } from "@/services/paymentServices"
@@ -15,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import Image from "next/image"
+import { toast } from "sonner"
 
 const packages = [
   {
@@ -84,17 +86,22 @@ export default function PackagesPage() {
       }
 
       try {
+        console.log('🔍 Checking subscription with paymentCode:', savedPaymentCode)
         const response = await checkTokenPackageIsPaid(savedPaymentCode)
+        console.log('📦 Subscription check response:', response)
         
         if (response.success && response.data?.isPaid) {
+          console.log('✅ Active subscription found')
           setHasActiveSubscription(true)
+          toast.success('Bạn đang sử dụng Gói Pro')
         } else {
+          console.log('⚠️ No active subscription or expired')
           // Nếu hết hạn hoặc chưa thanh toán, xóa paymentCode cũ
           localStorage.removeItem('lastPaymentCode')
           setHasActiveSubscription(false)
         }
       } catch (error) {
-        console.error('Error checking subscription:', error)
+        console.error('❌ Error checking subscription:', error)
         setHasActiveSubscription(false)
       } finally {
         setIsCheckingSubscription(false)
@@ -161,15 +168,12 @@ export default function PackagesPage() {
           setHasActiveSubscription(true)
           
           // Hiển thị thông báo thành công
-          alert('Thanh toán thành công! Gói Pro đã được kích hoạt.')
+          toast.success('Thanh toán thành công! Gói Pro đã được kích hoạt.')
           
           // Reload trang để cập nhật dữ liệu
-          window.location.reload()
-          
-          // Điều hướng về trang chủ sau khi reload
           setTimeout(() => {
-            router.push('/')
-          }, 100)
+            window.location.reload()
+          }, 1500)
         }
       } catch (error) {
         console.error('Error checking payment status:', error)
@@ -216,7 +220,7 @@ export default function PackagesPage() {
       
       if (!buyResponse.success || !buyResponse.data) {
         console.error('Failed to buy token package:', buyResponse.errors)
-        alert('Không thể mua gói. Vui lòng thử lại sau.')
+        toast.error('Không thể mua gói. Vui lòng thử lại sau.')
         setIsQrDialogOpen(false)
         return
       }
@@ -236,12 +240,12 @@ export default function PackagesPage() {
         setQrCodeUrl(qrResponse.data)
       } else {
         console.error('Failed to get QR code:', qrResponse.errors)
-        alert('Không thể tạo mã QR. Vui lòng thử lại sau.')
+        toast.error('Không thể tạo mã QR. Vui lòng thử lại sau.')
         setIsQrDialogOpen(false)
       }
     } catch (error) {
       console.error('Error in payment process:', error)
-      alert('Đã xảy ra lỗi. Vui lòng thử lại sau.')
+      toast.error('Đã xảy ra lỗi. Vui lòng thử lại sau.')
       setIsQrDialogOpen(false)
     } finally {
       setIsLoadingQr(false)
@@ -261,15 +265,21 @@ export default function PackagesPage() {
         
         {/* Hiển thị trạng thái subscription */}
         {isCheckingSubscription ? (
-          <div className="text-sm text-muted-foreground">
+          <div className="inline-flex items-center gap-2 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-full text-sm text-muted-foreground">
+            <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
             Đang kiểm tra gói đăng ký...
           </div>
-        ) : hasActiveSubscription && (
-          <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-4 py-2 rounded-full text-sm font-medium">
-            <Check className="h-4 w-4" />
-            Bạn đang sử dụng Gói Pro
+        ) : hasActiveSubscription ? (
+          <div className="inline-flex flex-col items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-2 border-green-500 px-6 py-4 rounded-2xl shadow-lg">
+            <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-semibold text-lg">Bạn đang sử dụng Gói Pro</span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Bạn có thể sử dụng tính năng AI để tạo ảnh thiết kế
+            </p>
           </div>
-        )}
+        ) : null}
       </section>
 
       {/* Pricing Cards */}
@@ -290,7 +300,8 @@ export default function PackagesPage() {
                 
                 {/* Badge hiển thị gói đang active */}
                 {pkg.id === 2 && hasActiveSubscription && (
-                  <div className="absolute -top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                  <div className="absolute -top-4 right-4 flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg">
+                    <CheckCircle className="h-3.5 w-3.5" />
                     Đang Active
                   </div>
                 )}
