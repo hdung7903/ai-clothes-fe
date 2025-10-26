@@ -25,10 +25,10 @@ function withAuth(headers: HeadersInit): HeadersInit {
   return h;
 }
 
-// POST /api/Payment/QrCode
+// POST /Payment/QrCode
 export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Payment/QrCode', {
+  const res = await fetch(baseUrl + '/Payment/QrCode', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -37,10 +37,10 @@ export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeRespon
   return res.json() as Promise<QrCodeResponse>;
 }
 
-// POST /api/Payment/WebHook/Sepay
+// POST /Payment/WebHook/Sepay
 export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayWebhookResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Payment/WebHook/Sepay', {
+  const res = await fetch(baseUrl + '/Payment/WebHook/Sepay', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -49,10 +49,10 @@ export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayW
   return res.json() as Promise<SepayWebhookResponse>;
 }
 
-// POST /api/TokenPackage/Buy
+// POST /TokenPackage/Buy
 export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<TokenPackageBuyResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/TokenPackage/Buy', {
+  const res = await fetch(baseUrl + 'TokenPackage/Buy', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -61,10 +61,10 @@ export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<
   return res.json() as Promise<TokenPackageBuyResponse>;
 }
 
-// POST /api/Payment/CheckStatus
+// POST /Payment/CheckStatus
 export async function checkPaymentStatus(payload: CheckPaymentStatusRequest): Promise<CheckPaymentStatusResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Payment/CheckStatus', {
+  const res = await fetch(baseUrl + '/Payment/CheckStatus', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

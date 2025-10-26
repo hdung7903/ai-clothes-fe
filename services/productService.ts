@@ -54,7 +54,7 @@ export interface SearchProductsQuery {
 
 export async function searchProducts(query: SearchProductsQuery): Promise<SearchProductsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/api/Product/Search', baseUrl);
+  const url = new URL('Product/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });

@@ -53,7 +53,7 @@ export async function createOrUpdateTemplate(payload: CreateOrUpdateTemplateRequ
 
 export async function searchTemplates(query: SearchTemplatesQuery): Promise<SearchTemplatesResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/Template/Search', baseUrl);
+  const url = new URL('Template/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -87,7 +87,7 @@ export async function deleteTemplateById(templateId: string): Promise<DeleteTemp
 
 export async function getTemplatesByProduct(productId: string, productOptionValueId?: string): Promise<GetTemplatesByProductResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(`/api/Template/Product/${encodeURIComponent(productId)}`, baseUrl);
+  const url = new URL(`/Template/Product/${encodeURIComponent(productId)}`, baseUrl);
   if (productOptionValueId) url.searchParams.set('productOptionValueId', productOptionValueId);
   const res = await fetch(url.toString(), {
     method: 'GET',

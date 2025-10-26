@@ -120,42 +120,42 @@ export async function askQuestion(request: { question: string }): Promise<AskQue
   // For development/testing - you can uncomment this to use mock responses
   // return mockAskQuestionResponse(requestWithUserId);
   
-  return requestAiJson<AskData, AskQuestionResponse>('/ask_user', { method: 'POST', payload: requestWithUserId });
+  return requestAiJson<AskData, AskQuestionResponse>('ask_user', { method: 'POST', payload: requestWithUserId });
 }
 
 /**
  * Transform an image using AI
  */
 export async function transformImageAi(request: TransformImage): Promise<TransformImageResponse> {
-  return requestAiJson<TransformImage, TransformImageResponse>('/transform_image_ai', { method: 'POST', payload: request });
+  return requestAiJson<TransformImage, TransformImageResponse>('transform_image_ai', { method: 'POST', payload: request });
 }
 
 /**
  * Generate a new image using AI
  */
 export async function generateNewImage(request: GenerateNewImage): Promise<GenerateImageResponse> {
-  return requestAiJson<GenerateNewImage, GenerateImageResponse>('/generate_new_image', { method: 'POST', payload: request });
+  return requestAiJson<GenerateNewImage, GenerateImageResponse>('generate_new_image', { method: 'POST', payload: request });
 }
 
 /**
  * Update product vector (Admin only)
  */
 export async function updateProductVector(request: ModifyProduct): Promise<UpdateProductResponse> {
-  return requestAiJson<ModifyProduct, UpdateProductResponse>('/admin/update_product', { method: 'POST', payload: request });
+  return requestAiJson<ModifyProduct, UpdateProductResponse>('admin/update_product', { method: 'POST', payload: request });
 }
 
 /**
  * Delete product (Admin only)
  */
 export async function deleteProduct(request: ModifyProduct): Promise<DeleteProductResponse> {
-  return requestAiJson<ModifyProduct, DeleteProductResponse>('/admin/delete_product', { method: 'POST', payload: request });
+  return requestAiJson<ModifyProduct, DeleteProductResponse>('admin/delete_product', { method: 'POST', payload: request });
 }
 
 /**
  * Update API key (Admin only)
  */
 export async function updateApiKey(request: ApiAi): Promise<UpdateApiKeyResponse> {
-  return requestAiJson<ApiAi, UpdateApiKeyResponse>('/admin/update_api', { method: 'POST', payload: request });
+  return requestAiJson<ApiAi, UpdateApiKeyResponse>('admin/update_api', { method: 'POST', payload: request });
 }
 
 // Utility functions for common use cases

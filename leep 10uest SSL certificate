@@ -1,0 +1,44 @@
+[1mdiff --git a/init-ssl.sh b/init-ssl.sh[m
+[1mold mode 100644[m
+[1mnew mode 100755[m
+[1mindex 5254a77..9992699[m
+[1m--- a/init-ssl.sh[m
+[1m+++ b/init-ssl.sh[m
+[36m@@ -28,13 +28,7 @@[m [msleep 10[m
+ [m
+ # Step 2: Request SSL certificate[m
+ echo -e "\n${GREEN}Step 2: Requesting SSL certificate from Let's Encrypt...${NC}"[m
+[31m-[m
+[31m-# First, let's check if nginx is actually running and accessible[m
+[31m-echo -e "${GREEN}Checking if Nginx is accessible...${NC}"[m
+[31m-curl -I http://localhost/.well-known/acme-challenge/test 2>&1 || echo "Nginx check done"[m
+[31m-[m
+ docker run --rm \[m
+[31m-  --network host \[m
+   -v $(pwd)/nginx/certbot/conf:/etc/letsencrypt \[m
+   -v $(pwd)/nginx/certbot/www:/var/www/certbot \[m
+   certbot/certbot certonly \[m
+[36m@@ -43,7 +37,8 @@[m [mdocker run --rm \[m
+   --email $EMAIL \[m
+   --agree-tos \[m
+   --no-eff-email \[m
+[31m-  -d $DOMAIN[m
+[32m+[m[32m  -d $DOMAIN \[m
+[32m+[m[32m  -d www.$DOMAIN[m
+ [m
+ # Check if certificate was successfully created[m
+ if [ -d "nginx/certbot/conf/live/$DOMAIN" ]; then[m
+[36m@@ -62,9 +57,13 @@[m [mif [ -d "nginx/certbot/conf/live/$DOMAIN" ]; then[m
+     echo -e "${GREEN}Restarting nginx with SSL...${NC}"[m
+     docker-compose restart nginx[m
+     [m
+[32m+[m[32m    # Start certbot for auto-renewal[m
+[32m+[m[32m    docker-compose up -d certbot[m
+[32m+[m[41m    [m
+     echo -e "\n${GREEN}=== Setup Complete! ===${NC}"[m
+     echo -e "${GREEN}Your site is now available at:${NC}"[m
+     echo -e "  - ${YELLOW}https://$DOMAIN${NC}"[m
+[32m+[m[32m    echo -e "  - ${YELLOW}https://www.$DOMAIN${NC}"[m
+     echo -e "\n${GREEN}Certificate auto-renewal is enabled.${NC}"[m
+     [m
+ else[m

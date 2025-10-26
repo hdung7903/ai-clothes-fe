@@ -170,7 +170,7 @@ export default function Page() {
       setLoadingStep("Preparing request...")
       
       console.log('📡 Fetching orders with token:', tokens.accessToken.substring(0, 20) + '...')
-      console.log('📡 API URL: /api/Order/admin/all')
+      console.log('📡 API URL: /Order/admin/all')
       console.log('📡 Query params:', {
         pageNumber: page,
         pageSize: pageSize,

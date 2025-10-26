@@ -122,7 +122,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
  * Delete a sample image by ID
  */
 export async function deleteSampleImage(id: string): Promise<DeleteSampleImageResponse> {
-  return requestJson<{ id: string }, DeleteSampleImageResponse>('/api/SampleImage', {
+  return requestJson<{ id: string }, DeleteSampleImageResponse>('/SampleImage', {
     method: 'DELETE',
     payload: { id }
   });

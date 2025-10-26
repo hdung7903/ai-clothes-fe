@@ -73,7 +73,7 @@ export async function createOrUpdateProductDesign(payload: CreateOrUpdateProduct
 
 export async function searchProductDesigns(query: SearchProductDesignsQuery): Promise<SearchProductDesignsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/api/ProductDesign/Search', baseUrl);
+  const url = new URL('ProductDesign/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
