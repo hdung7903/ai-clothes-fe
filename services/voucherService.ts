@@ -21,11 +21,12 @@ const defaultJsonHeaders: HeadersInit = {
 function getAccessToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = localStorage.getItem('auth');
+    const raw = localStorage.getItem('auth.tokens');
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { accessToken?: string };
     return parsed?.accessToken ?? null;
-  } catch {
+  } catch (error) {
+    console.error('Error parsing auth tokens:', error);
     return null;
   }
 }
