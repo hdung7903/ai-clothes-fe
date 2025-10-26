@@ -52,6 +52,7 @@ export interface OrderResponse {
   totalAmount: number;
   items: OrderItemResponse[];
   createdBy: OrderCreatedBy;
+  isFeedback: boolean;
 }
 
 export interface CreateOrderResponse {

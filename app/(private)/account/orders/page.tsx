@@ -5,14 +5,17 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { getOrderById, getUserOrders } from "@/services/orderServices"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { getOrderById, getUserOrders, updateOrderStatusByUser } from "@/services/orderServices"
+import { createFeedback } from "@/services/feedbackServices"
 import type { GetOrderByIdResponse, GetOrdersResponse, OrderItemResponse } from "@/types/order"
 import { formatCurrency } from "@/utils/format"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
 import { addItemAsync } from "@/redux/cartSlice"
-import { ShoppingCart, Package } from "lucide-react"
+import { ShoppingCart, Package, Star, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 
 export default function OrdersPage() {
@@ -31,6 +34,13 @@ export default function OrdersPage() {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
   const [orderDetail, setOrderDetail] = useState<GetOrderByIdResponse | null>(null)
   const [addingToCart, setAddingToCart] = useState<{ [key: string]: boolean }>({})
+  
+  // Feedback dialog states
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false)
+  const [feedbackText, setFeedbackText] = useState("")
+  const [rating, setRating] = useState(5)
+  const [submittingFeedback, setSubmittingFeedback] = useState(false)
+  const [confirmingOrder, setConfirmingOrder] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -178,9 +188,98 @@ export default function OrdersPage() {
     const s = status.toLowerCase()
     let variant: "default" | "secondary" | "destructive" | "outline" = "outline"
     if (s.includes("pending") || s.includes("processing") || s.includes("chờ")) variant = "secondary"
-    if (s.includes("completed") || s.includes("success") || s.includes("hoàn") || s.includes("giao")) variant = "default"
+    if (s.includes("shipped")) variant = "default"
+    if (s.includes("completed") || s.includes("success") || s.includes("hoàn") || s.includes("confirm_received")) variant = "default"
     if (s.includes("cancel") || s.includes("failed") || s.includes("hủy")) variant = "destructive"
     return <Badge variant={variant}>{status}</Badge>
+  }
+
+  // Handle confirm order received (SHIPPED -> CONFIRM_RECEIVED)
+  const handleConfirmOrder = async (orderId: string) => {
+    setConfirmingOrder(true)
+    try {
+      const response = await updateOrderStatusByUser(orderId, {
+        action: 1 // Confirm received action
+      })
+      
+      if (response.success) {
+        toast.success("Đã xác nhận nhận hàng thành công!")
+        // Reload orders list
+        const res = await getUserOrders(pageNumber, pageSize)
+        if (res.success && res.data) {
+          setOrders(res.data.items)
+        }
+        // Reload detail if open
+        if (selectedOrderId === orderId && detailOpen) {
+          const detailRes = await getOrderById(orderId)
+          if (detailRes.success && detailRes.data) {
+            setOrderDetail(detailRes.data)
+          }
+        }
+      } else {
+        const errorMsg = response.errors 
+          ? Object.values(response.errors).flat().join(", ")
+          : "Không thể xác nhận đơn hàng"
+        toast.error(errorMsg)
+      }
+    } catch (error) {
+      console.error("Error confirming order:", error)
+      toast.error("Có lỗi xảy ra khi xác nhận đơn hàng")
+    } finally {
+      setConfirmingOrder(false)
+    }
+  }
+
+  // Open feedback dialog
+  const openFeedbackDialog = (orderId: string) => {
+    setSelectedOrderId(orderId)
+    setFeedbackText("")
+    setRating(5)
+    setFeedbackDialogOpen(true)
+  }
+
+  // Submit feedback
+  const handleSubmitFeedback = async () => {
+    if (!selectedOrderId || !feedbackText.trim()) {
+      toast.error("Vui lòng nhập nội dung đánh giá")
+      return
+    }
+
+    setSubmittingFeedback(true)
+    try {
+      const response = await createFeedback({
+        orderId: selectedOrderId,
+        feedback: feedbackText.trim(),
+        rating: rating
+      })
+
+      if (response.success) {
+        toast.success("Cảm ơn bạn đã đánh giá!")
+        setFeedbackDialogOpen(false)
+        // Reload orders list
+        const res = await getUserOrders(pageNumber, pageSize)
+        if (res.success && res.data) {
+          setOrders(res.data.items)
+        }
+        // Reload detail if open
+        if (detailOpen) {
+          const detailRes = await getOrderById(selectedOrderId)
+          if (detailRes.success && detailRes.data) {
+            setOrderDetail(detailRes.data)
+          }
+        }
+      } else {
+        const errorMsg = response.errors 
+          ? Object.values(response.errors).flat().join(", ")
+          : "Không thể gửi đánh giá"
+        toast.error(errorMsg)
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error)
+      toast.error("Có lỗi xảy ra khi gửi đánh giá")
+    } finally {
+      setSubmittingFeedback(false)
+    }
   }
 
   const canPrev = useMemo(() => pageNumber > 1, [pageNumber])
@@ -267,6 +366,33 @@ export default function OrdersPage() {
                             <Package className="h-4 w-4" />
                             Chi tiết
                           </Button>
+                          
+                          {/* Show "Xác nhận đã nhận" button when status is SHIPPED */}
+                          {o.status === "SHIPPED" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleConfirmOrder(o.orderId)}
+                              disabled={confirmingOrder}
+                              className="gap-2"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Xác nhận đã nhận
+                            </Button>
+                          )}
+                          
+                          {/* Show "Đánh giá" button when status is CONFIRM_RECEIVED and hasn't been reviewed */}
+                          {o.status === "CONFIRM_RECEIVED" && !o.isFeedback && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => openFeedbackDialog(o.orderId)}
+                              className="gap-2"
+                            >
+                              <Star className="h-4 w-4" />
+                              Đánh giá
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -374,6 +500,79 @@ export default function OrdersPage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Feedback Dialog */}
+      <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              Đánh giá đơn hàng
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Star Rating */}
+            <div className="space-y-2">
+              <Label>Mức độ hài lòng</Label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        star <= rating
+                          ? 'fill-yellow-500 text-yellow-500'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {rating === 5 && "Tuyệt vời! 😍"}
+                {rating === 4 && "Rất tốt! 😊"}
+                {rating === 3 && "Tốt! 🙂"}
+                {rating === 2 && "Bình thường 😐"}
+                {rating === 1 && "Cần cải thiện 😞"}
+              </p>
+            </div>
+
+            {/* Feedback Text */}
+            <div className="space-y-2">
+              <Label htmlFor="feedback-text">Nhận xét của bạn</Label>
+              <Textarea
+                id="feedback-text"
+                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm và dịch vụ..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={5}
+                className="resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setFeedbackDialogOpen(false)}
+              disabled={submittingFeedback}
+            >
+              Hủy
+            </Button>
+            <Button
+              onClick={handleSubmitFeedback}
+              disabled={submittingFeedback || !feedbackText.trim()}
+            >
+              {submittingFeedback ? "Đang gửi..." : "Gửi đánh giá"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
