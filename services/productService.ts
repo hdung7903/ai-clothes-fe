@@ -38,7 +38,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateProduct(payload: CreateOrUpdateProductRequest): Promise<CreateOrUpdateProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Product/CreateOrUpdateProduct', {
+  const res = await fetch(baseUrl + '/api/Product/CreateOrUpdateProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -60,7 +60,7 @@ export interface SearchProductsQuery {
 
 export async function searchProducts(query: SearchProductsQuery): Promise<SearchProductsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/Product/Search', baseUrl);
+  const url = new URL('/api/Product/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -74,7 +74,7 @@ export async function searchProducts(query: SearchProductsQuery): Promise<Search
 
 export async function getProductById(productId: string): Promise<GetProductByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Product/${encodeURIComponent(productId)}`, {
+  const res = await fetch(baseUrl + `/api/Product/${encodeURIComponent(productId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -84,7 +84,7 @@ export async function getProductById(productId: string): Promise<GetProductByIdR
 
 export async function deleteProductById(productId: string): Promise<DeleteProductByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Product/${encodeURIComponent(productId)}`, {
+  const res = await fetch(baseUrl + `/api/Product/${encodeURIComponent(productId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',

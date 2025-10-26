@@ -31,10 +31,10 @@ function withAuth(headers: HeadersInit): HeadersInit {
   return h;
 }
 
-// POST /Payment/QrCode
+// POST /api/Payment/QrCode
 export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Payment/QrCode', {
+  const res = await fetch(baseUrl + '/api/Payment/QrCode', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -43,10 +43,10 @@ export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeRespon
   return res.json() as Promise<QrCodeResponse>;
 }
 
-// POST /Payment/WebHook/Sepay
+// POST /api/Payment/WebHook/Sepay
 export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayWebhookResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Payment/WebHook/Sepay', {
+  const res = await fetch(baseUrl + '/api/Payment/WebHook/Sepay', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
