@@ -44,7 +44,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherRequest): Promise<CreateOrUpdateVoucherResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/CreateOrUpdateVoucher', {
+  const res = await fetch(baseUrl + '/Voucher/CreateOrUpdateVoucher', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -56,7 +56,7 @@ export async function createOrUpdateVoucher(payload: CreateOrUpdateVoucherReques
 
 export async function searchVouchers(query: SearchVouchersQuery): Promise<SearchVouchersResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/api/Voucher/Search', baseUrl);
+  const url = new URL('/Voucher/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -70,7 +70,7 @@ export async function searchVouchers(query: SearchVouchersQuery): Promise<Search
 
 export async function getVoucherById(voucherId: string): Promise<GetVoucherByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/api/Voucher/${encodeURIComponent(voucherId)}`, {
+  const res = await fetch(baseUrl + `/Voucher/${encodeURIComponent(voucherId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -80,7 +80,7 @@ export async function getVoucherById(voucherId: string): Promise<GetVoucherByIdR
 
 export async function deleteVoucherById(voucherId: string): Promise<DeleteVoucherByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/api/Voucher/${encodeURIComponent(voucherId)}`, {
+  const res = await fetch(baseUrl + `/Voucher/${encodeURIComponent(voucherId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -90,7 +90,7 @@ export async function deleteVoucherById(voucherId: string): Promise<DeleteVouche
 
 export async function addToProduct(payload: AddToProductRequest): Promise<AddToProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/AddToProduct', {
+  const res = await fetch(baseUrl + '/Voucher/AddToProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -101,7 +101,7 @@ export async function addToProduct(payload: AddToProductRequest): Promise<AddToP
 
 export async function removeFromProduct(payload: RemoveFromProductRequest): Promise<RemoveFromProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Voucher/RemoveFromProduct', {
+  const res = await fetch(baseUrl + '/Voucher/RemoveFromProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -112,7 +112,7 @@ export async function removeFromProduct(payload: RemoveFromProductRequest): Prom
 
 export async function getVouchersByProduct(productId: string, isActive?: boolean): Promise<GetVouchersByProductResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(`/api/Voucher/Product/${encodeURIComponent(productId)}`, baseUrl);
+  const url = new URL(`/Voucher/Product/${encodeURIComponent(productId)}`, baseUrl);
   if (isActive !== undefined) {
     url.searchParams.set('isActive', String(isActive));
   }

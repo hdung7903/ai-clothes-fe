@@ -120,7 +120,7 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
     searchParams.append('Role', params.role);
   }
   
-  const url = baseUrl + '/api/Users?' + searchParams.toString();
+  const url = baseUrl + '/Users?' + searchParams.toString();
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   
   // Debug: Log the headers to check if token is included
@@ -193,7 +193,7 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
 // Ban/Unban user API
 export async function banUser(userId: string, isBanned: boolean, message?: string): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getBaseUrl();
-  const url = baseUrl + `/api/Users/${userId}/Ban`;
+  const url = baseUrl + `/Users/${userId}/Ban`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');
 
@@ -223,7 +223,7 @@ export async function banUser(userId: string, isBanned: boolean, message?: strin
 // Change user role API
 export async function changeUserRole(userId: string, role: 'User' | 'Administrator'): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getBaseUrl();
-  const url = baseUrl + `/api/Users/${userId}/Role?role=${role}`;
+  const url = baseUrl + `/Users/${userId}/Role?role=${role}`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
 
   console.log('changeUserRole request:', { url, headers: Object.fromEntries(headers.entries()) });
@@ -252,7 +252,7 @@ export interface UpdateUserInfoRequest {
 
 export async function updateUserInfo(request: UpdateUserInfoRequest): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getBaseUrl();
-  const url = baseUrl + '/api/Users/Info';
+  const url = baseUrl + '/Users/Info';
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');
 

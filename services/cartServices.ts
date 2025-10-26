@@ -91,7 +91,7 @@ async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 
  * @throws {Error} If authentication fails or request fails
  */
 export async function addItem(payload: AddCartItemRequest): Promise<AddCartItemResponse> {
-  return requestJson<AddCartItemRequest, AddCartItemResponse>('/api/Cart/item', { method: 'POST', payload });
+  return requestJson<AddCartItemRequest, AddCartItemResponse>('/Cart/item', { method: 'POST', payload });
 }
 
 /**
@@ -101,7 +101,7 @@ export async function addItem(payload: AddCartItemRequest): Promise<AddCartItemR
  * @throws {Error} If authentication fails or request fails
  */
 export async function deleteItems(payload: DeleteCartItemsRequest): Promise<DeleteCartItemsResponse> {
-  return requestJson<DeleteCartItemsRequest, DeleteCartItemsResponse>('/api/Cart/item', { method: 'DELETE', payload });
+  return requestJson<DeleteCartItemsRequest, DeleteCartItemsResponse>('/Cart/item', { method: 'DELETE', payload });
 }
 
 /**
@@ -110,7 +110,7 @@ export async function deleteItems(payload: DeleteCartItemsRequest): Promise<Dele
  * @throws {Error} If authentication fails or request fails
  */
 export async function getCartItems(): Promise<GetCartItemsResponse> {
-  return requestJson<never, GetCartItemsResponse>('/api/Cart/item', { method: 'GET' });
+  return requestJson<never, GetCartItemsResponse>('/Cart/item', { method: 'GET' });
 }
 
 /**
@@ -120,7 +120,7 @@ export async function getCartItems(): Promise<GetCartItemsResponse> {
  * @throws {Error} If authentication fails or request fails
  */
 export async function addItemByOption(payload: GetCartItemByOptionRequest): Promise<GetCartItemByOptionResponse> {
-  return requestJson<GetCartItemByOptionRequest, GetCartItemByOptionResponse>('/api/Cart/itemByOption', { method: 'POST', payload });
+  return requestJson<GetCartItemByOptionRequest, GetCartItemByOptionResponse>('/Cart/itemByOption', { method: 'POST', payload });
 }
 
 

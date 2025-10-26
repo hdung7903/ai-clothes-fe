@@ -120,7 +120,7 @@ async function requestJson<TReq, TRes>(
  * @returns Promise with order creation response
  */
 export async function createOrder(request: CreateOrderRequest): Promise<ApiEnvelope<CreateOrderResponse>> {
-  return requestJson<CreateOrderRequest, CreateOrderResponse>('/api/Order', { 
+  return requestJson<CreateOrderRequest, CreateOrderResponse>('/Order', { 
     method: 'POST',
     payload: request,
     requireAuth: true
@@ -133,7 +133,7 @@ export async function createOrder(request: CreateOrderRequest): Promise<ApiEnvel
  * @returns Promise with paginated orders response
  */
 export async function getOrders(query: GetOrdersQuery): Promise<ApiEnvelope<GetOrdersResponse>> {
-  return requestJson<undefined, GetOrdersResponse>('/api/Order', {
+  return requestJson<undefined, GetOrdersResponse>('/Order', {
     method: 'GET',
     query: {
       PageNumber: query.pageNumber,
@@ -150,7 +150,7 @@ export async function getOrders(query: GetOrdersQuery): Promise<ApiEnvelope<GetO
  * @returns Promise with order details response
  */
 export async function getOrderById(orderId: string): Promise<ApiEnvelope<GetOrderByIdResponse>> {
-  return requestJson<undefined, GetOrderByIdResponse>(`/api/Order/${orderId}`, {
+  return requestJson<undefined, GetOrderByIdResponse>(`/Order/${orderId}`, {
     method: 'GET',
     requireAuth: true
   });
@@ -196,7 +196,7 @@ export async function updateOrderStatusByUser(
   payload: UpdateOrderStatusByUserRequest
 ): Promise<ApiEnvelope<UpdateOrderStatusByUserResponse>> {
   return requestJson<UpdateOrderStatusByUserRequest, UpdateOrderStatusByUserResponse>(
-    `/api/Order/${orderId}/status`,
+    `/Order/${orderId}/status`,
     {
       method: 'PUT',
       payload,
@@ -210,7 +210,7 @@ export async function adminGetAllOrders(
   query: AdminGetOrdersQuery
 ): Promise<ApiEnvelope<AdminGetOrdersResponse>> {
   return requestJson<undefined, AdminGetOrdersResponse>(
-    '/api/Order/admin/all',
+    '/Order/admin/all',
     {
       method: 'GET',
       query: {
@@ -231,7 +231,7 @@ export async function adminGetOrderById(
   orderId: string
 ): Promise<ApiEnvelope<GetOrderByIdResponse>> {
   return requestJson<undefined, GetOrderByIdResponse>(
-    `/api/Order/admin/${orderId}`,
+    `/Order/admin/${orderId}`,
     {
       method: 'GET',
       requireAuth: true,
@@ -245,7 +245,7 @@ export async function adminUpdateOrderStatus(
   payload: AdminUpdateOrderStatusRequest
 ): Promise<ApiEnvelope<AdminUpdateOrderStatusResponse>> {
   return requestJson<AdminUpdateOrderStatusRequest, AdminUpdateOrderStatusResponse>(
-    `/api/Order/admin/${orderId}/Status`,
+    `/Order/admin/${orderId}/Status`,
     {
       method: 'PUT',
       payload,
@@ -260,7 +260,7 @@ export async function adminUpdatePaymentStatus(
   payload: AdminUpdatePaymentStatusRequest
 ): Promise<ApiEnvelope<AdminUpdatePaymentStatusResponse>> {
   return requestJson<AdminUpdatePaymentStatusRequest, AdminUpdatePaymentStatusResponse>(
-    `/api/Order/admin/${orderId}/PaymentStatus`,
+    `/Order/admin/${orderId}/PaymentStatus`,
     {
       method: 'PUT',
       payload,
@@ -274,7 +274,7 @@ export async function checkOrderPaymentStatus(
   orderId: string
 ): Promise<ApiEnvelope<boolean>> {
   return requestJson<never, boolean>(
-    `/api/Order/${orderId}/IsPaid`,
+    `/Order/${orderId}/IsPaid`,
     {
       method: 'GET',
       requireAuth: true,

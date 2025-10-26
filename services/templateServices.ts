@@ -47,7 +47,7 @@ export interface SearchTemplatesQuery {
 
 export async function createOrUpdateTemplate(payload: CreateOrUpdateTemplateRequest): Promise<CreateOrUpdateTemplateResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/api/Template/CreateOrUpdateTemplate', {
+  const res = await fetch(baseUrl + '/Template/CreateOrUpdateTemplate', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -58,7 +58,7 @@ export async function createOrUpdateTemplate(payload: CreateOrUpdateTemplateRequ
 
 export async function searchTemplates(query: SearchTemplatesQuery): Promise<SearchTemplatesResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('/api/Template/Search', baseUrl);
+  const url = new URL('/Template/Search', baseUrl);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -72,7 +72,7 @@ export async function searchTemplates(query: SearchTemplatesQuery): Promise<Sear
 
 export async function getTemplateById(templateId: string): Promise<GetTemplateByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/api/Template/${encodeURIComponent(templateId)}`, {
+  const res = await fetch(baseUrl + `/Template/${encodeURIComponent(templateId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -82,7 +82,7 @@ export async function getTemplateById(templateId: string): Promise<GetTemplateBy
 
 export async function deleteTemplateById(templateId: string): Promise<DeleteTemplateByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/api/Template/${encodeURIComponent(templateId)}`, {
+  const res = await fetch(baseUrl + `/Template/${encodeURIComponent(templateId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -92,7 +92,7 @@ export async function deleteTemplateById(templateId: string): Promise<DeleteTemp
 
 export async function getTemplatesByProduct(productId: string, productOptionValueId?: string): Promise<GetTemplatesByProductResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(`/api/Template/Product/${encodeURIComponent(productId)}`, baseUrl);
+  const url = new URL(`/Template/Product/${encodeURIComponent(productId)}`, baseUrl);
   if (productOptionValueId) url.searchParams.set('productOptionValueId', productOptionValueId);
   const res = await fetch(url.toString(), {
     method: 'GET',
