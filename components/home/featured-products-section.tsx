@@ -102,9 +102,6 @@ export function FeaturedProductsSection() {
                   <Link href={`/products/${product.id}`} className="flex-1">
                     <Button variant="outline" className="w-full">Xem chi tiết</Button>
                   </Link>
-                  <Link href="/cart">
-                    <Button>Thêm vào giỏ</Button>
-                  </Link>
                 </div>
               </CardFooter>
             </Card>

@@ -40,23 +40,23 @@ export function Footer() {
             <h3 className="text-lg font-semibold text-foreground">{"Sản Phẩm"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a href="/design" className="hover:text-primary transition-colors">
                   {"Công Cụ Thiết Kế"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Tính Năng TEECRAFT"}
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a href="/products" className="hover:text-primary transition-colors">
                   {"Danh Mục Sản Phẩm"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Đơn Hàng Tùy Chỉnh"}
+                <a href="/packages" className="hover:text-primary transition-colors">
+                  {"Gói Token"}
+                </a>
+              </li>
+              <li>
+                <a href="/cart" className="hover:text-primary transition-colors">
+                  {"Giỏ Hàng"}
                 </a>
               </li>
             </ul>
@@ -66,23 +66,23 @@ export function Footer() {
             <h3 className="text-lg font-semibold text-foreground">{"Hỗ Trợ"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Trung Tâm Trợ Giúp"}
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Hướng Dẫn"}
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a href="/contact" className="hover:text-primary transition-colors">
                   {"Liên Hệ"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Hướng Dẫn Kích Thước"}
+                <a href="/about" className="hover:text-primary transition-colors">
+                  {"Giới Thiệu"}
+                </a>
+              </li>
+              <li>
+                <a href="/account" className="hover:text-primary transition-colors">
+                  {"Tài Khoản"}
+                </a>
+              </li>
+              <li>
+                <a href="/checkout" className="hover:text-primary transition-colors">
+                  {"Thanh Toán"}
                 </a>
               </li>
             </ul>
@@ -92,23 +92,23 @@ export function Footer() {
             <h3 className="text-lg font-semibold text-foreground">{"Công Ty"}</h3>
             <ul className="space-y-2 text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a href="/about" className="hover:text-primary transition-colors">
                   {"Về Chúng Tôi"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Tuyển Dụng"}
+                <a href="/contact" className="hover:text-primary transition-colors">
+                  {"Liên Hệ"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Chính Sách Bảo Mật"}
+                <a href="/auth/login" className="hover:text-primary transition-colors">
+                  {"Đăng Nhập"}
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  {"Điều Khoản Dịch Vụ"}
+                <a href="/auth/register" className="hover:text-primary transition-colors">
+                  {"Đăng Ký"}
                 </a>
               </li>
             </ul>
