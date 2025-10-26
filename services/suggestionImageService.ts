@@ -9,10 +9,27 @@ import type {
 } from '@/types/suggestionImage'
 
 function getBaseUrl(): string {
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_BASE_URL) {
-    return process.env.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, '')
+  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
+  const envUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  
+  // Debug log (remove after testing)
+  if (typeof window !== 'undefined') {
+    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
   }
-  return ''
+  
+  if (typeof process !== 'undefined' && envUrl) {
+    const cleanedUrl = envUrl.replace(/\/$/, '');
+    if (typeof window !== 'undefined') {
+      console.log('✅ Using API URL:', cleanedUrl);
+    }
+    return cleanedUrl;
+  }
+  
+  // Fallback to /api path for same-origin requests
+  if (typeof window !== 'undefined') {
+    console.log('⚠️ Fallback to /api');
+  }
+  return '/api';
 }
 
 function getAccessToken(): string | null {

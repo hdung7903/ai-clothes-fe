@@ -22,19 +22,28 @@ const defaultHeaders: HeadersInit = {
   'Accept': 'application/json',
 };
 
-function getAiBaseUrl(): string {
-  // Use NEXT_PUBLIC_AI_BASE_URL environment variable
-  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_AI_BASE_URL) {
-    return process.env.NEXT_PUBLIC_AI_BASE_URL.replace(/\/$/, '');
-  }
+function getBaseUrl(): string {
+  // Prefer NEXT_PUBLIC_API_BASE_URL if provided, fallback to /api
+  const envUrl = process.env.NEXT_PUBLIC_AI_BASE_URL;
   
-  // Fallback for development - you can change this to your actual AI API URL
+  // Debug log (remove after testing)
   if (typeof window !== 'undefined') {
-    console.warn('NEXT_PUBLIC_AI_BASE_URL not set, using fallback URL');
-    return 'http://localhost:8000'; // Change this to your actual AI API URL
+    console.log('🔍 NEXT_PUBLIC_API_BASE_URL:', envUrl);
   }
   
-  throw new Error('NEXT_PUBLIC_AI_BASE_URL environment variable is not set');
+  if (typeof process !== 'undefined' && envUrl) {
+    const cleanedUrl = envUrl.replace(/\/$/, '');
+    if (typeof window !== 'undefined') {
+      console.log('✅ Using API URL:', cleanedUrl);
+    }
+    return cleanedUrl;
+  }
+  
+  // Fallback to /api path for same-origin requests
+  if (typeof window !== 'undefined') {
+    console.log('⚠️ Fallback to /api');
+  }
+  return '/api';
 }
 
 function getAccessToken(): string | null {
@@ -69,7 +78,7 @@ async function requestAiJson<TReq, TRes>(
   options: Omit<RequestInit, 'body'> & { payload?: TReq }
 ): Promise<TRes> {
   try {
-    const baseUrl = getAiBaseUrl();
+    const baseUrl = getBaseUrl();
     
     // Construct URL properly
     let url: string;
