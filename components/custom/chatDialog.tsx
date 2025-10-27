@@ -212,7 +212,7 @@ export default function ChatDialog({
           </div>
         </button>
       ) : (
-        <div className="w-[380px] h-[600px] bg-white rounded-lg shadow-2xl border flex flex-col overflow-hidden">
+        <div className="w-[480px] h-[700px] bg-white rounded-lg shadow-2xl border flex flex-col overflow-hidden">
           {/* HEADER - Fixed */}
                       <div className="flex items-center justify-between border-b bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 shrink-0">
             <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function ChatDialog({
                     </div>
 
                     {/* Message bubble */}
-                    <div className="flex flex-col gap-1 max-w-[75%]">
+                    <div className="flex flex-col gap-1 max-w-[80%]">
                       <div
                         className={`rounded-2xl px-4 py-3 shadow-sm ${
                           m.from === "user"
@@ -298,10 +298,44 @@ export default function ChatDialog({
                         }`}
                       >
                         {m.from === "bot" ? (
-                          <div className="chat-markdown">
+                          <div className="chat-markdown prose prose-sm max-w-none">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm]}
                               rehypePlugins={[rehypeRaw]}
+                              components={{
+                                // Customize heading styles
+                                h1: ({node, ...props}) => <h1 className="text-xl font-bold mb-2 text-gray-900" {...props} />,
+                                h2: ({node, ...props}) => <h2 className="text-lg font-bold mb-2 text-gray-900" {...props} />,
+                                h3: ({node, ...props}) => <h3 className="text-base font-semibold mb-1 text-gray-900" {...props} />,
+                                // Customize paragraph styles
+                                p: ({node, ...props}) => <p className="mb-2 last:mb-0 leading-relaxed text-gray-800" {...props} />,
+                                // Customize list styles
+                                ul: ({node, ...props}) => <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />,
+                                ol: ({node, ...props}) => <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />,
+                                li: ({node, ...props}) => <li className="text-gray-800" {...props} />,
+                                // Customize link styles
+                                a: ({node, ...props}) => (
+                                  <a 
+                                    className="text-blue-600 hover:text-blue-800 underline break-words" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    {...props} 
+                                  />
+                                ),
+                                // Customize code styles
+                                code: ({node, inline, ...props}: any) => 
+                                  inline ? (
+                                    <code className="bg-gray-100 text-red-600 px-1 py-0.5 rounded text-sm" {...props} />
+                                  ) : (
+                                    <code className="block bg-gray-100 p-2 rounded text-sm overflow-x-auto" {...props} />
+                                  ),
+                                // Customize strong/bold text
+                                strong: ({node, ...props}) => <strong className="font-semibold text-gray-900" {...props} />,
+                                // Customize blockquote
+                                blockquote: ({node, ...props}) => (
+                                  <blockquote className="border-l-4 border-gray-300 pl-3 italic text-gray-700 my-2" {...props} />
+                                ),
+                              }}
                             >
                               {m.text}
                             </ReactMarkdown>

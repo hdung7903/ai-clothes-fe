@@ -14,6 +14,8 @@ const DISPLAY_CONFIG = {
   SHOW_ONCE_PER_SESSION: true,
   PAGE_SIZE: 4, // Limit to 4 vouchers
   MAX_HEIGHT: "60vh", // Make smaller
+  DONT_SHOW_DURATION_MS: 60 * 60 * 1000, // 1 hour in milliseconds
+  STORAGE_KEY: 'voucher-dialog-dismissed'
 }
 
 export function VoucherDialog() {
@@ -102,11 +104,27 @@ export function VoucherDialog() {
   const shouldShowDialog = useCallback(() => {
     if (hasShownRef.current) return false
     
-    // In-memory check for "don't show again"
-    if (dontShowAgain) return false
+    // Check localStorage for "don't show again" timestamp
+    try {
+      const dismissedTimestamp = localStorage.getItem(DISPLAY_CONFIG.STORAGE_KEY)
+      if (dismissedTimestamp) {
+        const dismissedTime = parseInt(dismissedTimestamp, 10)
+        const now = Date.now()
+        
+        // If less than 1 hour has passed, don't show
+        if (now - dismissedTime < DISPLAY_CONFIG.DONT_SHOW_DURATION_MS) {
+          return false
+        } else {
+          // Remove expired timestamp
+          localStorage.removeItem(DISPLAY_CONFIG.STORAGE_KEY)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking localStorage:', error)
+    }
     
     return true
-  }, [dontShowAgain])
+  }, [])
 
   // Load vouchers when component mounts
   useEffect(() => {
@@ -130,8 +148,17 @@ export function VoucherDialog() {
     setOpen(nextOpen)
     if (!nextOpen) {
       setCopiedCode(null)
+      
+      // Save dismiss timestamp to localStorage
+      if (dontShowAgain) {
+        try {
+          localStorage.setItem(DISPLAY_CONFIG.STORAGE_KEY, Date.now().toString())
+        } catch (error) {
+          console.error('Error saving to localStorage:', error)
+        }
+      }
     }
-  }, [])
+  }, [dontShowAgain])
 
   // Sao chép mã voucher
   const handleCopy = useCallback(async (code: string) => {
@@ -410,7 +437,7 @@ export function VoucherDialog() {
                 htmlFor="dont-show"
                 className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer font-medium"
               >
-                Không hiển thị lại hôm nay
+                Không hiển thị lại trong 1 giờ tới
               </label>
             </div>
             

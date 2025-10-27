@@ -214,7 +214,7 @@ export default function AboutPage() {
           {/* Footer Image - smaller and more subtle */}
           <div className="mt-12 relative w-full max-w-4xl mx-auto aspect-[21/9] rounded-2xl overflow-hidden shadow-xl">
             <Image
-              src="https://images.unsplash.com/photo-1523381294911-8d3cead13475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+              src="/about_3.png"
               alt="Workspace sáng tạo TEECRAFT"
               fill
               sizes="(max-width: 1024px) 100vw, 900px"

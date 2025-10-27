@@ -216,8 +216,8 @@ export default function PackagesPage() {
 
   const handleBuyPackage = async (pkg: typeof packages[0]) => {
     if (pkg.id === 1) {
-      // Gói miễn phí - điều hướng đến đăng ký
-      window.location.href = "/auth/register"
+      // Gói miễn phí - điều hướng đến trang design
+      router.push("/design")
       return
     }
 

@@ -121,15 +121,18 @@ export default function ProductsPage() {
     }
   }, [searchTerm, selectedCategoryIds, priceFilter.min, priceFilter.max, sortParams.sortBy, sortParams.sortDesc, currentPage, pageSize])
 
-  // Debounced search effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearchTerm(searchInput)
-      setCurrentPage(1) // Reset to first page on search
-    }, 500) // 500ms debounce
+  // Manual search handler
+  const handleSearch = () => {
+    setSearchTerm(searchInput)
+    setCurrentPage(1) // Reset to first page on search
+  }
 
-    return () => clearTimeout(timer)
-  }, [searchInput])
+  // Handle Enter key press
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
 
   // Load products when filters change
   useEffect(() => {
@@ -182,30 +185,39 @@ export default function ProductsPage() {
                 {/* Search */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tìm kiếm</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input 
-                      placeholder="Tìm kiếm sản phẩm..." 
-                      className="pl-10 pr-10" 
-                      value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
-                      disabled={isLoading}
-                    />
-                    {searchInput && (
-                      <button
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setSearchInput("")}
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                  {searchInput && searchInput !== searchTerm && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Đang tìm kiếm...</span>
+                  <div className="relative flex gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input 
+                        placeholder="Tìm kiếm sản phẩm..." 
+                        className="pl-10 pr-10" 
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        disabled={isLoading}
+                      />
+                      {searchInput && (
+                        <button
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => {
+                            setSearchInput("")
+                            setSearchTerm("")
+                            setCurrentPage(1)
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
-                  )}
+                    <Button
+                      size="icon"
+                      onClick={handleSearch}
+                      disabled={isLoading}
+                      className="flex-shrink-0"
+                    >
+                      <Search className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Category Filter */}

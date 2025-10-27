@@ -1,5 +1,17 @@
 import { Button } from "@/components/ui/button"
-import { Facebook, Twitter, Instagram, Youtube } from "lucide-react"
+import { Facebook, Instagram } from "lucide-react"
+
+// TikTok icon component
+const TikTokIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className="h-5 w-5"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" />
+  </svg>
+)
 
 export function Footer() {
   return (
@@ -21,17 +33,20 @@ export function Footer() {
               {"Cách mạng hóa thời trang với công nghệ TEECRAFT. Tạo ra những thiết kế trang phục độc đáo và cá nhân hóa từ bất kỳ hình ảnh nào."}
             </p>
             <div className="flex space-x-4">
-              <Button variant="ghost" size="icon">
-                <Facebook className="h-5 w-5" />
+              <Button variant="ghost" size="icon" asChild>
+                <a href="https://www.facebook.com/profile.php?id=61581261208179" target="_blank" rel="noopener noreferrer">
+                  <Facebook className="h-5 w-5" />
+                </a>
               </Button>
-              <Button variant="ghost" size="icon">
-                <Twitter className="h-5 w-5" />
+              <Button variant="ghost" size="icon" asChild>
+                <a href="https://www.instagram.com/_teecraft.5?igsh=eGM3em42MzZjdWJ4&utm_source=qr" target="_blank" rel="noopener noreferrer">
+                  <Instagram className="h-5 w-5" />
+                </a>
               </Button>
-              <Button variant="ghost" size="icon">
-                <Instagram className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Youtube className="h-5 w-5" />
+              <Button variant="ghost" size="icon" asChild>
+                <a href="https://www.tiktok.com/@teecraft5?_t=ZS-90tJ8oRyEqe&_r=1" target="_blank" rel="noopener noreferrer">
+                  <TikTokIcon />
+                </a>
               </Button>
             </div>
           </div>

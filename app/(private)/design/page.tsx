@@ -327,6 +327,11 @@ export default function DesignToolPage(): ReactElement {
             <span className="text-xl font-bold text-gray-600">Designer</span>
           </div>
           <div className="flex items-center gap-2">
+            <Link href="/account">
+              <Button variant="outline" size="sm">
+                Thiết kế của tôi
+              </Button>
+            </Link>
             <Link href="/packages">
               <Badge 
                 variant={hasTokens ? "default" : "destructive"} 
