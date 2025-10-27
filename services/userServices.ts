@@ -87,6 +87,25 @@ interface GetUsersApiResponse {
   success: boolean;
 }
 
+// New response type for paginated users
+export interface GetUsersPaginatedResponse {
+  items: Array<{
+    id: string;
+    email: string;
+    fullName: string;
+    token: number;
+    balance: number;
+    isBanned: boolean;
+    role: string;
+  }>;
+  pageNumber: number;
+  totalPages: number;
+  totalCount: number;
+  pageSize: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
 export async function getUsers(params: GetUsersParams): Promise<GetProfileResponse[]> {
   const baseUrl = getApiBaseUrl();
   const searchParams = new URLSearchParams();
@@ -177,6 +196,73 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
   }));
   
   return users;
+}
+
+// New function to get users with full pagination info
+export async function getUsersPaginated(params: GetUsersParams): Promise<GetUsersPaginatedResponse> {
+  const baseUrl = getApiBaseUrl();
+  const searchParams = new URLSearchParams();
+  
+  // Add required parameters
+  searchParams.append('PageNumber', params.pageNumber.toString());
+  searchParams.append('PageSize', params.pageSize.toString());
+  
+  // Add optional parameters
+  if (params.keyword) {
+    searchParams.append('Keyword', params.keyword);
+  }
+  if (params.fieldName) {
+    searchParams.append('FieldName', params.fieldName);
+  }
+  if (params.isBanned !== undefined) {
+    searchParams.append('IsBanned', params.isBanned.toString());
+  }
+  if (params.role) {
+    searchParams.append('Role', params.role);
+  }
+  
+  const url = baseUrl + '/Users?' + searchParams.toString();
+  const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
+  
+  const res = await fetch(url, {
+    method: 'GET',
+    headers,
+    credentials: 'include',
+  });
+  
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error('getUsersPaginated API error:', res.status, errorText);
+    
+    if (res.status === 400) {
+      try {
+        const errorData = JSON.parse(errorText);
+        if (errorData.errors?.COMMON_UNAUTHORIZED) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth.tokens');
+            window.location.href = '/auth/login';
+          }
+          throw new Error('User not authenticated. Please login again.');
+        }
+        if (errorData.errors?.COMMON_FORBIDDEN) {
+          throw new Error('Bạn không có quyền truy cập tài nguyên này. Vui lòng liên hệ quản trị viên.');
+        }
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+      }
+    }
+    
+    throw new Error(`API request failed: ${res.status} ${errorText}`);
+  }
+  
+  const response: GetUsersApiResponse = await res.json();
+  
+  if (!response.success || !response.data) {
+    console.error('getUsersPaginated API response error:', response);
+    throw new Error('API returned unsuccessful response');
+  }
+  
+  return response.data;
 }
 
 // Ban/Unban user API

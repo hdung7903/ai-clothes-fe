@@ -21,14 +21,20 @@ import { Badge } from "@/components/ui/badge";
 import {
   Loader2,
   Package,
-  ChevronLeft,
-  ChevronRight,
   Calendar,
   User,
   Mail,
   DollarSign,
   Coins,
 } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { getTokenPackagePurchaseHistory } from "@/services/paymentServices";
 import type { TokenPackagePurchaseHistoryItem } from "@/types/payment";
 import { formatCurrency } from "@/utils/format";
@@ -290,33 +296,72 @@ export default function AdminPackagesPage() {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                       <div className="text-sm text-muted-foreground">
                         Trang {pageNumber} / {totalPages} (Tổng {totalCount}{" "}
                         giao dịch)
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setPageNumber((prev) => Math.max(1, prev - 1))
-                          }
-                          disabled={!hasPreviousPage || isLoading}
-                        >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Trước
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setPageNumber((prev) => prev + 1)}
-                          disabled={!hasNextPage || isLoading}
-                        >
-                          Sau
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        </Button>
-                      </div>
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                if (hasPreviousPage) setPageNumber((prev) => prev - 1)
+                              }}
+                              className={!hasPreviousPage || isLoading ? 'pointer-events-none opacity-50' : ''}
+                            />
+                          </PaginationItem>
+
+                          {/* Show page numbers with smart range */}
+                          {Array.from({ length: totalPages }).map((_, i) => {
+                            const pageNum = i + 1
+                            const isNearCurrent = Math.abs(pageNum - pageNumber) <= 1
+                            const isFirst = pageNum === 1
+                            const isLast = pageNum === totalPages
+
+                            if (isNearCurrent || isFirst || isLast) {
+                              return (
+                                <PaginationItem key={pageNum}>
+                                  <PaginationLink
+                                    href="#"
+                                    isActive={pageNumber === pageNum}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      setPageNumber(pageNum)
+                                    }}
+                                  >
+                                    {pageNum}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              )
+                            }
+
+                            if (isNearCurrent || i === 0 || i === totalPages - 1) return null
+                            if (pageNum === Math.floor(totalPages / 2)) {
+                              return (
+                                <PaginationItem key="ellipsis">
+                                  <span className="px-2">...</span>
+                                </PaginationItem>
+                              )
+                            }
+
+                            return null
+                          })}
+
+                          <PaginationItem>
+                            <PaginationNext
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                if (hasNextPage) setPageNumber((prev) => prev + 1)
+                              }}
+                              className={!hasNextPage || isLoading ? 'pointer-events-none opacity-50' : ''}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
                     </div>
                   )}
                 </>

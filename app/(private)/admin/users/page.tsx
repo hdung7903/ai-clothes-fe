@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination"
 import * as React from "react"
-import { getUsers, banUser, changeUserRole, getProfile, type GetUsersParams } from "@/services/userServices"
+import { getUsers, getUsersPaginated, banUser, changeUserRole, getProfile, type GetUsersParams } from "@/services/userServices"
 import type { UserProfile } from "@/types/user"
 import { toast } from "sonner"
 
@@ -47,6 +47,8 @@ export default function Page() {
   const [selectedUser, setSelectedUser] = React.useState<Row | null>(null)
   const [showUserDialog, setShowUserDialog] = React.useState(false)
   const [currentUserId, setCurrentUserId] = React.useState<string>("")
+  const [totalPages, setTotalPages] = React.useState(1)
+  const [totalCount, setTotalCount] = React.useState(0)
 
   React.useEffect(() => {
     let cancelled = false
@@ -70,22 +72,22 @@ export default function Page() {
           isBanned: isBannedFilter === "true" ? true : isBannedFilter === "false" ? false : undefined,
         }
         
-        const users = await getUsers(params)
-        if (!cancelled && users) {
-          const userRows: Row[] = users
-            .filter((userResponse) => userResponse.data)
-            .map((userResponse) => {
-              const user = userResponse.data!
-              const primaryRole = user.roles?.[0] ?? "user"
-              return {
-                id: user.id,
-                fullName: user.fullName,
-                email: user.email,
-                role: primaryRole,
-                isBanned: user.isBanned || false, // Get isBanned from API response
-              }
-            })
+        // Use new paginated function
+        const paginatedResponse = await getUsersPaginated(params)
+        
+        if (!cancelled && paginatedResponse) {
+          const userRows: Row[] = paginatedResponse.items.map((user) => {
+            return {
+              id: user.id,
+              fullName: user.fullName,
+              email: user.email,
+              role: user.role,
+              isBanned: user.isBanned,
+            }
+          })
           setRows(userRows)
+          setTotalPages(paginatedResponse.totalPages)
+          setTotalCount(paginatedResponse.totalCount)
         }
       } catch (e) {
         if (!cancelled) {
@@ -173,21 +175,19 @@ export default function Page() {
         role: roleFilter !== "all" ? (roleFilter as 'User' | 'Administrator' | 'Moderator') : undefined,
         isBanned: isBannedFilter === "true" ? true : isBannedFilter === "false" ? false : undefined,
       };
-      const users = await getUsers(params);
-      const userRows: Row[] = users
-        .filter((userResponse) => userResponse.data)
-        .map((userResponse) => {
-          const user = userResponse.data!
-          const primaryRole = user.roles?.[0] ?? "user"
-          return {
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            role: primaryRole,
-            isBanned: user.isBanned || false,
-          }
-        });
+      const paginatedResponse = await getUsersPaginated(params);
+      const userRows: Row[] = paginatedResponse.items.map((user) => {
+        return {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          isBanned: user.isBanned,
+        }
+      });
       setRows(userRows);
+      setTotalPages(paginatedResponse.totalPages);
+      setTotalCount(paginatedResponse.totalCount);
     } catch (error) {
       console.error('Error banning user:', error);
       toast.error("Không thể cập nhật trạng thái người dùng", {
@@ -215,21 +215,19 @@ export default function Page() {
         role: roleFilter !== "all" ? (roleFilter as 'User' | 'Administrator' | 'Moderator') : undefined,
         isBanned: isBannedFilter === "true" ? true : isBannedFilter === "false" ? false : undefined,
       };
-      const users = await getUsers(params);
-      const userRows: Row[] = users
-        .filter((userResponse) => userResponse.data)
-        .map((userResponse) => {
-          const user = userResponse.data!
-          const primaryRole = user.roles?.[0] ?? "user"
-          return {
-            id: user.id,
-            fullName: user.fullName,
-            email: user.email,
-            role: primaryRole,
-            isBanned: user.isBanned || false,
-          }
-        });
+      const paginatedResponse = await getUsersPaginated(params);
+      const userRows: Row[] = paginatedResponse.items.map((user) => {
+        return {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          isBanned: user.isBanned,
+        }
+      });
       setRows(userRows);
+      setTotalPages(paginatedResponse.totalPages);
+      setTotalCount(paginatedResponse.totalCount);
     } catch (error) {
       console.error('Error changing user role:', error);
       toast.error("Không thể thay đổi vai trò người dùng", {
@@ -239,11 +237,9 @@ export default function Page() {
     }
   };
 
-  // Since we're now using server-side filtering, we don't need client-side filtering
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
-  const currentPage = Math.min(page, totalPages)
-  const start = (currentPage - 1) * pageSize
-  const pageItems = rows.slice(start, start + pageSize)
+  // Using server-side pagination from API
+  const currentPage = page
+  const pageItems = rows
 
   return (
     <>
@@ -368,7 +364,7 @@ export default function Page() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">Danh sách người dùng</h2>
                 <div className="text-sm text-muted-foreground">
-                  Hiển thị {start + 1}-{Math.min(start + pageSize, rows.length)} trong tổng số {rows.length} người dùng
+                  Trang {currentPage} của {totalPages} ({totalCount} người dùng)
                 </div>
               </div>
               
@@ -535,9 +531,9 @@ export default function Page() {
           </div>
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
               <div className="text-sm text-muted-foreground">
-                Trang {currentPage} của {totalPages}
+                Trang {currentPage} của {totalPages} ({totalCount} người dùng)
               </div>
               <Pagination>
                 <PaginationContent>
@@ -546,34 +542,54 @@ export default function Page() {
                       href="#"
                       onClick={(e) => {
                         e.preventDefault()
-                        setPage((p) => Math.max(1, p - 1))
+                        if (currentPage > 1) setPage(currentPage - 1)
                       }}
                       className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                     />
                   </PaginationItem>
-                  {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
-                    const pageNum = i + 1;
-                    return (
-                      <PaginationItem key={pageNum}>
-                        <PaginationLink
-                          href="#"
-                          isActive={currentPage === pageNum}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setPage(pageNum)
-                          }}
-                        >
-                          {pageNum}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
+                  
+                  {/* Show page numbers with smart range */}
+                  {Array.from({ length: totalPages }).map((_, i) => {
+                    const pageNum = i + 1
+                    const isNearCurrent = Math.abs(pageNum - currentPage) <= 1
+                    const isFirst = pageNum === 1
+                    const isLast = pageNum === totalPages
+                    
+                    if (isNearCurrent || isFirst || isLast) {
+                      return (
+                        <PaginationItem key={pageNum}>
+                          <PaginationLink
+                            href="#"
+                            isActive={currentPage === pageNum}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              setPage(pageNum)
+                            }}
+                          >
+                            {pageNum}
+                          </PaginationLink>
+                        </PaginationItem>
+                      )
+                    }
+                    
+                    if (isNearCurrent || i === 0 || i === totalPages - 1) return null
+                    if (pageNum === Math.floor(totalPages / 2)) {
+                      return (
+                        <PaginationItem key="ellipsis">
+                          <span className="px-2">...</span>
+                        </PaginationItem>
+                      )
+                    }
+                    
+                    return null
                   })}
+                  
                   <PaginationItem>
                     <PaginationNext
                       href="#"
                       onClick={(e) => {
                         e.preventDefault()
-                        setPage((p) => Math.min(totalPages, p + 1))
+                        if (currentPage < totalPages) setPage(currentPage + 1)
                       }}
                       className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
                     />
