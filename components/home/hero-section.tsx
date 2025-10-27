@@ -73,7 +73,7 @@ export function HeroSection() {
           <div className="relative">
             <div className="aspect-square rounded-2xl bg-gradient-to-br from-green-400/30 via-yellow-300/30 to-green-500/30 p-8 shadow-2xl">
               <img
-                src="/floral-t-shirt-design.jpg"
+                src="/landing.jpg"
                 alt="Áo Thun Hoa từ Bộ Sưu Tập Mới"
                 className="w-full h-full object-cover rounded-xl shadow-lg"
               />
