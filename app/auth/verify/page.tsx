@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -21,6 +21,7 @@ export default function VerifyEmailPage() {
   const [success, setSuccess] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [cooldownTime, setCooldownTime] = useState(0)
+  const hasInitializedRef = useRef(false) // Prevent double sending in strict mode
 
   // Redirect authenticated users away from verify page (optional - may want to allow verified users to re-verify)
   // Uncomment if you want to redirect authenticated users
@@ -36,31 +37,40 @@ export default function VerifyEmailPage() {
   //   }
   // }, [isAuthenticated, user, isBootstrapping, router])
 
+  // Initialize email from localStorage or query params (only once)
   useEffect(() => {
-    // Clear any previous errors when component mounts
     dispatch(clearError())
     
     // Prefer email from localStorage, fallback to query param
     try {
       const saved = typeof window !== 'undefined' ? window.localStorage.getItem('pendingVerificationEmail') : null
-      if (saved) setEmail(saved)
-      else setEmail(presetEmail)
+      const emailValue = saved || presetEmail
+      
+      if (emailValue && !hasInitializedRef.current) {
+        setEmail(emailValue)
+        
+        // Mark as initialized and send verification immediately
+        hasInitializedRef.current = true
+        dispatch(requestEmailVerificationAction({ email: emailValue }))
+          .then(() => {
+            setEmailSent(true)
+            setCooldownTime(60)
+          })
+      } else if (emailValue) {
+        setEmail(emailValue)
+      }
     } catch {
-      setEmail(presetEmail)
+      if (presetEmail && !hasInitializedRef.current) {
+        setEmail(presetEmail)
+        hasInitializedRef.current = true
+        dispatch(requestEmailVerificationAction({ email: presetEmail }))
+          .then(() => {
+            setEmailSent(true)
+            setCooldownTime(60)
+          })
+      }
     }
-  }, [presetEmail, dispatch])
-
-  // Auto-send verification email when email is available
-  useEffect(() => {
-    if (email && !emailSent && !isLoading) {
-      // Automatically send verification code on mount
-      dispatch(requestEmailVerificationAction({ email }))
-        .then(() => {
-          setEmailSent(true)
-          setCooldownTime(60)
-        })
-    }
-  }, [email, emailSent, isLoading, dispatch])
+  }, []) // Empty deps - run once on mount only
 
   // Cooldown timer
   useEffect(() => {
