@@ -61,7 +61,7 @@ export function HeroSection() {
             <div className="flex items-center space-x-8 text-sm text-gray-600">
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-green-600 rounded-full"></div>
-                <span>{"Miễn Phí Vận Chuyển Trên 1.500.000đ"}</span>
+                <span>{"Miễn Phí Vận Chuyển"}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>

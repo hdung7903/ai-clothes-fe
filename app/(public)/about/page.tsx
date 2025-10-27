@@ -45,7 +45,7 @@ export default function AboutPage() {
                 alt="Thiết kế áo thun tùy chỉnh với AI"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
-                className="object-cover rounded-xl shadow-2xl"
+                className="object-cover object-bottom rounded-xl shadow-2xl"
               />
             </div>
             <div className="relative w-full aspect-[3/2] group">
