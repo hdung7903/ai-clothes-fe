@@ -41,7 +41,7 @@ export default function AboutPage() {
             <div className="relative w-full aspect-[3/2] group">
               <div className="absolute inset-0 bg-gradient-to-br from-green-500/20 to-yellow-400/20 rounded-xl group-hover:scale-105 transition-transform duration-300"></div>
               <Image
-                src="https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80"
+                src="/about_1.png"
                 alt="Thiết kế áo thun tùy chỉnh với AI"
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"

@@ -65,7 +65,7 @@ export function HeroSection() {
               </div>
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                <span>{"Đổi Trả Dễ Dàng Trong 30 Ngày"}</span>
+                <span>{"Đổi Trả Dễ Dàng Trong 5 Ngày"}</span>
               </div>
             </div>
           </div>
