@@ -32,17 +32,13 @@ export const metadata: Metadata = {
     {
       rel: 'icon',
       type: 'image/png',
-      url: '/branch.png?v=1',
-    },
-    {
-      rel: 'shortcut icon',
-      type: 'image/png',
-      url: '/branch.png?v=1',
+      url: '/branch.png',
+      sizes: 'any',
     },
     {
       rel: 'apple-touch-icon',
       type: 'image/png',
-      url: '/branch.png?v=1',
+      url: '/branch.png',
     },
   ],
   openGraph: {
