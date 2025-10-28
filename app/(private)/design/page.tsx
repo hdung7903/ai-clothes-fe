@@ -23,7 +23,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download, X } from "lucide-react";
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
 import { transformImageAi, generateNewImage, askSimpleQuestion } from "@/services/aiServices";
@@ -62,6 +67,45 @@ function formatTimestamp(date: Date): string {
 
 // Interface cho canvas ref
 
+const MESSAGES_STORAGE_KEY = 'design-chat-messages';
+const PENDING_IMAGES_STORAGE_KEY = 'design-pending-images';
+
+// Helper function to load messages from localStorage
+const loadMessagesFromStorage = (): Message[] => {
+  // KHÔNG load từ localStorage - luôn reset khi F5
+  return getInitialMessages();
+};
+
+// Helper function to load pending images from localStorage
+const loadPendingImagesFromStorage = (): PendingImage[] => {
+  // KHÔNG load từ localStorage - luôn reset khi F5
+  return [];
+};
+
+// Helper function to save messages to localStorage (disabled - auto reset on F5)
+const saveMessagesToStorage = (messages: Message[]) => {
+  // KHÔNG lưu vào localStorage - để tự động reset khi F5
+  return;
+};
+
+// Helper function to save pending images to localStorage (disabled - auto reset on F5)
+const savePendingImagesToStorage = (images: PendingImage[]) => {
+  // KHÔNG lưu vào localStorage - để tự động reset khi F5
+  return;
+};
+
+// Helper function to get initial messages
+const getInitialMessages = (): Message[] => {
+  return [
+    {
+      id: "1",
+      role: "assistant",
+      content: "Xin chào! Tôi là nhà thiết kế TEECRAFT của bạn. Mô tả thiết kế trang phục bạn muốn tạo, hoặc upload ảnh để transform với AI (ghibli, anime, etc.). Tôi có thể giúp bạn thiết kế áo thun, áo hoodie, váy và nhiều hơn nữa!",
+      timestamp: new Date(),
+    },
+  ];
+};
+
 export default function DesignToolPage(): ReactElement {
   const dispatch = useAppDispatch();
   const authUserId = useAppSelector((s) => s.auth.user?.id);
@@ -71,26 +115,38 @@ export default function DesignToolPage(): ReactElement {
   const tokenCount = user?.tokenCount ?? 0;
   const hasTokens = tokenCount > 0;
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Xin chào! Tôi là nhà thiết kế TEECRAFT của bạn. Mô tả thiết kế trang phục bạn muốn tạo, hoặc upload ảnh để transform với AI (ghibli, anime, etc.). Tôi có thể giúp bạn thiết kế áo thun, áo hoodie, váy và nhiều hơn nữa!",
-      timestamp: new Date(),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(loadMessagesFromStorage);
   const [input, setInput] = useState("");
   const [style, setStyle] = useState("ghibli");
   const [quality, setQuality] = useState("high");
   const [uploadedImage, setUploadedImage] = useState<string | null>(null); // Chỉ preview upload
-  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]); // Ảnh AI chờ lưu
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>(loadPendingImagesFromStorage); // Ảnh AI chờ lưu
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
   const [showTokenDialog, setShowTokenDialog] = useState(false);
+  const [showTokenPopover, setShowTokenPopover] = useState(false); // Popover cho badge token
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
+
+  // Auto show popover khi token = 0
+  useEffect(() => {
+    if (!hasTokens) {
+      setShowTokenPopover(true);
+    } else {
+      setShowTokenPopover(false);
+    }
+  }, [hasTokens]);
+
+  // Clear localStorage on mount để đảm bảo reset khi F5
+  useEffect(() => {
+    // Xóa tất cả data cũ khi component mount (F5)
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(MESSAGES_STORAGE_KEY);
+      localStorage.removeItem(PENDING_IMAGES_STORAGE_KEY);
+    }
+  }, []);
 
   // Gửi message chat - Call AI service directly
   const handleSendMessage = async () => {
@@ -225,12 +281,13 @@ export default function DesignToolPage(): ReactElement {
         imageUrl = base64Result ? base64ToDataUrl(base64Result) : (urlResult ?? "");
       }
       
-      // Thêm message thông báo vào chat
+      // Thêm message thông báo vào chat kèm ảnh
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
         content: `Tôi đã ${action} thành công ảnh với style ${style}! Xem preview bên dưới và nhấn "Lưu vào áo" để thêm vào thiết kế.`,
         timestamp: new Date(),
+        designImage: imageUrl, // Lưu ảnh vào message để hiển thị trong chat history
         style,
         quality,
       };
@@ -289,8 +346,15 @@ export default function DesignToolPage(): ReactElement {
   const handleSaveToCanvas = (imageUrl: string, imageName: string) => {
     if (canvasRef.current) {
       canvasRef.current.addImageDecoration(imageUrl, imageName); // Gọi method của canvas
-      // Xóa khỏi pending sau khi lưu
-      setPendingImages((prev) => prev.filter(img => img.url !== imageUrl));
+      // KHÔNG xóa khỏi pending - giữ lại để user có thể áp dụng nhiều lần
+      // Thêm message xác nhận đã lưu vào canvas
+      const confirmMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `✅ Đã thêm "${imageName}" vào thiết kế của bạn! Bạn có thể tiếp tục áp dụng ảnh này hoặc tạo ảnh mới.`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, confirmMessage]);
     }
   };
 
@@ -333,15 +397,52 @@ export default function DesignToolPage(): ReactElement {
                 
               </Button>
             </Link>
-            <Link href="/packages">
-              <Badge 
-                variant={hasTokens ? "default" : "destructive"} 
-                className="cursor-pointer hover:opacity-80 transition-opacity"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                {tokenCount} Tokens
-              </Badge>
-            </Link>
+            <Popover open={showTokenPopover} onOpenChange={setShowTokenPopover}>
+              <PopoverTrigger asChild>
+                <Badge 
+                  variant={hasTokens ? "default" : "destructive"} 
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                >
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  {tokenCount} Tokens
+                </Badge>
+              </PopoverTrigger>
+              {!hasTokens && (
+                <PopoverContent 
+                  className="w-80 p-4" 
+                  side="bottom"
+                  align="end"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-red-100 p-2 rounded-full">
+                        <Sparkles className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-gray-900 mb-1">
+                          ⚠️ Bạn đã hết token AI
+                        </h4>
+                        <p className="text-xs text-gray-600">
+                          Mua thêm token để sử dụng tính năng AI tạo ảnh, transform ảnh và chat với trợ lý thiết kế thông minh.
+                        </p>
+                      </div>
+                    </div>
+                    <Link href="/packages" className="block" onClick={() => setShowTokenPopover(false)}>
+                      <Button className="w-full bg-green-600 hover:bg-green-700" size="sm">
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Mua Token Ngay
+                      </Button>
+                    </Link>
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <p className="text-xs text-gray-500">
+                        Token hiện tại:
+                      </p>
+                      <span className="text-sm font-bold text-red-600">{tokenCount}</span>
+                    </div>
+                  </div>
+                </PopoverContent>
+              )}
+            </Popover>
             <Badge variant="secondary">Beta</Badge>
           </div>
         </div>
@@ -351,6 +452,27 @@ export default function DesignToolPage(): ReactElement {
       <div className="flex-1 flex overflow-hidden w-full h-0">
         {/* Chat Section */}
         <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 h-full relative">
+          {/* Chat Header with Clear Button */}
+          <div className="border-b px-4 py-3 flex items-center justify-between bg-gray-50">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span className="text-sm font-medium text-gray-700">Trợ lý AI</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử chat và ảnh AI?')) {
+                  setMessages(getInitialMessages());
+                  setPendingImages([]);
+                }
+              }}
+              className="text-xs text-gray-500 hover:text-red-600"
+            >
+              <X className="h-3 w-3 mr-1" />
+              Xóa lịch sử
+            </Button>
+          </div>
           
           <div className="flex-1 overflow-y-auto">
             <div className="space-y-4 p-4">
@@ -366,13 +488,27 @@ export default function DesignToolPage(): ReactElement {
                         : "bg-gray-100 text-gray-900"
                     }`}
                   >
-                    {message.designImage && ( // Chỉ show nếu là AI chat image, không phải upload
-                      <div className="mb-2">
+                    {message.designImage && ( // Hiển thị ảnh AI trong chat history
+                      <div className="mb-2 relative group">
                         <img
                           src={message.designImage}
                           alt="AI Design"
-                          className="w-full max-w-xs rounded-lg shadow-md"
+                          className="w-full max-w-xs rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => {
+                            // Cho phép lưu lại ảnh từ chat history
+                            if (canvasRef.current) {
+                              canvasRef.current.addImageDecoration(
+                                message.designImage!, 
+                                `${message.style} Design`
+                              );
+                            }
+                          }}
                         />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs opacity-0 group-hover:opacity-100 bg-black bg-opacity-50 px-2 py-1 rounded">
+                            Click để thêm vào thiết kế
+                          </span>
+                        </div>
                       </div>
                     )}
                     {message.style && (
@@ -436,7 +572,7 @@ export default function DesignToolPage(): ReactElement {
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Mô tả ý tưởng thiết kế hoặc prompt cho AI image..."
+                  placeholder={hasTokens ? "Mô tả ý tưởng thiết kế hoặc prompt cho AI image..." : "Bạn cần mua token để sử dụng AI"}
                   className="min-h-[60px] resize-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -444,7 +580,7 @@ export default function DesignToolPage(): ReactElement {
                       handleSendMessage();
                     }
                   }}
-                  disabled={isLoading}
+                  disabled={isLoading || !hasTokens}
                 />
               </div>
               <Tooltip>
@@ -491,14 +627,14 @@ export default function DesignToolPage(): ReactElement {
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               className="w-full mb-2 flex items-center gap-2"
-              disabled={isLoading}
+              disabled={isLoading || !hasTokens}
             >
               <Upload className="h-4 w-4" />
-              Upload Ảnh Để Transform
+              {hasTokens ? "Upload Ảnh Để Transform" : "Cần token để upload"}
             </Button>
 
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <Select value={style} onValueChange={setStyle} disabled={isLoading}>
+              <Select value={style} onValueChange={setStyle} disabled={isLoading || !hasTokens}>
                 <SelectTrigger>
                   <SelectValue placeholder="Style" />
                 </SelectTrigger>
@@ -511,7 +647,7 @@ export default function DesignToolPage(): ReactElement {
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={quality} onValueChange={setQuality} disabled={isLoading}>
+              <Select value={quality} onValueChange={setQuality} disabled={isLoading || !hasTokens}>
                 <SelectTrigger>
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>
@@ -528,7 +664,7 @@ export default function DesignToolPage(): ReactElement {
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(false)}
-                      disabled={isLoading || !uploadedImage}
+                      disabled={isLoading || !uploadedImage || !hasTokens}
                       className="w-full"
                       variant="default"
                     >
@@ -543,7 +679,7 @@ export default function DesignToolPage(): ReactElement {
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(true)}
-                      disabled={isLoading || !input.trim()}
+                      disabled={isLoading || !input.trim() || !hasTokens}
                       className="w-full"
                       variant="secondary"
                     >
