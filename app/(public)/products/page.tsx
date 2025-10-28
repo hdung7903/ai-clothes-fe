@@ -29,6 +29,7 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
+  const [selectedCategories, setSelectedCategories] = useState<any[]>([]) // For TreeSelect with treeCheckStrictly
   const [categories, setCategories] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [searchInput, setSearchInput] = useState<string>("") // For debounced search
@@ -89,9 +90,14 @@ export default function ProductsPage() {
     setIsLoading(true)
     setError(null)
     try {
+      // Extract actual ID values from TreeSelect format
+      const categoryId = selectedCategoryIds.length > 0 
+        ? selectedCategoryIds[0]
+        : undefined
+
       const query: SearchProductsQuery = {
         SearchTerm: searchTerm || undefined,
-        CategoryId: selectedCategoryIds.length > 0 ? selectedCategoryIds[0] : undefined,
+        CategoryId: categoryId,
         MinPrice: priceFilter.min,
         MaxPrice: priceFilter.max,
         SortBy: sortParams.sortBy,
@@ -157,6 +163,7 @@ export default function ProductsPage() {
     setSearchInput("")
     setSearchTerm("")
     setSelectedCategoryIds([])
+    setSelectedCategories([])
     setPriceRange('all')
     setSortOption('newest')
     setCurrentPage(1)
@@ -225,14 +232,21 @@ export default function ProductsPage() {
                   <label className="text-sm font-medium">Danh mục</label>
                   <TreeSelect
                     style={{ width: '100%' }}
-                    value={selectedCategoryIds}
+                    value={selectedCategories}
                     onChange={(value) => {
-                      setSelectedCategoryIds(value)
+                      // value is array of {label, value} when treeCheckStrictly is true
+                      setSelectedCategories(value || [])
+                      // Extract IDs for API call
+                      const ids = Array.isArray(value) 
+                        ? value.map((v: any) => v.value)
+                        : []
+                      setSelectedCategoryIds(ids)
                       setCurrentPage(1) // Reset to first page
                     }}
                     treeData={convertToTreeData(categories)}
                     treeCheckable={true}
-                    showCheckedStrategy={TreeSelect.SHOW_CHILD}
+                    showCheckedStrategy={TreeSelect.SHOW_PARENT}
+                    treeCheckStrictly={true}
                     placeholder="Chọn danh mục"
                     maxTagCount="responsive"
                     treeDefaultExpandAll={false}

@@ -306,7 +306,7 @@ export function VoucherDialog() {
                 return (
                   <div
                     key={voucher.id || `voucher-${index}`}
-                    className={`group relative flex flex-col gap-3 rounded-xl border-2 p-4 pt-6 transition-all duration-300 overflow-visible ${
+                    className={`group relative flex flex-col gap-3 rounded-xl border-2 p-5 transition-all duration-300 ${
                       available 
                         ? 'border-orange-200/60 dark:border-orange-900/40 hover:border-orange-400/80 hover:shadow-xl hover:shadow-orange-500/20 bg-gradient-to-br from-white via-orange-50/30 to-pink-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 hover:-translate-y-1'
                         : 'border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 opacity-60'
@@ -314,97 +314,89 @@ export function VoucherDialog() {
                   >
                     {/* Shine effect on hover */}
                     {available && (
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full" />
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 -translate-x-full group-hover:translate-x-full" />
                     )}
 
-                    {/* Huy hiệu danh mục */}
-                    <div className="absolute top-4 right-4 z-10">
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs uppercase font-bold px-3 py-1 shadow-md ${getCategoryColor(category)}`}
-                      >
-                        {category === 'popular' ? '🔥 Phổ biến' : '✨ Mới'}
-                      </Badge>
-                    </div>
-
-                    {/* Trạng thái không khả dụng */}
-                    {!available && (
-                      <div className="absolute top-4 left-4 z-10">
-                        <Badge variant="destructive" className="text-xs font-bold px-3 py-1 shadow-md">
-                          {expired ? '⏰ Hết hạn' : '🔒 Chưa áp dụng'}
+                    {/* Top row: Discount badge and category badge */}
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      {/* Discount badge */}
+                      <div className="flex-shrink-0">
+                        <Badge className="bg-gradient-to-r from-orange-500 via-pink-500 to-pink-600 text-white font-black px-3 py-1.5 shadow-lg shadow-pink-500/30 text-xs border-2 border-white dark:border-gray-900 whitespace-nowrap">
+                          {formatDiscountText(voucher)}
                         </Badge>
                       </div>
-                    )}
 
-                    {/* Nội dung */}
-                    <div className="flex items-start gap-4 relative z-10">
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start gap-2 mb-2">
-                          <span className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-tight">
-                            {voucher.description}
-                          </span>
-                        </div>
+                      {/* Category or status badge */}
+                      <div className="flex-shrink-0">
+                        {!available ? (
+                          <Badge variant="destructive" className="text-xs font-bold px-3 py-1 shadow-md">
+                            {expired ? '⏰ Hết hạn' : '🔒 Chưa áp dụng'}
+                          </Badge>
+                        ) : (
+                          <Badge 
+                            variant="secondary" 
+                            className={`text-xs uppercase font-bold px-3 py-1 shadow-md ${getCategoryColor(category)}`}
+                          >
+                            {category === 'popular' ? '🔥 Phổ biến' : '✨ Mới'}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 leading-tight mb-2">
+                          {voucher.description}
+                        </h3>
                         
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 leading-relaxed">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
                           {voucher.discountType === 'PERCENT' 
                             ? `🎁 Giảm ${voucher.discountValue || 0}% cho đơn hàng của bạn`
                             : `🎁 Giảm ${(voucher.discountValue || 0).toLocaleString('vi-VN')}₫ cho đơn hàng của bạn`
                           }
                         </p>
+                      </div>
 
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-500">
-                          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
-                            <Clock className="h-3.5 w-3.5" />
-                            <span className="font-medium">HSD: {formatDate(voucher.endDate)}</span>
-                          </span>
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
+                        <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-800">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span className="font-medium">HSD: {formatDate(voucher.endDate)}</span>
+                        </span>
                       </div>
                     </div>
 
-                    {/* Hành động */}
-                    <div className="flex items-center gap-3 mt-2 relative z-10">
-                      <div className="flex items-center gap-2 flex-1 px-4 py-3 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-2 border-dashed border-orange-300 dark:border-orange-700 group-hover:border-orange-400 dark:group-hover:border-orange-600 transition-colors">
-                        <code className="text-sm font-mono font-bold text-orange-600 dark:text-orange-400 flex-1 tracking-wider">
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-1 px-3 py-2.5 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-2 border-dashed border-orange-300 dark:border-orange-700 group-hover:border-orange-400 dark:group-hover:border-orange-600 transition-colors">
+                        <code className="text-sm font-mono font-bold text-orange-600 dark:text-orange-400 flex-1 tracking-wider truncate">
                           {voucher.code}
                         </code>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 px-3 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors"
+                          className="h-7 px-2 hover:bg-orange-100 dark:hover:bg-orange-900/50 transition-colors flex-shrink-0"
                           onClick={() => handleCopy(voucher.code)}
                           disabled={!available}
                         >
                           {copiedCode === voucher.code ? (
                             <>
-                              <Check className="h-4 w-4 text-green-600 mr-1" />
+                              <Check className="h-3.5 w-3.5 text-green-600 mr-1" />
                               <span className="text-xs font-medium text-green-600">Đã sao</span>
                             </>
                           ) : (
                             <>
-                              <Copy className="h-4 w-4 mr-1" />
+                              <Copy className="h-3.5 w-3.5 mr-1" />
                               <span className="text-xs font-medium">Sao chép</span>
                             </>
                           )}
                         </Button>
                       </div>
-
-                    </div>
-
-                    {/* Huy hiệu giảm giá - Enhanced */}
-                    <div className="absolute -top-2 -left-2 rotate-[-12deg] z-20">
-                      <div className="relative">
-                        <Badge className="bg-gradient-to-r from-orange-500 via-pink-500 to-pink-600 text-white font-black px-3 py-1.5 shadow-2xl shadow-pink-500/50 text-sm border-2 border-white dark:border-gray-900 whitespace-nowrap">
-                          {formatDiscountText(voucher)}
-                        </Badge>
-                        {/* Sparkle effect */}
-                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-yellow-300 rounded-full animate-ping" />
-                      </div>
                     </div>
 
                     {/* Bottom decorative line */}
                     {available && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-pink-500 to-orange-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-400 via-pink-500 to-orange-400 rounded-b-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     )}
                   </div>
                 )
