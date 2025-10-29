@@ -493,7 +493,7 @@ export default function DesignToolPage(): ReactElement {
                         <img
                           src={message.designImage}
                           alt="AI Design"
-                          className="w-full max-w-xs rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity"
+                          className="w-full h-auto max-w-full max-h-[35vh] rounded-lg shadow-md cursor-pointer hover:opacity-90 transition-opacity object-contain"
                           onClick={() => {
                             // Cho phép lưu lại ảnh từ chat history
                             if (canvasRef.current) {
@@ -546,7 +546,7 @@ export default function DesignToolPage(): ReactElement {
                       <img 
                         src={img.url} 
                         alt={img.name} 
-                        className="w-48 h-48 rounded object-cover mb-2"
+                        className="w-36 h-36 md:w-48 md:h-48 rounded object-contain mb-2 bg-gray-50"
                       />
                       <div className="text-center w-48">
                         <p className="text-sm text-gray-600 truncate">{img.name}</p>

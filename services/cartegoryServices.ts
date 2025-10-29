@@ -37,19 +37,19 @@ async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 
 }
 
 export async function createOrUpdate(payload: CreateOrUpdateCategoryRequest): Promise<CreateOrUpdateCategoryResponse> {
-  return requestJson<CreateOrUpdateCategoryRequest, CreateOrUpdateCategoryResponse>('/Category/CreateOrUpdate', { method: 'POST', payload });
+  return requestJson<CreateOrUpdateCategoryRequest, CreateOrUpdateCategoryResponse>('Category/CreateOrUpdate', { method: 'POST', payload });
 }
 
 export async function getAll(): Promise<GetAllCategoriesResponse> {
-  return requestJson<undefined, GetAllCategoriesResponse>('/Category/GetAll', { method: 'GET' });
+  return requestJson<undefined, GetAllCategoriesResponse>('Category/GetAll', { method: 'GET' });
 }
 
 export async function getById(id: string): Promise<GetCategoryByIdResponse> {
-  return requestJson<undefined, GetCategoryByIdResponse>(`/Category/${encodeURIComponent(id)}`, { method: 'GET' });
+  return requestJson<undefined, GetCategoryByIdResponse>(`Category/${encodeURIComponent(id)}`, { method: 'GET' });
 }
 
 export async function deleteById(id: string): Promise<DeleteCategoryByIdResponse> {
-  return requestJson<undefined, DeleteCategoryByIdResponse>(`/Category/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  return requestJson<undefined, DeleteCategoryByIdResponse>(`Category/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 
