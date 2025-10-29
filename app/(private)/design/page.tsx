@@ -448,10 +448,10 @@ export default function DesignToolPage(): ReactElement {
         </div>
       </div>
 
-      {/* Main Content: Chat (30%) + Canvas (70%) */}
+      {/* Main Content: Chat + Canvas (responsive) */}
       <div className="flex-1 flex overflow-hidden w-full h-0">
         {/* Chat Section */}
-        <div className="w-[30%] flex flex-col border-r bg-white flex-shrink-0 h-full relative">
+        <div className="w-full sm:w-[40%] lg:w-[28%] xl:w-[26%] min-w-[260px] max-w-full sm:max-w-[480px] flex flex-col border-r bg-white flex-shrink-0 h-full relative overflow-hidden">
           {/* Chat Header with Clear Button */}
           <div className="border-b px-4 py-3 flex items-center justify-between bg-gray-50">
             <div className="flex items-center gap-2">
@@ -535,12 +535,12 @@ export default function DesignToolPage(): ReactElement {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t flex-shrink-0 bg-gray-50">
+          <div className="p-3 sm:p-4 border-t flex-shrink-0 bg-gray-50">
             {/* Pending Images (thumbnails chờ lưu) - Moved above input */}
             {pendingImages.length > 0 && (
-              <div className="mb-4 p-3 bg-blue-50 rounded-lg border">
+              <div className="mb-3 sm:mb-4 p-2 sm:p-3 bg-blue-50 rounded-lg border overflow-hidden">
                 <h4 className="font-medium text-sm mb-2 text-blue-800">Ảnh AI sẵn sàng thêm vào thiết kế:</h4>
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-3 overflow-x-auto pb-2 max-h-40 sm:max-h-56">
                   {pendingImages.map((img) => (
                     <div key={img.id} className="bg-white rounded-lg p-3 shadow-sm border flex flex-col items-center flex-shrink-0">
                       <img 
@@ -567,7 +567,7 @@ export default function DesignToolPage(): ReactElement {
               </div>
             )}
 
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-2 mb-2 sm:mb-3">
               <div className="flex-1">
                 <Textarea
                   value={input}
