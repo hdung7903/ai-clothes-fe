@@ -52,6 +52,40 @@
   @apply text-foreground;
 }
 
+/* Move TreeSelect switcher (expand/collapse arrow) to the end of the row */
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-treenode {
+  display: flex;
+  flex-direction: row;
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-switcher {
+  order: 3; /* Move to end (after checkbox and content) */
+  margin-left: auto; /* Push to right */
+  margin-right: 0;
+  transition: transform 0.2s ease; /* Smooth rotation animation */
+}
+
+/* Rotate arrow 180deg when collapsed */
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-switcher_close {
+  transform: rotate(180deg);
+}
+
+/* Keep arrow normal when expanded */
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-switcher_open {
+  transform: rotate(0deg);
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-checkbox {
+  order: 1; /* Checkbox first */
+  margin-left: 8px; /* Add padding before checkbox */
+}
+
+.ant-tree-select-dropdown .ant-select-tree .ant-select-tree-node-content-wrapper {
+  order: 2; /* Content in middle */
+  flex: 1; /* Take remaining space */
+  margin-left: 8px; /* Space between checkbox and label */
+}
+
 /* Ant Design Card Styles */
 .ant-card {
   @apply bg-card text-card-foreground border border-border;
