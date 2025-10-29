@@ -110,7 +110,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
   const imageUrl = uploadResponse.data;
 
   // Step 2: Save image URL to sample images
-  const saveResponse = await requestJson<{ imageUrl: string }, UploadSampleImageResponse>('/SampleImage', {
+  const saveResponse = await requestJson<{ imageUrl: string }, UploadSampleImageResponse>('SampleImage', {
     method: 'POST',
     payload: { imageUrl }
   });
@@ -122,7 +122,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
  * Delete a sample image by ID
  */
 export async function deleteSampleImage(id: string): Promise<DeleteSampleImageResponse> {
-  return requestJson<{ id: string }, DeleteSampleImageResponse>('/SampleImage', {
+  return requestJson<{ id: string }, DeleteSampleImageResponse>('SampleImage', {
     method: 'DELETE',
     payload: { id }
   });

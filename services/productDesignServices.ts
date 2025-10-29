@@ -57,7 +57,7 @@ export interface SearchProductDesignsQuery {
 
 export async function createOrUpdateProductDesign(payload: CreateOrUpdateProductDesignRequest): Promise<CreateOrUpdateProductDesignResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/ProductDesign/CreateOrUpdateProductDesign', {
+  const res = await fetch(baseUrl + 'ProductDesign/CreateOrUpdateProductDesign', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -92,7 +92,7 @@ export async function searchProductDesigns(query: SearchProductDesignsQuery): Pr
 
 export async function getProductDesignById(productDesignId: string): Promise<GetProductDesignByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/ProductDesign/${encodeURIComponent(productDesignId)}`, {
+  const res = await fetch(baseUrl + `ProductDesign/${encodeURIComponent(productDesignId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',

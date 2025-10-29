@@ -42,7 +42,7 @@ export interface SearchTemplatesQuery {
 
 export async function createOrUpdateTemplate(payload: CreateOrUpdateTemplateRequest): Promise<CreateOrUpdateTemplateResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Template/CreateOrUpdateTemplate', {
+  const res = await fetch(baseUrl + 'Template/CreateOrUpdateTemplate', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -67,7 +67,7 @@ export async function searchTemplates(query: SearchTemplatesQuery): Promise<Sear
 
 export async function getTemplateById(templateId: string): Promise<GetTemplateByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Template/${encodeURIComponent(templateId)}`, {
+  const res = await fetch(baseUrl + `Template/${encodeURIComponent(templateId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -77,7 +77,7 @@ export async function getTemplateById(templateId: string): Promise<GetTemplateBy
 
 export async function deleteTemplateById(templateId: string): Promise<DeleteTemplateByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Template/${encodeURIComponent(templateId)}`, {
+  const res = await fetch(baseUrl + `Template/${encodeURIComponent(templateId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
