@@ -32,7 +32,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 export async function createOrUpdateProduct(payload: CreateOrUpdateProductRequest): Promise<CreateOrUpdateProductResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Product/CreateOrUpdateProduct', {
+  const res = await fetch(baseUrl + 'Product/CreateOrUpdateProduct', {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -78,7 +78,7 @@ export async function getProductById(productId: string): Promise<GetProductByIdR
 
 export async function deleteProductById(productId: string): Promise<DeleteProductByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Product/${encodeURIComponent(productId)}`, {
+  const res = await fetch(baseUrl + `Product/${encodeURIComponent(productId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
