@@ -171,7 +171,7 @@ export async function askSimpleQuestion(question: string): Promise<AskQuestionRe
  * Transform image with URL
  */
 export async function transformImageWithUrl(imageUrl: string, prompt: string, style?: string, strength?: number): Promise<TransformImageResponse> {
-  return transformImageAi({ image_url: imageUrl, prompt, style, strength });
+  return requestAiJson<TransformImage, TransformImageResponse>('/transform_image_ai', { method: 'POST', payload: { image_url: imageUrl, prompt, style, strength } });
 }
 
 /**
