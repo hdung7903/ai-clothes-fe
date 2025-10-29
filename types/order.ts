@@ -142,6 +142,7 @@ export interface AdminGetOrdersResponse {
 
 export interface AdminUpdateOrderStatusRequest {
   status: number;
+  restock?: boolean;
   notes?: string;
 }
 

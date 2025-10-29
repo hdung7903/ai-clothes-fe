@@ -225,7 +225,8 @@ export default function Page({ params }: PageProps) {
       const statusCode = STATUS_STRING_TO_CODE[selectedKey] ?? getStatusCodeFromString(selectedKey)
       const payload: AdminUpdateOrderStatusRequest = {
         status: statusCode,
-        notes: restock && (selectedKey === 'REJECTED' || selectedKey === 'RETURNED') ? 'restock=true' : undefined,
+        restock: restock && (selectedKey === 'REJECTED' || selectedKey === 'RETURNED') ? true : undefined,
+        notes: note.trim() || undefined,
       }
 
       const response = await adminUpdateOrderStatus(order.orderId, payload)

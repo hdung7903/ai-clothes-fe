@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, Package, Tags, ShoppingCart, Users, TicketPercent, Settings, Image as ImageIcon, DollarSign } from "lucide-react";
 
 import { NavAdmin } from "@/components/admin/nav-admin";
 import { NavUser } from "@/components/admin/nav-user";
@@ -79,6 +79,11 @@ export function AdminSidebar({
         items: [
           { title: "Tất cả đơn hàng", url: "/admin/orders" },
         ],
+      },
+      {
+        title: "Quản lý doanh thu",
+        url: "/admin/revenue",
+        icon: DollarSign,
       },
       {
         title: "Quản lý ảnh",

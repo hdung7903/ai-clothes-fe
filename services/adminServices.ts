@@ -1,6 +1,6 @@
 // Admin service for Statistics and Dashboard endpoints
 import type { ApiEnvelope } from '@/types/shared';
-import type { DashboardData } from '@/types/admin';
+import type { DashboardData, RevenueSummary, OrderType } from '@/types/admin';
 import { getApiBaseUrl } from '@/lib/api-config';
 
 const defaultHeaders: HeadersInit = {
@@ -30,17 +30,60 @@ function withAuth(headers: HeadersInit): HeadersInit {
 }
 
 export type DashboardDataResponse = ApiEnvelope<DashboardData>;
+export type RevenueSummaryResponse = ApiEnvelope<RevenueSummary>;
+
+async function parseJsonSafe<T>(res: Response): Promise<T | null> {
+  try {
+    return (await res.json()) as T;
+  } catch (_e) {
+    return null;
+  }
+}
 
 // API Services
 export async function getDashboardData(): Promise<DashboardDataResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + '/Statistics/DashboardData';
+  const url = baseUrl + 'Statistics/DashboardData';
   
   const res = await fetch(url, {
     method: 'GET',
     headers: withAuth(defaultHeaders),
     credentials: 'include',
   });
-  
-  return res.json() as Promise<DashboardDataResponse>;
+
+  const data = await parseJsonSafe<DashboardDataResponse>(res);
+  if (data) return data;
+  return {
+    success: false,
+    errors: { response: ['Invalid or empty JSON from /Statistics/DashboardData'] },
+  } as DashboardDataResponse;
+}
+
+export async function getRevenue(params?: {
+  month?: number;
+  year?: number;
+  orderType?: OrderType;
+}): Promise<RevenueSummaryResponse> {
+  const baseUrl = getApiBaseUrl();
+  const url = new URL(baseUrl + 'Statistics/Revenue');
+
+  if (params?.month !== undefined) url.searchParams.set('Month', String(params.month));
+  if (params?.year !== undefined) url.searchParams.set('Year', String(params.year));
+  if (params?.orderType !== undefined) {
+    const normalized = String(params.orderType).toUpperCase() as OrderType;
+    url.searchParams.set('OrderType', normalized);
+  }
+
+  const res = await fetch(url.toString(), {
+    method: 'GET',
+    headers: withAuth(defaultHeaders),
+    credentials: 'include',
+  });
+
+  const data = await parseJsonSafe<RevenueSummaryResponse>(res);
+  if (data) return data;
+  return {
+    success: false,
+    errors: { response: ['Invalid or empty JSON from /Statistics/Revenue'] },
+  } as RevenueSummaryResponse;
 }

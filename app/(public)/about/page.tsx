@@ -28,7 +28,7 @@ export default function AboutPage() {
             Khởi Tạo Phong Cách Riêng
           </Badge>
           
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-700 via-green-600 to-yellow-600 bg-clip-text text-transparent leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-green-700 via-green-600 to-yellow-600 bg-clip-text text-transparent leading-tight font-[family-name:var(--font-playfair)] tracking-wide antialiased">
             Mỗi chiếc áo kể một câu chuyện
           </h1>
           
@@ -90,7 +90,7 @@ export default function AboutPage() {
                   </Badge>
                   <Heart className="h-6 w-6 text-green-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-green-900">Sứ Mệnh Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-green-900 font-[family-name:var(--font-playfair)] tracking-wide">Sứ Mệnh Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -108,7 +108,7 @@ export default function AboutPage() {
                   </Badge>
                   <Target className="h-6 w-6 text-yellow-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-yellow-900">Tầm Nhìn Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-yellow-900 font-[family-name:var(--font-playfair)] tracking-wide">Tầm Nhìn Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -126,7 +126,7 @@ export default function AboutPage() {
                   </Badge>
                   <Sparkles className="h-6 w-6 text-amber-600" />
                 </div>
-                <CardTitle className="text-2xl font-bold text-amber-900">Mục Tiêu Của Chúng Tôi</CardTitle>
+                <CardTitle className="text-2xl font-bold text-amber-900 font-[family-name:var(--font-playfair)] tracking-wide">Mục Tiêu Của Chúng Tôi</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 leading-relaxed">
@@ -152,7 +152,7 @@ export default function AboutPage() {
             Kết Nối Với Chúng Tôi
           </Badge>
           
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 font-[family-name:var(--font-playfair)] tracking-wide antialiased">
             Sẵn sàng kể câu chuyện của bạn?
           </h2>
           <p className="text-gray-600 mb-10 max-w-2xl mx-auto text-lg">

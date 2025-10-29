@@ -9,3 +9,16 @@ export interface DashboardData {
   totalShippedOrder: number;
   totalConfirmReceived: number;
 }
+
+export interface RevenueStatisticsDataPoint {
+  date: string;
+  revenue: number;
+}
+
+export interface RevenueSummary {
+  totalRevenue: number;
+  totalOrder: number;
+  totalQuantity: number;
+}
+
+export type OrderType = 'ALL' | 'ONLINE' | 'COD';
