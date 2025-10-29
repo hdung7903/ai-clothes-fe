@@ -31,14 +31,14 @@ const packages = [
     borderColor: "border-blue-200 dark:border-blue-800",
     tokenPackageId: null, // Không có token package ID cho gói miễn phí
     features: [
+      "5 token AI miễn phí mỗi ngày",
       "Tạo thiết kế không giới hạn",
       "Truy cập thư viện mẫu cơ bản",
       "Xuất file chất lượng tiêu chuẩn",
       "Hỗ trợ qua email",
-      "Chưa bao gồm tính năng tạo ảnh bằng AI",
     ],
     limitations: [
-      "Không có AI tạo ảnh",
+      "Giới hạn 5 token AI/ngày",
     ]
   },
   {
