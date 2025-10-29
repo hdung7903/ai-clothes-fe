@@ -234,12 +234,13 @@ export default function ProductsPage() {
                     style={{ width: '100%' }}
                     value={selectedCategories}
                     onChange={(value) => {
-                      // value is array of {label, value} when treeCheckStrictly is true
-                      setSelectedCategories(value || [])
-                      // Extract IDs for API call
-                      const ids = Array.isArray(value) 
-                        ? value.map((v: any) => v.value)
-                        : []
+                      // Normalize to array (handles single object/value just in case)
+                      const nextSelected = Array.isArray(value) ? value : (value ? [value as any] : [])
+                      setSelectedCategories(nextSelected)
+                      // Extract IDs for API call from either objects or primitive values
+                      const ids = nextSelected.map((v: any) =>
+                        v && typeof v === 'object' && 'value' in v ? v.value : v
+                      ).filter(Boolean)
                       setSelectedCategoryIds(ids)
                       setCurrentPage(1) // Reset to first page
                     }}
