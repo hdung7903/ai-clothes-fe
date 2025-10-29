@@ -1,6 +1,6 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Poppins, Roboto_Mono, Playfair_Display } from "next/font/google";
 import { Suspense } from "react";
 import "./globals.css";
 
@@ -14,6 +14,24 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   display: "swap",
 });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+const robotoMono = Roboto_Mono({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-roboto-mono",
+  display: "swap",
+});
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-playfair",
+  display: "swap",
+});
 import { Toaster } from "sonner";
 import { AppShell } from "@/components/layout/app-shell";
 import { ReduxProvider } from "@/components/providers/redux-provider";
@@ -24,9 +42,9 @@ import { ClientOnly } from "@/components/ui/client-only";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'),
-  title: "TeeCraft - Thời Trang Hiện Đại",
+  title: "TeeCraft - Every Shirt Tells A Story",
   description:
-    "Nền tảng cách mạng hóa thời trang với công nghệ AI. Tạo và thiết kế những bộ trang phục độc đáo của riêng bạn với TEECRAFT - biến ý tưởng thành hiện thực.",
+  "Nền tảng cách mạng hóa thời trang với công nghệ AI. Tạo và thiết kế những bộ trang phục độc đáo của riêng bạn với TEECRAFT - biến ý tưởng thành hiện thực.",
   generator: "hdung7903",
   icons: [
     {
@@ -42,14 +60,14 @@ export const metadata: Metadata = {
     },
   ],
   openGraph: {
-    title: "TeeCraft - Thời Trang Hiện Đại",
+    title: "TeeCraft - Every Shirt Tells A Story",
     description: "Nền tảng cách mạng hóa thời trang với công nghệ AI. Tạo và thiết kế những bộ trang phục độc đáo của riêng bạn với TEECRAFT - biến ý tưởng thành hiện thực.",
     images: ["/branch.png"],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "TeeCraft - Thời Trang Hiện Đại",
+    title: "TeeCraft - Every Shirt Tells A Story",
     description: "Nền tảng cách mạng hóa thời trang với công nghệ AI. Tạo và thiết kế những bộ trang phục độc đáo của riêng bạn với TEECRAFT - biến ý tưởng thành hiện thực.",
     images: ["/branch.png"],
   },
@@ -63,7 +81,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning={true}>
       <body
-        className={`font-sans ${inter.variable} ${jetbrainsMono.variable}`}
+        className={`font-sans ${inter.variable} ${jetbrainsMono.variable} ${poppins.variable} ${robotoMono.variable} ${playfairDisplay.variable}`}
         suppressHydrationWarning={true}
       >
         <ReduxProvider>

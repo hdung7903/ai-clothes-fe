@@ -19,7 +19,7 @@ export function CTASection() {
             </h2>
 
             <p className="text-xl text-white/90 text-pretty max-w-2xl mx-auto">
-              {"Khám phá phong cách mới toanh! Nhận ngay hàng loạt voucher và tận hưởng đổi trả dễ dàng trong 30 ngày."}
+              {"Khám phá phong cách mới toanh! Nhận ngay hàng loạt voucher và tận hưởng đổi trả dễ dàng trong 5 ngày."}
             </p>
 
           </div>

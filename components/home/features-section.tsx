@@ -33,7 +33,7 @@ const features = [
   {
     icon: ShoppingBag,
     title: "Đổi Trả Dễ Dàng",
-    description: "Đổi trả miễn phí trong 30 ngày và tùy chọn tín dụng cửa hàng tức thì.",
+    description: "Đổi trả miễn phí trong 5 ngày và tùy chọn tín dụng cửa hàng tức thì.",
   },
   {
     icon: Palette,
@@ -52,7 +52,7 @@ export function FeaturesSection() {
     <section id="features" className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl lg:text-5xl font-bold text-balance">
+          <h2 className="text-3xl lg:text-5xl font-bold text-balance tracking-wide antialiased font-[family-name:var(--font-playfair)]">
             {"Thiết Kế Cho "}
             <span className="text-primary">{"Phong Cách Hàng Ngày"}</span>
           </h2>

@@ -644,7 +644,6 @@ export default function DesignToolPage(): ReactElement {
                   <SelectItem value="disney">Disney</SelectItem>
                   <SelectItem value="marvel">Marvel</SelectItem>
                   <SelectItem value="cyberpunk">Cyberpunk</SelectItem>
-                  <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={quality} onValueChange={setQuality} disabled={isLoading || !hasTokens}>

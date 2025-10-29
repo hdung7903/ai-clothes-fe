@@ -61,7 +61,7 @@ export function FeaturedProductsSection() {
     <section className="container mx-auto px-4 py-12">
       <div className="mb-8 flex items-end justify-between">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold">Sản phẩm nổi bật</h2>
+          <h2 className="text-2xl md:text-3xl font-bold tracking-wide antialiased font-[family-name:var(--font-playfair)]">Sản phẩm nổi bật</h2>
           <p className="text-muted-foreground">Những thiết kế mới nhất từ studio TEECRAFT của chúng tôi</p>
         </div>
         <Link href="/products" className="text-sm font-medium underline underline-offset-4">Xem tất cả</Link>

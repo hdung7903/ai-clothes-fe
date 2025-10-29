@@ -275,8 +275,11 @@ export default function PackagesPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
-          Mua Gói AI - Tạo Ảnh Ngay
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-wide antialiased font-[family-name:var(--font-playfair)]">
+          <span className="bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
+            Mua Gói AI
+          </span>
+          {" - Tạo Ảnh Ngay"}
         </h1>
         <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
           Nâng cấp lên gói Pro với chỉ 30,000đ và nhận ngay 10 lượt tạo ảnh AI bất kỳ để thiết kế sáng tạo
@@ -329,7 +332,7 @@ export default function PackagesPage() {
                   <div className={`w-16 h-16 ${pkg.bgColor} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md`}>
                     <Icon className={`h-8 w-8 ${pkg.iconColor}`} />
                   </div>
-                  <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
+                  <CardTitle className="text-2xl font-bold tracking-wide antialiased font-[family-name:var(--font-playfair)]">{pkg.name}</CardTitle>
                   <CardDescription className="text-sm mt-2">{pkg.description}</CardDescription>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">{pkg.price}</span>
@@ -381,7 +384,7 @@ export default function PackagesPage() {
       {/* FAQ or Additional Info Section */}
       <section className="container mx-auto px-4 pb-20">
         <div className="max-w-4xl mx-auto bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-2xl p-8 border border-green-200 dark:border-green-800">
-          <h2 className="text-2xl font-bold mb-4 text-center">Câu Hỏi Thường Gặp</h2>
+          <h2 className="text-2xl font-bold mb-4 text-center tracking-wide antialiased font-[family-name:var(--font-playfair)]">Câu Hỏi Thường Gặp</h2>
           <div className="space-y-4">
             <div>
               <h3 className="font-semibold text-green-600 dark:text-green-400 mb-2">

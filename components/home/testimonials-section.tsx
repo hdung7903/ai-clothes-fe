@@ -32,7 +32,7 @@ export function TestimonialsSection() {
     <section className="py-20 bg-muted/30">
       <div className="container mx-auto px-4">
         <div className="text-center space-y-4 mb-16">
-          <h2 className="text-3xl lg:text-5xl font-bold text-balance">
+          <h2 className="text-3xl lg:text-5xl font-bold text-balance tracking-wide antialiased font-[family-name:var(--font-playfair)]">
             {"Khách Hàng "}
             <span className="text-primary">{"Nói Gì"}</span>
           </h2>

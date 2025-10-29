@@ -132,6 +132,7 @@ export function Footer() {
 
         <div className="border-t border-border mt-12 pt-8 text-center text-muted-foreground">
           <p>{"© 2025 Bản quyền thuộc về TEECRAFT. Tất cả quyền được bảo lưu."}</p>
+          <p className="text-sm mt-2">{"Design by hdung7903"}</p>
         </div>
       </div>
     </footer>

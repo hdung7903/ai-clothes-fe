@@ -23,11 +23,11 @@ export function HeroSection() {
               <span>{"Mùa Mới • Sản Phẩm Giới Hạn"}</span>
             </div>
 
-            <h1 className="text-4xl lg:text-6xl font-bold text-balance leading-tight text-gray-900">
+            <h1 className="text-4xl lg:text-6xl font-bold text-balance leading-tight text-gray-900 tracking-wide antialiased font-[family-name:var(--font-playfair)]">
               {"Nâng Cấp "}
               <span className="text-green-600">{"Tủ Quần Áo"}</span>
               {" của bạn với "}
-              <span className="text-amber-500 font-extrabold">{"Thời Trang Hiện Đại"}</span>
+              <span className="text-amber-500 bg-gradient-to-r from-amber-500 to-yellow-500 bg-clip-text text-transparent">{"Thời Trang Hiện Đại"}</span>
 
             </h1>
 
