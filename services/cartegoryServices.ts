@@ -27,7 +27,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 'POST' | 'DELETE'; payload?: TReq }): Promise<TRes> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(baseUrl + path, {
+  const res = await fetch(`${baseUrl}${path}`, {
     method: options.method,
     headers: withAuth(defaultHeaders),
     credentials: 'include',

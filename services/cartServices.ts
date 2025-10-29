@@ -50,7 +50,7 @@ async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 
     // For GET requests with payload, send as body (special case for itemByOption API)
     const shouldUseBody = options.method !== 'GET' || options.useBodyForGet;
     
-    const res = await fetch(baseUrl + path, {
+    const res = await fetch(`${baseUrl}${path}`, {
       method: options.method,
       headers: withAuth(defaultHeaders),
       credentials: 'include',
@@ -115,7 +115,7 @@ export async function getCartItems(): Promise<GetCartItemsResponse> {
  * @throws {Error} If authentication fails or request fails
  */
 export async function addItemByOption(payload: GetCartItemByOptionRequest): Promise<GetCartItemByOptionResponse> {
-  return requestJson<GetCartItemByOptionRequest, GetCartItemByOptionResponse>('/Cart/itemByOption', { method: 'POST', payload });
+  return requestJson<GetCartItemByOptionRequest, GetCartItemByOptionResponse>('Cart/itemByOption', { method: 'POST', payload });
 }
 
 

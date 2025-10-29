@@ -42,7 +42,7 @@ async function requestJson<TReq, TRes>(path: string, options: { method: 'GET' | 
       withAuth({}) : // Don't set Content-Type for FormData, let browser set it
       withAuth(defaultHeaders);
 
-    const res = await fetch(baseUrl + path, {
+    const res = await fetch(`${baseUrl}${path}`, {
       method: options.method,
       headers,
       credentials: 'include',
@@ -97,7 +97,7 @@ export async function uploadSampleImage(file: File): Promise<UploadSampleImageRe
   const formData = new FormData();
   formData.append('file', file);
   
-  const uploadResponse = await requestJson<FormData, { success: boolean; data: string }>('/File/UploadImage', { 
+  const uploadResponse = await requestJson<FormData, { success: boolean; data: string }>('File/UploadImage', { 
     method: 'POST', 
     payload: formData,
     isFormData: true 

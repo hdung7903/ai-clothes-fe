@@ -31,7 +31,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 
 async function requestJson<TRes>(path: string): Promise<TRes> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + path;
+  const url = `${baseUrl}${path}`;
   const res = await fetch(url, {
     method: 'GET',
     headers: withAuth(defaultHeaders),
@@ -42,7 +42,7 @@ async function requestJson<TRes>(path: string): Promise<TRes> {
 
 export async function getProfile(jwt?: string): Promise<GetProfileResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + 'Account/Profile';
+  const url = `${baseUrl}Account/Profile`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   if (jwt) headers.set('Authorization', `Bearer ${jwt}`);
 
@@ -128,7 +128,7 @@ export async function getUsers(params: GetUsersParams): Promise<GetProfileRespon
     searchParams.append('Role', params.role);
   }
   
-  const url = baseUrl + '/Users?' + searchParams.toString();
+  const url = `${baseUrl}Users?${searchParams.toString()}`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   
   // Debug: Log the headers to check if token is included
@@ -221,7 +221,7 @@ export async function getUsersPaginated(params: GetUsersParams): Promise<GetUser
     searchParams.append('Role', params.role);
   }
   
-  const url = baseUrl + '/Users?' + searchParams.toString();
+  const url = `${baseUrl}Users?${searchParams.toString()}`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   
   const res = await fetch(url, {
@@ -268,7 +268,7 @@ export async function getUsersPaginated(params: GetUsersParams): Promise<GetUser
 // Ban/Unban user API
 export async function banUser(userId: string, isBanned: boolean, message?: string): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + `/Users/${userId}/Ban`;
+  const url = `${baseUrl}Users/${userId}/Ban`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');
 
@@ -298,7 +298,7 @@ export async function banUser(userId: string, isBanned: boolean, message?: strin
 // Change user role API
 export async function changeUserRole(userId: string, role: 'User' | 'Administrator'): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + `/Users/${userId}/Role?role=${role}`;
+  const url = `${baseUrl}Users/${userId}/Role?role=${role}`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
 
   console.log('changeUserRole request:', { url, headers: Object.fromEntries(headers.entries()) });
@@ -327,7 +327,7 @@ export interface UpdateUserInfoRequest {
 
 export async function updateUserInfo(request: UpdateUserInfoRequest): Promise<{ success: boolean; data?: string; errors?: Record<string, string[]>; validationErrors?: Record<string, string[]> }> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + '/Users/Info';
+  const url = `${baseUrl}Users/Info`;
   const headers = new Headers(withAuth(defaultHeaders) as HeadersInit);
   headers.set('Content-Type', 'application/json');
 

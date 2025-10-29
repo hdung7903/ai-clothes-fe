@@ -38,7 +38,7 @@ function withAuth(headers: HeadersInit): HeadersInit {
 // POST /Payment/QrCode
 export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Payment/QrCode', {
+  const res = await fetch(`${baseUrl}Payment/QrCode`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -50,7 +50,7 @@ export async function createQrCode(payload: QrCodeRequest): Promise<QrCodeRespon
 // POST /Payment/WebHook/Sepay
 export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayWebhookResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + '/Payment/WebHook/Sepay', {
+  const res = await fetch(`${baseUrl}Payment/WebHook/Sepay`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -62,7 +62,7 @@ export async function sepayWebHook(payload: SepayWebhookPayload): Promise<SepayW
 // POST /TokenPackage/Buy
 export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<TokenPackageBuyResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + 'TokenPackage/Buy', {
+  const res = await fetch(`${baseUrl}TokenPackage/Buy`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -74,7 +74,7 @@ export async function buyTokenPackage(payload: TokenPackageBuyRequest): Promise<
 // POST /Payment/CheckStatus
 export async function checkPaymentStatus(payload: CheckPaymentStatusRequest): Promise<CheckPaymentStatusResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + 'Payment/CheckStatus', {
+  const res = await fetch(`${baseUrl}Payment/CheckStatus`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -91,7 +91,7 @@ export async function checkPaymentStatus(payload: CheckPaymentStatusRequest): Pr
  */
 export async function checkOrderIsPaid(orderId: string): Promise<ApiEnvelope<boolean>> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `Order/${orderId}/IsPaid`, {
+  const res = await fetch(`${baseUrl}Order/${orderId}/IsPaid`, {
     method: 'GET',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -107,7 +107,7 @@ export async function checkOrderIsPaid(orderId: string): Promise<ApiEnvelope<boo
  */
 export async function checkTokenPackageIsPaid(paymentCode: string): Promise<ApiEnvelope<boolean>> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + 'TokenPackage/CheckIsPaid');
+  const url = new URL(`${baseUrl}TokenPackage/CheckIsPaid`);
   url.searchParams.append('paymentCode', paymentCode);
   
   const res = await fetch(url.toString(), {
@@ -130,7 +130,7 @@ export async function getTokenPackagePurchaseHistory(
   pageSize: number = 10
 ): Promise<TokenPackagePurchaseHistoryResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(baseUrl + 'TokenPackage/Admin/History');
+  const url = new URL(`${baseUrl}TokenPackage/Admin/History`);
   url.searchParams.append('PageNumber', pageNumber.toString());
   url.searchParams.append('PageSize', pageSize.toString());
   
@@ -149,7 +149,7 @@ export async function getTokenPackagePurchaseHistory(
  */
 export async function decreaseUserToken(): Promise<ApiEnvelope<number>> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + 'AiToken/DecreaseUserToken', {
+  const res = await fetch(`${baseUrl}AiToken/DecreaseUserToken`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',

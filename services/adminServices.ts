@@ -43,7 +43,7 @@ async function parseJsonSafe<T>(res: Response): Promise<T | null> {
 // API Services
 export async function getDashboardData(): Promise<DashboardDataResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + 'Statistics/DashboardData';
+  const url = `${baseUrl}Statistics/DashboardData`;
   
   const res = await fetch(url, {
     method: 'GET',
@@ -65,7 +65,7 @@ export async function getRevenue(params?: {
   orderType?: OrderType;
 }): Promise<RevenueSummaryResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = new URL(baseUrl + 'Statistics/Revenue');
+  const url = new URL(`${baseUrl}Statistics/Revenue`);
 
   if (params?.month !== undefined) url.searchParams.set('Month', String(params.month));
   if (params?.year !== undefined) url.searchParams.set('Year', String(params.year));

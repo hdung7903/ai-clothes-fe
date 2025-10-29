@@ -46,7 +46,7 @@ export async function searchSuggestionImages(
   if (query.SortBy) params.append('SortBy', query.SortBy)
   if (query.SortOrder) params.append('SortOrder', query.SortOrder)
 
-  const res = await fetch(`${baseUrl}/SuggestionImage/Search?${params.toString()}`, {
+  const res = await fetch(`${baseUrl}SuggestionImage/Search?${params.toString()}`, {
     method: 'GET',
     headers: getHeaders(),
     credentials: 'include',
@@ -59,7 +59,7 @@ export async function getSuggestionImageById(
   id: string
 ): Promise<ApiEnvelope<SuggestionImage>> {
   const baseUrl = getBaseUrl()
-  const res = await fetch(`${baseUrl}/SuggestionImage/${id}`, {
+  const res = await fetch(`${baseUrl}SuggestionImage/${id}`, {
     method: 'GET',
     headers: getHeaders(),
     credentials: 'include',
@@ -72,7 +72,7 @@ export async function createSuggestionImage(
   command: CreateSuggestionImageRequest
 ): Promise<ApiEnvelope<string>> {
   const baseUrl = getBaseUrl()
-  const res = await fetch(`${baseUrl}/SuggestionImage`, {
+  const res = await fetch(`${baseUrl}SuggestionImage`, {
     method: 'POST',
     headers: getHeaders(),
     credentials: 'include',
@@ -87,7 +87,7 @@ export async function updateSuggestionImage(
   command: UpdateSuggestionImageRequest
 ): Promise<ApiEnvelope<null>> {
   const baseUrl = getBaseUrl()
-  const res = await fetch(`${baseUrl}/SuggestionImage/${id}`, {
+  const res = await fetch(`${baseUrl}SuggestionImage/${id}`, {
     method: 'PUT',
     headers: getHeaders(),
     credentials: 'include',
@@ -101,7 +101,7 @@ export async function deleteSuggestionImageById(
   id: string
 ): Promise<ApiEnvelope<null>> {
   const baseUrl = getBaseUrl()
-  const res = await fetch(`${baseUrl}/SuggestionImage/${id}`, {
+  const res = await fetch(`${baseUrl}SuggestionImage/${id}`, {
     method: 'DELETE',
     headers: getHeaders(),
     credentials: 'include',

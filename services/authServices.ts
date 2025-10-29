@@ -34,7 +34,7 @@ const defaultHeaders: HeadersInit = {
 
 async function requestJson<TReq, TRes>(path: string, options: Omit<RequestInit, 'body'> & { payload?: TReq; query?: Record<string, string | number | boolean | undefined>; }): Promise<ApiEnvelope<TRes>> {
   const baseUrl = getApiBaseUrl();
-  const url = new URL(path, baseUrl);
+  const url = new URL(`${baseUrl}${path}`);
 
   if (options.query) {
     Object.entries(options.query).forEach(([key, value]) => {

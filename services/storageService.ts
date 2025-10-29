@@ -27,7 +27,7 @@ export async function uploadImage(file: File): Promise<UploadImageResponse> {
     headers['Authorization'] = `Bearer ${authToken}`;
   }
 
-  const res = await fetch(baseUrl + 'File/UploadImage', {
+  const res = await fetch(`${baseUrl}File/UploadImage`, {
     method: 'POST',
     body: form,
     credentials: 'include',

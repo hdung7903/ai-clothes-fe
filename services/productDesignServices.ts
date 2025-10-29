@@ -57,7 +57,7 @@ export interface SearchProductDesignsQuery {
 
 export async function createOrUpdateProductDesign(payload: CreateOrUpdateProductDesignRequest): Promise<CreateOrUpdateProductDesignResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + 'ProductDesign/CreateOrUpdateProductDesign', {
+  const res = await fetch(`${baseUrl}ProductDesign/CreateOrUpdateProductDesign`, {
     method: 'POST',
     headers: withAuth(defaultJsonHeaders),
     credentials: 'include',
@@ -73,7 +73,7 @@ export async function createOrUpdateProductDesign(payload: CreateOrUpdateProduct
 
 export async function searchProductDesigns(query: SearchProductDesignsQuery): Promise<SearchProductDesignsResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL('ProductDesign/Search', baseUrl);
+  const url = new URL(`${baseUrl}ProductDesign/Search`);
   Object.entries(query).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
   });
@@ -92,7 +92,7 @@ export async function searchProductDesigns(query: SearchProductDesignsQuery): Pr
 
 export async function getProductDesignById(productDesignId: string): Promise<GetProductDesignByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `ProductDesign/${encodeURIComponent(productDesignId)}`, {
+  const res = await fetch(`${baseUrl}ProductDesign/${encodeURIComponent(productDesignId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -107,7 +107,7 @@ export async function getProductDesignById(productDesignId: string): Promise<Get
 
 export async function deleteProductDesignById(productDesignId: string): Promise<DeleteProductDesignByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `ProductDesign/${encodeURIComponent(productDesignId)}`, {
+  const res = await fetch(`${baseUrl}ProductDesign/${encodeURIComponent(productDesignId)}`, {
     method: 'DELETE',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',
@@ -122,7 +122,7 @@ export async function deleteProductDesignById(productDesignId: string): Promise<
 
 export async function getProductDesignsByProduct(productId: string, productOptionValueId?: string): Promise<GetProductDesignsByProductResponse> {
   const baseUrl = getBaseUrl();
-  const url = new URL(`ProductDesign/Product/${encodeURIComponent(productId)}`, baseUrl);
+  const url = new URL(`${baseUrl}ProductDesign/Product/${encodeURIComponent(productId)}`);
   if (productOptionValueId) url.searchParams.set('productOptionValueId', productOptionValueId);
   const res = await fetch(url.toString(), {
     method: 'GET',

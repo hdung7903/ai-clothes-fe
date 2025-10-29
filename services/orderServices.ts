@@ -67,7 +67,7 @@ async function requestJson<TReq, TRes>(
   }
 ): Promise<ApiEnvelope<TRes>> {
   const baseUrl = getApiBaseUrl();
-  const url = new URL(path, baseUrl);
+  const url = new URL(`${baseUrl}${path}`);
 
   if (options.query) {
     Object.entries(options.query).forEach(([key, value]) => {
