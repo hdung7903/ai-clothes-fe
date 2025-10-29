@@ -127,7 +127,7 @@ export async function askQuestion(request: { question: string }): Promise<AskQue
  * Transform an image using AI
  */
 export async function transformImageAi(request: TransformImage): Promise<TransformImageResponse> {
-  return requestAiJson<TransformImage, TransformImageResponse>('transform_image_ai', { method: 'POST', payload: request });
+  return requestAiJson<TransformImage, TransformImageResponse>('/transform_image_ai', { method: 'POST', payload: request });
 }
 
 /**

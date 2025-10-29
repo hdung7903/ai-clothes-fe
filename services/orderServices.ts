@@ -377,3 +377,12 @@ export async function userCancelOrder(
 ): Promise<ApiEnvelope<string>> {
   return updateOrderStatusByUser(orderId, { action: 2 });
 }
+
+/**
+ * User: Cancel order (PENDING -> CANCELED) using action: 0
+ */
+export async function userCancelPendingOrder(
+  orderId: string
+): Promise<ApiEnvelope<string>> {
+  return updateOrderStatusByUser(orderId, { action: 0 });
+}

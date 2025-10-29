@@ -17,7 +17,7 @@ import { formatCurrency } from "../../../utils/format"
 import { useAppDispatch } from "@/redux/hooks"
 import { addItemAsync } from "@/redux/cartSlice"
 
-type PriceRange = 'all' | 'under-500k' | '500k-1m' | '1m-2m' | 'over-2m'
+type PriceRange = 'all' | '200-400' | '400-600' | 'over-600'
 type SortOption = 'newest' | 'oldest' | 'price-low' | 'price-high' | 'name-asc' | 'name-desc'
 
 export default function ProductsPage() {
@@ -52,14 +52,12 @@ export default function ProductsPage() {
   // Calculate min/max price based on selected range
   const priceFilter = useMemo(() => {
     switch (priceRange) {
-      case 'under-500k':
-        return { min: undefined, max: 500000 }
-      case '500k-1m':
-        return { min: 500000, max: 1000000 }
-      case '1m-2m':
-        return { min: 1000000, max: 2000000 }
-      case 'over-2m':
-        return { min: 2000000, max: undefined }
+      case '200-400':
+        return { min: 200000, max: 400000 }
+      case '400-600':
+        return { min: 400000, max: 600000 }
+      case 'over-600':
+        return { min: 600000, max: undefined }
       default:
         return { min: undefined, max: undefined }
     }
@@ -278,10 +276,10 @@ export default function ProductsPage() {
                     <div className="flex items-center space-x-2">
                       <input 
                         type="radio" 
-                        id="under-500k" 
+                        id="200-400" 
                         name="price" 
-                        value="under-500k" 
-                        checked={priceRange === 'under-500k'}
+                        value="200-400" 
+                        checked={priceRange === '200-400'}
                         onChange={(e) => {
                           setPriceRange(e.target.value as PriceRange)
                           setCurrentPage(1)
@@ -289,15 +287,15 @@ export default function ProductsPage() {
                         className="rounded" 
                         disabled={isLoading}
                       />
-                      <label htmlFor="under-500k" className="text-sm cursor-pointer">Dưới 500.000₫</label>
+                      <label htmlFor="200-400" className="text-sm cursor-pointer">200.000₫ - 400.000₫</label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input 
                         type="radio" 
-                        id="500k-1m" 
+                        id="400-600" 
                         name="price" 
-                        value="500k-1m" 
-                        checked={priceRange === '500k-1m'}
+                        value="400-600" 
+                        checked={priceRange === '400-600'}
                         onChange={(e) => {
                           setPriceRange(e.target.value as PriceRange)
                           setCurrentPage(1)
@@ -305,15 +303,15 @@ export default function ProductsPage() {
                         className="rounded" 
                         disabled={isLoading}
                       />
-                      <label htmlFor="500k-1m" className="text-sm cursor-pointer">500.000₫ - 1.000.000₫</label>
+                      <label htmlFor="400-600" className="text-sm cursor-pointer">400.000₫ - 600.000₫</label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <input 
                         type="radio" 
-                        id="1m-2m" 
+                        id="over-600" 
                         name="price" 
-                        value="1m-2m" 
-                        checked={priceRange === '1m-2m'}
+                        value="over-600" 
+                        checked={priceRange === 'over-600'}
                         onChange={(e) => {
                           setPriceRange(e.target.value as PriceRange)
                           setCurrentPage(1)
@@ -321,23 +319,7 @@ export default function ProductsPage() {
                         className="rounded" 
                         disabled={isLoading}
                       />
-                      <label htmlFor="1m-2m" className="text-sm cursor-pointer">1.000.000₫ - 2.000.000₫</label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input 
-                        type="radio" 
-                        id="over-2m" 
-                        name="price" 
-                        value="over-2m" 
-                        checked={priceRange === 'over-2m'}
-                        onChange={(e) => {
-                          setPriceRange(e.target.value as PriceRange)
-                          setCurrentPage(1)
-                        }}
-                        className="rounded" 
-                        disabled={isLoading}
-                      />
-                      <label htmlFor="over-2m" className="text-sm cursor-pointer">Trên 2.000.000₫</label>
+                      <label htmlFor="over-600" className="text-sm cursor-pointer">Trên 600.000₫</label>
                     </div>
                   </div>
                 </div>

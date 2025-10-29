@@ -86,7 +86,7 @@ export type DeleteSampleImageResponse = ApiEnvelope<boolean>;
  * Get all sample images
  */
 export async function getSampleImages(): Promise<GetSampleImagesResponse> {
-  return requestJson<never, GetSampleImagesResponse>('/SampleImage', { method: 'GET' });
+  return requestJson<never, GetSampleImagesResponse>('SampleImage', { method: 'GET' });
 }
 
 /**

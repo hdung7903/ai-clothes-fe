@@ -68,7 +68,7 @@ export async function searchProducts(query: SearchProductsQuery): Promise<Search
 
 export async function getProductById(productId: string): Promise<GetProductByIdResponse> {
   const baseUrl = getBaseUrl();
-  const res = await fetch(baseUrl + `/Product/${encodeURIComponent(productId)}`, {
+  const res = await fetch(baseUrl + `Product/${encodeURIComponent(productId)}`, {
     method: 'GET',
     headers: withAuth({ 'Accept': 'application/json' }),
     credentials: 'include',

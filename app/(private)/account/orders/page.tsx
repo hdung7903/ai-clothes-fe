@@ -8,14 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { getOrderById, getUserOrders, userConfirmOrderReceived } from "@/services/orderServices"
+import { getOrderById, getUserOrders, userConfirmOrderReceived, userCancelPendingOrder } from "@/services/orderServices"
 import { createFeedback } from "@/services/feedbackServices"
 import type { GetOrderByIdResponse, GetOrdersResponse, OrderItemResponse } from "@/types/order"
 import { formatCurrency } from "@/utils/format"
 import { useAppSelector, useAppDispatch } from "@/redux/hooks"
 import { useRouter } from "next/navigation"
 import { addItemAsync } from "@/redux/cartSlice"
-import { ShoppingCart, Package, Star, CheckCircle } from "lucide-react"
+import { ShoppingCart, Package, Star, CheckCircle, X } from "lucide-react"
 import { toast } from "sonner"
 
 export default function OrdersPage() {
@@ -41,6 +41,7 @@ export default function OrdersPage() {
   const [rating, setRating] = useState(5)
   const [submittingFeedback, setSubmittingFeedback] = useState(false)
   const [confirmingOrder, setConfirmingOrder] = useState(false)
+  const [cancellingOrder, setCancellingOrder] = useState(false)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -228,6 +229,39 @@ export default function OrdersPage() {
     }
   }
 
+  // Handle cancel order (PENDING -> CANCELED) using action: 0
+  const handleCancelOrder = async (orderId: string) => {
+    setCancellingOrder(true)
+    try {
+      const response = await userCancelPendingOrder(orderId)
+      if (response.success) {
+        toast.success("Đã hủy đơn hàng thành công!")
+        // Reload orders list
+        const res = await getUserOrders(pageNumber, pageSize)
+        if (res.success && res.data) {
+          setOrders(res.data.items)
+        }
+        // Reload detail if open
+        if (selectedOrderId === orderId && detailOpen) {
+          const detailRes = await getOrderById(orderId)
+          if (detailRes.success && detailRes.data) {
+            setOrderDetail(detailRes.data)
+          }
+        }
+      } else {
+        const errorMsg = response.errors 
+          ? Object.values(response.errors).flat().join(", ")
+          : "Không thể hủy đơn hàng"
+        toast.error(errorMsg)
+      }
+    } catch (error) {
+      console.error("Error canceling order:", error)
+      toast.error("Có lỗi xảy ra khi hủy đơn hàng")
+    } finally {
+      setCancellingOrder(false)
+    }
+  }
+
   // Open feedback dialog
   const openFeedbackDialog = (orderId: string) => {
     setSelectedOrderId(orderId)
@@ -383,6 +417,20 @@ export default function OrdersPage() {
                             Chi tiết
                           </Button>
                           
+                          {/* Show "Hủy đơn" when status is PENDING */}
+                          {o.status === "PENDING" && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleCancelOrder(o.orderId)}
+                              disabled={cancellingOrder}
+                              className="gap-2"
+                            >
+                              <X className="h-4 w-4" />
+                              Hủy đơn
+                            </Button>
+                          )}
+
                           {/* Show "Xác nhận đã nhận" button when status is SHIPPED */}
                           {o.status === "SHIPPED" && (
                             <Button
