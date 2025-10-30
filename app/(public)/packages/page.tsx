@@ -36,9 +36,10 @@ const packages = [
       "Truy cập thư viện mẫu cơ bản",
       "Xuất file chất lượng tiêu chuẩn",
       "Hỗ trợ qua email",
+      "Nhận ngay 5 lượt tạo ảnh AI bất kỳ",
     ],
     limitations: [
-      "Nhận ngay 5 lượt tạo ảnh AI bất kỳ",
+      
     ]
   },
   {
