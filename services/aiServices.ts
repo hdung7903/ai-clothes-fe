@@ -120,21 +120,21 @@ export async function askQuestion(request: { question: string }): Promise<AskQue
   // For development/testing - you can uncomment this to use mock responses
   // return mockAskQuestionResponse(requestWithUserId);
   
-  return requestAiJson<AskData, AskQuestionResponse>('ask_user', { method: 'POST', payload: requestWithUserId });
+  return requestAiJson<AskData, AskQuestionResponse>('/ask_user', { method: 'POST', payload: requestWithUserId });
 }
 
 /**
  * Transform an image using AI
  */
 export async function transformImageAi(request: TransformImage): Promise<TransformImageResponse> {
-  return requestAiJson<TransformImage, TransformImageResponse>('transform_image_ai', { method: 'POST', payload: request });
+  return requestAiJson<TransformImage, TransformImageResponse>('/transform_image_ai', { method: 'POST', payload: request });
 }
 
 /**
  * Generate a new image using AI
  */
 export async function generateNewImage(request: GenerateNewImage): Promise<GenerateImageResponse> {
-  return requestAiJson<GenerateNewImage, GenerateImageResponse>('generate_new_image', { method: 'POST', payload: request });
+  return requestAiJson<GenerateNewImage, GenerateImageResponse>('/generate_new_image', { method: 'POST', payload: request });
 }
 
 /**
@@ -171,7 +171,7 @@ export async function askSimpleQuestion(question: string): Promise<AskQuestionRe
  * Transform image with URL
  */
 export async function transformImageWithUrl(imageUrl: string, prompt: string, style?: string, strength?: number): Promise<TransformImageResponse> {
-  return requestAiJson<TransformImage, TransformImageResponse>('transform_image_ai', { method: 'POST', payload: { image_url: imageUrl, prompt, style, strength } });
+  return transformImageAi({ image_url: imageUrl, prompt, style, strength });
 }
 
 /**
