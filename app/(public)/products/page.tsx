@@ -28,8 +28,7 @@ export default function ProductsPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [currentPage, setCurrentPage] = useState(1)
   const [error, setError] = useState<string | null>(null)
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<any[]>([]) // For TreeSelect with treeCheckStrictly
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>(undefined)
   const [categories, setCategories] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState<string>("")
   const [searchInput, setSearchInput] = useState<string>("") // For debounced search
@@ -81,21 +80,16 @@ export default function ProductsPage() {
     }
   }, [sortOption])
 
-    const hasActiveFilters = searchTerm || selectedCategoryIds.length > 0 || priceRange !== 'all'
+    const hasActiveFilters = searchTerm || selectedCategoryId || priceRange !== 'all'
 
   // Load products function with proper API integration
   const loadProducts = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     try {
-      // Extract actual ID values from TreeSelect format
-      const categoryId = selectedCategoryIds.length > 0 
-        ? selectedCategoryIds[0]
-        : undefined
-
       const query: SearchProductsQuery = {
         SearchTerm: searchTerm || undefined,
-        CategoryId: categoryId,
+        CategoryId: selectedCategoryId,
         MinPrice: priceFilter.min,
         MaxPrice: priceFilter.max,
         SortBy: sortParams.sortBy,
@@ -123,7 +117,7 @@ export default function ProductsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [searchTerm, selectedCategoryIds, priceFilter.min, priceFilter.max, sortParams.sortBy, sortParams.sortDesc, currentPage, pageSize])
+  }, [searchTerm, selectedCategoryId, priceFilter.min, priceFilter.max, sortParams.sortBy, sortParams.sortDesc, currentPage, pageSize])
 
   // Manual search handler
   const handleSearch = () => {
@@ -160,8 +154,7 @@ export default function ProductsPage() {
   const handleClearFilters = () => {
     setSearchInput("")
     setSearchTerm("")
-    setSelectedCategoryIds([])
-    setSelectedCategories([])
+    setSelectedCategoryId(undefined)
     setPriceRange('all')
     setSortOption('newest')
     setCurrentPage(1)
@@ -230,26 +223,16 @@ export default function ProductsPage() {
                   <label className="text-sm font-medium">Danh mục</label>
                   <TreeSelect
                     style={{ width: '100%' }}
-                    value={selectedCategories}
+                    value={selectedCategoryId}
                     onChange={(value) => {
-                      // Normalize to array (handles single object/value just in case)
-                      const nextSelected = Array.isArray(value) ? value : (value ? [value as any] : [])
-                      setSelectedCategories(nextSelected)
-                      // Extract IDs for API call from either objects or primitive values
-                      const ids = nextSelected.map((v: any) =>
-                        v && typeof v === 'object' && 'value' in v ? v.value : v
-                      ).filter(Boolean)
-                      setSelectedCategoryIds(ids)
-                      setCurrentPage(1) // Reset to first page
+                      setSelectedCategoryId(value)
+                      setCurrentPage(1)
                     }}
                     treeData={convertToTreeData(categories)}
-                    treeCheckable={true}
-                    showCheckedStrategy={TreeSelect.SHOW_PARENT}
-                    treeCheckStrictly={true}
                     placeholder="Chọn danh mục"
-                    maxTagCount="responsive"
                     treeDefaultExpandAll={false}
                     disabled={isLoading}
+                    allowClear
                   />
                 </div>
 
