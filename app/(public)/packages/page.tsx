@@ -38,7 +38,7 @@ const packages = [
       "Hỗ trợ qua email",
     ],
     limitations: [
-      "Giới hạn 5 token AI/ngày",
+      "Nhận ngay 5 lượt tạo ảnh AI bất kỳ",
     ]
   },
   {
