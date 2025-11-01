@@ -39,12 +39,12 @@ export function Footer() {
                 </a>
               </Button>
               <Button variant="ghost" size="icon" asChild>
-                <a href="https://www.instagram.com/_teecraft.5?igsh=eGM3em42MzZjdWJ4&utm_source=qr" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.instagram.com/teecraft.5/" target="_blank" rel="noopener noreferrer">
                   <Instagram className="h-5 w-5" />
                 </a>
               </Button>
               <Button variant="ghost" size="icon" asChild>
-                <a href="https://www.tiktok.com/@teecraft5?_t=ZS-90tJ8oRyEqe&_r=1" target="_blank" rel="noopener noreferrer">
+                <a href="https://www.tiktok.com/@teecraft5" target="_blank" rel="noopener noreferrer">
                   <TikTokIcon />
                 </a>
               </Button>
