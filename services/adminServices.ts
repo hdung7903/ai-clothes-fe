@@ -45,9 +45,21 @@ export async function getDashboardData(): Promise<DashboardDataResponse> {
   return res.json() as Promise<DashboardDataResponse>;
 }
 
-export async function getRevenueStatistics(): Promise<DashboardDataResponse> {
+export type RevenueStatisticsResponse = ApiEnvelope<RevenueSummary>;
+
+export async function getRevenueStatistics(params: {
+  month?: number;
+  year?: number;
+  orderType?: OrderType;
+}): Promise<RevenueStatisticsResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = baseUrl + '/Statistics/RevenueStatistics';
+  const queryParams = new URLSearchParams();
+  
+  if (params.month !== undefined) queryParams.append('Month', params.month.toString());
+  if (params.year !== undefined) queryParams.append('Year', params.year.toString());
+  if (params.orderType) queryParams.append('OrderType', params.orderType);
+  
+  const url = `${baseUrl}Statistics/Revenue?${queryParams.toString()}`;
 
   const res = await fetch(url, {
     method: 'GET',
@@ -55,7 +67,7 @@ export async function getRevenueStatistics(): Promise<DashboardDataResponse> {
     credentials: 'include',
   });
 
-  return res.json() as Promise<DashboardDataResponse>;
+  return res.json() as Promise<RevenueStatisticsResponse>;
 }
 
 

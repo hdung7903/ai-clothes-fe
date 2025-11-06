@@ -1,6 +1,6 @@
 "use client"
 
-import { getRevenue } from '@/services/adminServices';
+import { getRevenueStatistics } from '@/services/adminServices';
 import type { OrderType } from '@/types/admin';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -55,7 +55,7 @@ export default function Page() {
       try {
         setLoading(true);
         setError(null);
-        const res = await getRevenue({ month, year, orderType });
+        const res = await getRevenueStatistics({ month, year, orderType });
         if (res.success && res.data) {
           setTotals({
             totalRevenue: res.data.totalRevenue,
