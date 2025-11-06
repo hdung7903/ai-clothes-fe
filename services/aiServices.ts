@@ -155,7 +155,7 @@ export async function deleteProduct(request: ModifyProduct): Promise<DeleteProdu
  * Update API key (Admin only)
  */
 export async function updateApiKey(request: ApiAi): Promise<UpdateApiKeyResponse> {
-  return requestAiJson<ApiAi, UpdateApiKeyResponse>('admin/update_api', { method: 'POST', payload: request });
+  return requestAiJson<ApiAi, UpdateApiKeyResponse>('/admin/update_api', { method: 'POST', payload: request });
 }
 
 // Utility functions for common use cases

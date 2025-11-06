@@ -30,60 +30,32 @@ function withAuth(headers: HeadersInit): HeadersInit {
 }
 
 export type DashboardDataResponse = ApiEnvelope<DashboardData>;
-export type RevenueSummaryResponse = ApiEnvelope<RevenueSummary>;
-
-async function parseJsonSafe<T>(res: Response): Promise<T | null> {
-  try {
-    return (await res.json()) as T;
-  } catch (_e) {
-    return null;
-  }
-}
 
 // API Services
 export async function getDashboardData(): Promise<DashboardDataResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = `${baseUrl}Statistics/DashboardData`;
+  const url = baseUrl + '/Statistics/DashboardData';
   
   const res = await fetch(url, {
     method: 'GET',
     headers: withAuth(defaultHeaders),
     credentials: 'include',
   });
-
-  const data = await parseJsonSafe<DashboardDataResponse>(res);
-  if (data) return data;
-  return {
-    success: false,
-    errors: { response: ['Invalid or empty JSON from /Statistics/DashboardData'] },
-  } as DashboardDataResponse;
+  
+  return res.json() as Promise<DashboardDataResponse>;
 }
 
-export async function getRevenue(params?: {
-  month?: number;
-  year?: number;
-  orderType?: OrderType;
-}): Promise<RevenueSummaryResponse> {
+export async function getRevenueStatistics(): Promise<DashboardDataResponse> {
   const baseUrl = getApiBaseUrl();
-  const url = new URL(`${baseUrl}Statistics/Revenue`);
+  const url = baseUrl + '/Statistics/RevenueStatistics';
 
-  if (params?.month !== undefined) url.searchParams.set('Month', String(params.month));
-  if (params?.year !== undefined) url.searchParams.set('Year', String(params.year));
-  if (params?.orderType !== undefined) {
-    const normalized = String(params.orderType).toUpperCase() as OrderType;
-    url.searchParams.set('OrderType', normalized);
-  }
-
-  const res = await fetch(url.toString(), {
+  const res = await fetch(url, {
     method: 'GET',
     headers: withAuth(defaultHeaders),
     credentials: 'include',
   });
 
-  const data = await parseJsonSafe<RevenueSummaryResponse>(res);
-  if (data) return data;
-  return {
-    success: false,
-    errors: { response: ['Invalid or empty JSON from /Statistics/Revenue'] },
-  } as RevenueSummaryResponse;
+  return res.json() as Promise<DashboardDataResponse>;
 }
+
+
