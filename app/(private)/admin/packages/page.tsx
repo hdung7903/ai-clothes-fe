@@ -266,7 +266,6 @@ export default function AdminPackagesPage() {
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <DollarSign className="h-4 w-4 text-green-600" />
                                 <span className="font-semibold text-green-600">
                                   {formatCurrency(item.price, "VND", "vi-VN")}
                                 </span>

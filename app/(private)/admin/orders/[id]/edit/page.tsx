@@ -82,7 +82,7 @@ const ALLOWED_TARGETS: Record<string, string[]> = {
   PENDING: ['ACCEPTED', 'REJECTED'],
   ACCEPTED: ['PROCESSING', 'REJECTED'],
   PROCESSING: ['SHIPPED', 'REJECTED'],
-  SHIPPED: ['RETURNED'],
+  SHIPPED: ['RETURNED','CONFIRM_RECEIVED'],
   CONFIRM_RECEIVED: [],  // Final state
   REJECTED: [],          // Final state
   CANCELLED: [],         // Final state
