@@ -52,7 +52,7 @@ export function HeroSection() {
                 className="text-lg px-8 py-6 bg-white border-2 border-green-600 text-green-600 hover:bg-green-50"
                 asChild
               >
-                <a href="/packages">
+                <a href="/design">
                   {"Trải nghiệm Thiết Kế"}
                 </a>
               </Button>

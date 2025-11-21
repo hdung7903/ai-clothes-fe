@@ -64,11 +64,11 @@ export function Footer() {
                   {"Danh Mục Sản Phẩm"}
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a href="/packages" className="hover:text-primary transition-colors">
                   {"Gói Token"}
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a href="/cart" className="hover:text-primary transition-colors">
                   {"Giỏ Hàng"}

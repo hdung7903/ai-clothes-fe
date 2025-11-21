@@ -87,13 +87,13 @@ export function Header() {
             Sản Phẩm
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 transition-all group-hover:w-full"></span>
           </Link>
-          <Link 
+          {/* <Link 
             href="/packages" 
             className="text-foreground hover:text-green-600 dark:hover:text-green-400 transition-all font-medium relative group"
           >
             Gói Dịch Vụ
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-600 dark:bg-green-400 transition-all group-hover:w-full"></span>
-          </Link>
+          </Link> */}
           <Link 
             href="/about" 
             className="text-foreground hover:text-green-600 dark:hover:text-green-400 transition-all font-medium relative group"
@@ -234,13 +234,13 @@ export function Header() {
                   >
                     Sản Phẩm
                   </Link>
-                  <Link 
+                  {/* <Link 
                     href="/packages" 
                     className="text-foreground hover:text-green-600 dark:hover:text-green-400 transition-colors py-3 px-2 rounded-md hover:bg-green-50 dark:hover:bg-green-950 font-medium"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Gói Dịch Vụ
-                  </Link>
+                  </Link> */}
                   <Link 
                     href="/about" 
                     className="text-foreground hover:text-green-600 dark:hover:text-green-400 transition-colors py-3 px-2 rounded-md hover:bg-green-50 dark:hover:bg-green-950 font-medium"
