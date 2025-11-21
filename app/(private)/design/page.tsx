@@ -5,36 +5,21 @@ import type { ReactElement } from "react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Send, ImageIcon, ArrowLeft, Upload, Sparkles, Loader2, Download, X } from "lucide-react";
 import Link from "next/link";
 import TShirtDesigner, { type CanvasRef } from "@/components/design/FabricCanvas";
 import { transformImageAi, generateNewImage, askSimpleQuestion } from "@/services/aiServices";
-import { decreaseUserToken } from "@/services/paymentServices";
-import { useAppSelector, useAppDispatch } from "@/redux/hooks";
-import { updateTokenCount } from "@/redux/authSlice";
+import { useAppSelector } from "@/redux/hooks";
 import { base64ToDataUrl } from "@/utils/image";
 
 // Interface cho pending images (chờ lưu vào canvas)
@@ -107,13 +92,7 @@ const getInitialMessages = (): Message[] => {
 };
 
 export default function DesignToolPage(): ReactElement {
-  const dispatch = useAppDispatch();
   const authUserId = useAppSelector((s) => s.auth.user?.id);
-  const user = useAppSelector((s) => s.auth.user);
-  
-  // Lấy tokenCount từ Redux (đã được fetch bởi Redux Provider)
-  const tokenCount = user?.tokenCount ?? 0;
-  const hasTokens = tokenCount > 0;
   
   const [messages, setMessages] = useState<Message[]>(loadMessagesFromStorage);
   const [input, setInput] = useState("");
@@ -124,20 +103,9 @@ export default function DesignToolPage(): ReactElement {
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   const [imageLoading, setImageLoading] = useState(false);
-  const [showTokenDialog, setShowTokenDialog] = useState(false);
-  const [showTokenPopover, setShowTokenPopover] = useState(false); // Popover cho badge token
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<CanvasRef>(null); // Ref để gọi addImageDecoration
-
-  // Auto show popover khi token = 0
-  useEffect(() => {
-    if (!hasTokens) {
-      setShowTokenPopover(true);
-    } else {
-      setShowTokenPopover(false);
-    }
-  }, [hasTokens]);
 
   // Clear localStorage on mount để đảm bảo reset khi F5
   useEffect(() => {
@@ -208,12 +176,6 @@ export default function DesignToolPage(): ReactElement {
   const handleTransformImage = async (isGenerate: boolean = false) => {
     if (isLoading) return; 
     
-    // Check token trước khi thực hiện
-    if (!hasTokens) {
-      setShowTokenDialog(true);
-      return;
-    }
-    
     if (!input.trim() && !uploadedImage) {
       alert("Vui lòng nhập prompt hoặc upload ảnh.");
       return;
@@ -237,17 +199,6 @@ export default function DesignToolPage(): ReactElement {
     setMessages((prev) => [...prev, userMessage]);
 
     try {
-      // Trừ token trước khi gọi AI
-      const tokenResponse = await decreaseUserToken();
-      if (!tokenResponse.success) {
-        throw new Error("Không thể trừ token. Vui lòng kiểm tra số dư token của bạn.");
-      }
-      
-      // Cập nhật token count trong Redux store (không reload trang)
-      if (tokenResponse.data !== undefined) {
-        dispatch(updateTokenCount(tokenResponse.data));
-      }
-      
       // Call AI service directly
       let imageUrl = "";
       if (isGenerate) {
@@ -393,57 +344,13 @@ export default function DesignToolPage(): ReactElement {
           <div className="flex items-center gap-2">
             <Link href="/account/designs">
               <Button variant="outline" size="sm">
-                Thiết kế của tôi
-                
+                Thiết kế của tôi            
               </Button>
             </Link>
-            <Popover open={showTokenPopover} onOpenChange={setShowTokenPopover}>
-              <PopoverTrigger asChild>
-                <Badge 
-                  variant={hasTokens ? "default" : "destructive"} 
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  {tokenCount} Tokens
-                </Badge>
-              </PopoverTrigger>
-              {!hasTokens && (
-                <PopoverContent 
-                  className="w-80 p-4" 
-                  side="bottom"
-                  align="end"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="bg-red-100 p-2 rounded-full">
-                        <Sparkles className="h-5 w-5 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-sm text-gray-900 mb-1">
-                          ⚠️ Bạn đã hết token AI
-                        </h4>
-                        <p className="text-xs text-gray-600">
-                          Mua thêm token để sử dụng tính năng AI tạo ảnh, transform ảnh và chat với trợ lý thiết kế thông minh.
-                        </p>
-                      </div>
-                    </div>
-                    <Link href="/packages" className="block" onClick={() => setShowTokenPopover(false)}>
-                      <Button className="w-full bg-green-600 hover:bg-green-700" size="sm">
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        Mua Token Ngay
-                      </Button>
-                    </Link>
-                    <div className="flex items-center justify-between pt-2 border-t">
-                      <p className="text-xs text-gray-500">
-                        Token hiện tại:
-                      </p>
-                      <span className="text-sm font-bold text-red-600">{tokenCount}</span>
-                    </div>
-                  </div>
-                </PopoverContent>
-              )}
-            </Popover>
-            <Badge variant="secondary">Beta</Badge>
+            <Badge variant="secondary">
+              <Sparkles className="h-3 w-3 mr-1" />
+              Beta
+            </Badge>
           </div>
         </div>
       </div>
@@ -572,7 +479,7 @@ export default function DesignToolPage(): ReactElement {
                 <Textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={hasTokens ? "Mô tả ý tưởng thiết kế hoặc prompt cho AI image..." : "Bạn cần mua token để sử dụng AI"}
+                  placeholder="Mô tả ý tưởng thiết kế hoặc prompt cho AI image..."
                   className="min-h-[60px] resize-none"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
@@ -580,7 +487,7 @@ export default function DesignToolPage(): ReactElement {
                       handleSendMessage();
                     }
                   }}
-                  disabled={isLoading || !hasTokens}
+                  disabled={isLoading}
                 />
               </div>
               <Tooltip>
@@ -627,14 +534,14 @@ export default function DesignToolPage(): ReactElement {
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               className="w-full mb-2 flex items-center gap-2"
-              disabled={isLoading || !hasTokens}
+              disabled={isLoading}
             >
               <Upload className="h-4 w-4" />
-              {hasTokens ? "Upload Ảnh Để Transform" : "Cần token để upload"}
+              Upload Ảnh Để Transform
             </Button>
 
             <div className="grid grid-cols-2 gap-2 mb-2">
-              <Select value={style} onValueChange={setStyle} disabled={isLoading || !hasTokens}>
+              <Select value={style} onValueChange={setStyle} disabled={isLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Style" />
                 </SelectTrigger>
@@ -646,7 +553,7 @@ export default function DesignToolPage(): ReactElement {
                   <SelectItem value="cyberpunk">Cyberpunk</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={quality} onValueChange={setQuality} disabled={isLoading || !hasTokens}>
+              <Select value={quality} onValueChange={setQuality} disabled={isLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>
@@ -663,7 +570,7 @@ export default function DesignToolPage(): ReactElement {
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(false)}
-                      disabled={isLoading || !uploadedImage || !hasTokens}
+                      disabled={isLoading || !uploadedImage}
                       className="w-full"
                       variant="default"
                     >
@@ -678,7 +585,7 @@ export default function DesignToolPage(): ReactElement {
                   <span className="flex-1">
                     <Button
                       onClick={() => handleTransformImage(true)}
-                      disabled={isLoading || !input.trim() || !hasTokens}
+                      disabled={isLoading || !input.trim()}
                       className="w-full"
                       variant="secondary"
                     >
@@ -712,38 +619,6 @@ export default function DesignToolPage(): ReactElement {
         </div>
       </div>
 
-      {/* Dialog mua token - chỉ hiện khi user cố gắng dùng AI mà hết token */}
-      <Dialog open={showTokenDialog} onOpenChange={setShowTokenDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex justify-center mb-4">
-              <Sparkles className="h-12 w-12 text-yellow-500" />
-            </div>
-            <DialogTitle className="text-center text-xl">Bạn đã hết token AI</DialogTitle>
-            <DialogDescription className="text-center">
-              Bạn cần mua thêm token để sử dụng tính năng AI tạo ảnh và chat với trợ lý thiết kế.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 mt-4">
-            <Link href="/packages" className="block">
-              <Button className="w-full bg-green-600 hover:bg-green-700">
-                <Sparkles className="h-4 w-4 mr-2" />
-                Mua Token Ngay
-              </Button>
-            </Link>
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => setShowTokenDialog(false)}
-            >
-              Đóng
-            </Button>
-            <p className="text-xs text-center text-gray-500">
-              Token hiện tại: {tokenCount}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
       </div>
     </TooltipProvider>
   );
