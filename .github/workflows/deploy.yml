@@ -18,70 +18,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-
-      - name: Build application
-        run: npm run build
-        env:
-          NEXT_TELEMETRY_DISABLED: 1
-
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ env.DOCKER_IMAGE }}:${{ github.sha }} .
-          docker tag ${{ env.DOCKER_IMAGE }}:${{ github.sha }} ${{ env.DOCKER_IMAGE }}:latest
-
-      - name: Save Docker image
-        run: docker save ${{ env.DOCKER_IMAGE }}:latest | gzip > image.tar.gz
-
-      - name: Copy files to server
+      - name: Copy files to VPS
         uses: appleboy/scp-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "image.tar.gz,docker-compose.prod.yml"
-          target: ${{ env.SERVER_PATH }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: ".,!node_modules,!dist"
+          target: "/var/www/ai-clothes-fe"
+          rm: true
 
-      - name: Deploy to server
+      - name: Build and run Docker on VPS
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
           script: |
-            cd ${{ env.SERVER_PATH }}
-            
-            # Load Docker image
-            docker load < image.tar.gz
-            
-            # Stop old containers
-            docker-compose -f docker-compose.prod.yml down
-            
-            # Start new containers
-            docker-compose -f docker-compose.prod.yml up -d
-            
-            # Clean up
-            rm image.tar.gz
+            cd /var/www/ai-clothes-fe
+            docker stop ${DOCKER_IMAGE} || true
+            docker rm ${DOCKER_IMAGE} || true
+            docker compose up --build -d
             docker image prune -f
-            
-            echo "Deployment completed!"
-
-      - name: Health Check
-        run: |
-          sleep 10
-          curl -f http://${{ secrets.SERVER_HOST }}:3000 || exit 1
-
-      - name: Notify on success
-        if: success()
-        run: echo "🎉 Deployment successful!"
-
-      - name: Notify on failure
-        if: failure()
-        run: echo "❌ Deployment failed!"
+            echo "Deployment completed successfully!"
